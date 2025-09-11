@@ -9,12 +9,35 @@ buildscript {
     }
     repositories {
         google()
+        maven {
+            url "https://repo1.maven.org/maven2"
+        }
+        maven { url "https://maven.aliyun.com/repository/public" }
+        maven { url "https://maven.aliyun.com/repository/google" }
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle")
+        classpath("com.android.tools.build:gradle:8.10.1")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    }
+}
+allprojects {
+    repositories {
+        google()
+
+        // Maven Central mirror nhanh hơn
+        maven { url "https://repo1.maven.org/maven2" }
+
+        // Backup mirror từ Aliyun (TQ)
+        maven { url "https://maven.aliyun.com/repository/public" }
+
+        maven { url "https://jitpack.io" }
+        // Mintegral
+        maven { url "https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea" }
+        // Pangle
+        maven { url "https://artifact.bytedance.com/repository/pangle" }
     }
 }
 
