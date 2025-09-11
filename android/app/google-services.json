@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "399308355371",
+    "project_id": "backgroundrecorder-298fd",
+    "storage_bucket": "backgroundrecorder-298fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:399308355371:android:793ac580b5999737e9776e",
+        "android_client_info": {
+          "package_name": "boom.bvr.recorder.pro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaICuDl2h1QhhYwLgvCclw8PHb9XSv1Kk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

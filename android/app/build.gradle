@@ -77,9 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.bgrecorder"
+    namespace "boom.bvr.recorder.pro"
     defaultConfig {
-        applicationId "com.bgrecorder"
+    applicationId "boom.bvr.recorder.pro"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -116,4 +116,18 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-config'
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation  'com.google.ads.mediation:inmobi:10.8.7.0'
+    implementation  'com.google.ads.mediation:ironsource:8.10.0.0'
+    implementation  'com.google.ads.mediation:vungle:7.5.1.0'
+    implementation  'com.google.ads.mediation:mintegral:16.9.91.0'
+    implementation  'com.google.ads.mediation:pangle:7.5.0.2.0'
+    implementation  'com.unity3d.ads:unity-ads:4.16.0'
+    implementation  'com.google.ads.mediation:unity:4.16.0.1'
+    implementation  'com.google.ads.mediation:applovin:13.3.1.1'
+    implementation 'com.google.ads.mediation:adcolony:4.8.0.0'
 }

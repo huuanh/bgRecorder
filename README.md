@@ -1,3 +1,34 @@
+# AdMob Integration
+
+Đã cài đặt thư viện `react-native-google-mobile-ads`.
+
+**Các bước cấu hình:**
+
+1. Thêm App ID vào AndroidManifest.xml:
+```xml
+<meta-data
+	android:name="com.google.android.gms.ads.APPLICATION_ID"
+	android:value="ca-app-pub-xxxxxxxx~yyyyyyyyyy" />
+```
+Thay thế bằng App ID của bạn.
+
+2. Link native modules (nếu chưa tự động):
+```sh
+npx pod-install
+```
+
+3. Sử dụng trong code:
+```tsx
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+<BannerAd
+	unitId={TestIds.BANNER}
+	size={BannerAdSize.FULL_BANNER}
+	requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+/>
+```
+
+Xem thêm hướng dẫn chi tiết tại: https://invertase.io/oss/react-native-google-mobile-ads/quick-start
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
