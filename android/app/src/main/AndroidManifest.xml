@@ -18,6 +18,9 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- For foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
       android:name=".MainApplication"
@@ -43,5 +46,13 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+      
+      <!-- Background Video Recording Service -->
+      <service
+        android:name="boom.bvr.recorder.pro.VideoRecordingService"
+        android:enabled="true"
+        android:exported="false"
+        android:foregroundServiceType="camera|microphone" />
+        
     </application>
 </manifest>

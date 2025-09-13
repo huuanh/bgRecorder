@@ -1,17 +1,16 @@
-import { NewAppScreen } from '@react-native/new-app-screen';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import LoadingScreen from './src/components/LoadingScreen';
 import OnBoardScreen from './src/components/OnBoardScreen';
 import PermissionScreen from './src/components/PermissionScreen';
+import HomeScreen from './src/components/HomeScreen';
 import { COLORS } from './src/constants';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const [showOnBoard, setShowOnBoard] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
-  const [showMainApp, setShowMainApp] = useState(false);
   const isDarkMode = useColorScheme() === 'light';
 
   useEffect(() => {
@@ -31,41 +30,39 @@ function App() {
   const handlePermissionsNext = () => {
     console.log('🔄 Permissions completed, navigating to Main App...');
     setShowPermissions(false);
-    setShowMainApp(true);
   };
 
   const handlePermissionsSkip = () => {
     console.log('⏭️ Permissions skipped, navigating to Main App...');
     setShowPermissions(false);
-    setShowMainApp(true);
   };
 
   // Note: Mobile Ads initialization is handled by AdManager
-  // useEffect(() => {
-  //   const initializeMobileAds = async () => {
-  //     try {
-  //       // Try different ways to initialize
-  //       if (GoogleMobileAds && typeof GoogleMobileAds.initialize === 'function') {
-  //         await GoogleMobileAds.initialize();
-  //         console.log('✅ Mobile Ads initialized via GoogleMobileAds.initialize');
-  //       } else if (GoogleMobileAds && typeof GoogleMobileAds === 'function') {
-  //         const adsInstance = GoogleMobileAds();
-  //         if (adsInstance && typeof adsInstance.initialize === 'function') {
-  //           await adsInstance.initialize();
-  //           console.log('✅ Mobile Ads initialized via GoogleMobileAds().initialize');
-  //         } else {
-  //           console.log('⚠️ Mobile Ads initialize method not available, but components should work');
-  //         }
-  //       } else {
-  //         console.log('⚠️ GoogleMobileAds not available as expected');
-  //       }
-  //     } catch (error) {
-  //       console.log('⚠️ Mobile Ads initialization error (non-critical):', error);
-  //     }
-  //   };
-  //   
-  //   initializeMobileAds();
-  // }, []);
+  useEffect(() => {
+    const initializeMobileAds = async () => {
+      try {
+        // Try different ways to initialize
+        if (GoogleMobileAds && typeof GoogleMobileAds.initialize === 'function') {
+          await GoogleMobileAds.initialize();
+          console.log('✅ Mobile Ads initialized via GoogleMobileAds.initialize');
+        } else if (GoogleMobileAds && typeof GoogleMobileAds === 'function') {
+          const adsInstance = GoogleMobileAds();
+          if (adsInstance && typeof adsInstance.initialize === 'function') {
+            await adsInstance.initialize();
+            console.log('✅ Mobile Ads initialized via GoogleMobileAds().initialize');
+          } else {
+            console.log('⚠️ Mobile Ads initialize method not available, but components should work');
+          }
+        } else {
+          console.log('⚠️ GoogleMobileAds not available as expected');
+        }
+      } catch (error) {
+        console.log('⚠️ Mobile Ads initialization error (non-critical):', error);
+      }
+    };
+    
+    initializeMobileAds();
+  }, []);
 
 
   return (
@@ -81,7 +78,7 @@ function App() {
           onSkip={handlePermissionsSkip}
         />
       ) : (
-        <AppContent />
+        <HomeScreen />
       )}
     </SafeAreaProvider>
   );

@@ -36,7 +36,7 @@ export const NativeAdComponent = (props) => {
         loadNativeAd();
     }, []);
 
-    if (isLoading) {
+    if (isLoading || true) {
         return (
             <View style={styles.nativeAdContainer}>
                 <View style={styles.nativeAdView}>
@@ -62,7 +62,7 @@ export const NativeAdComponent = (props) => {
                     style={styles.toggleMediaButton}
                     onPress={() => setIsMediaVisible(!isMediaVisible)}
                 >
-                    {/* {isMediaVisible ? <Image style={styles.toggleMediaButtonText} source={require('../assets/setting/icon/down.png')}/> : <View></View>} */}
+                    {isMediaVisible ? <View></View> : <View></View>}
                 </TouchableOpacity>
                 <View style={styles.sponsoredLabel}>
                     <Text style={styles.sponsoredText}>Ad</Text>
@@ -70,7 +70,7 @@ export const NativeAdComponent = (props) => {
             </View>
             <NativeAdView nativeAd={nativeAd} style={styles.nativeAdView}>
                 {/* Media Section - Conditionally Rendered */}
-                {isMediaVisible && (
+                {isMediaVisible && props.hasMedia &&(
                     <TouchableOpacity
                         style={styles.nativeAdMediaContainer}
                         onPress={() => {
@@ -79,7 +79,7 @@ export const NativeAdComponent = (props) => {
                         }}
                         activeOpacity={0.8}
                     >
-                        {(props.hasMedia) && <NativeMediaView style={styles.nativeAdMedia} />}
+                        <NativeMediaView style={styles.nativeAdMedia} />
                     </TouchableOpacity>
                 )}
 
