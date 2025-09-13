@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,11 +9,15 @@ import {
     Image,
     Animated,
     Alert,
-    Platform
+    Platform,
+    PermissionsAndroid,
+    Linking,
+    AppState
 } from 'react-native';
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
-import AdManager, { ADS_UNIT } from '../AdManager.js'; // Fix import path
+import AdManager, { ADS_UNIT } from '../AdManager.js';
+import OverlayPermissionModule from '../OverlayPermissionModule';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,6 +41,7 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             icon: require('../../assets/permission/1.png'),
             color: '#FF6B6B',
             action: 'Allow Camera',
+            androidPermission: PermissionsAndroid.PERMISSIONS.CAMERA,
         },
         {
             id: 'microphone',
@@ -45,6 +50,7 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             icon: require('../../assets/permission/2.png'),
             color: '#FFD93D',
             action: 'Allow Microphone',
+            androidPermission: PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
         },
         {
             id: 'storage',
@@ -53,6 +59,9 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             icon: require('../../assets/permission/3.png'),
             color: '#6BCF7F',
             action: 'Allow Storage',
+            androidPermission: Platform.Version >= 33 ? 
+                PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO : 
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
         },
         {
             id: 'overlay',
@@ -61,26 +70,187 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             icon: require('../../assets/permission/4.png'),
             color: '#4DABF7',
             action: 'Allow Overlay',
+            androidPermission: 'SYSTEM_ALERT_WINDOW', // Special case - handled differently
         }
     ];
+
+    // Check all permissions on component mount
+    useEffect(() => {
+        checkAllPermissions();
+    }, []);
+
+    const checkAllPermissions = async () => {
+        console.log('🔍 Checking all permissions...');
+        const newPermissions = { ...permissions };
+
+        for (const step of permissionSteps) {
+            const granted = await checkPermissionStatus(step);
+            newPermissions[step.id] = granted;
+            console.log(`� ${step.id}: ${granted ? 'GRANTED' : 'NOT GRANTED'}`);
+        }
+
+        setPermissions(newPermissions);
+    };
+
+    const checkPermissionStatus = async (step) => {
+        try {
+            if (Platform.OS === 'android') {
+                if (step.id === 'overlay') {
+                    // Check SYSTEM_ALERT_WINDOW permission using native module
+                    try {
+                        const hasPermission = await OverlayPermissionModule.canDrawOverlays();
+                        console.log(`🔍 Overlay permission status: ${hasPermission}`);
+                        return hasPermission;
+                    } catch (error) {
+                        console.log('⚠️ Cannot check overlay permission:', error);
+                        return false;
+                    }
+                }
+                
+                const result = await PermissionsAndroid.check(step.androidPermission);
+                return result;
+            } else {
+                // iOS - overlay permission not needed
+                return step.id === 'overlay' ? true : false;
+            }
+        } catch (error) {
+            console.error(`❌ Error checking ${step.id} permission:`, error);
+            return false;
+        }
+    };
 
     const requestPermission = async (permissionType) => {
         try {
             setIsRequestingPermission(true);
             console.log(`🔐 Requesting ${permissionType} permission...`);
 
-            // TODO: Replace with real permission APIs
-            // For Android: PermissionsAndroid
-            // For iOS: react-native-permissions
+            const step = permissionSteps.find(s => s.id === permissionType);
+            if (!step) {
+                console.error(`❌ Permission step not found: ${permissionType}`);
+                return false;
+            }
+
+            if (Platform.OS === 'android') {
+                return await requestAndroidPermission(step);
+            } else {
+                return await requestIOSPermission(step);
+            }
+        } catch (error) {
+            console.error(`❌ ${permissionType} permission error:`, error);
+            return false;
+        } finally {
+            setIsRequestingPermission(false);
+        }
+    };
+
+    const requestAndroidPermission = async (step) => {
+        try {
+            if (step.id === 'overlay') {
+                // Special handling for SYSTEM_ALERT_WINDOW using native module
+                console.log('🔐 Requesting overlay permission...');
+                
+                try {
+                    const result = await OverlayPermissionModule.requestOverlayPermission();
+                    console.log('📱 Native overlay permission result:', result);
+                    
+                    if (result) {
+                        setPermissions(prev => ({
+                            ...prev,
+                            [step.id]: true
+                        }));
+                        console.log('✅ Overlay permission granted');
+                        return true;
+                    } else {
+                        console.log('❌ Overlay permission denied');
+                        Alert.alert(
+                            'Permission Required',
+                            'Display over other apps permission is required for video recording overlay. Please enable it in Settings.',
+                            [{ text: 'OK' }]
+                        );
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('❌ Native overlay permission request failed:', error);
+                    Alert.alert(
+                        'Error',
+                        'Failed to request overlay permission. Please enable it manually in Settings.',
+                        [{ text: 'OK' }]
+                    );
+                    return false;
+                }
+            }
+
+            const result = await PermissionsAndroid.request(
+                step.androidPermission,
+                {
+                    title: step.title,
+                    message: step.description.replace('\n', ' '),
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                }
+            );
+
+            const granted = result === PermissionsAndroid.RESULTS.GRANTED;
             
-            // Simulate permission request dialog
+            if (granted) {
+                setPermissions(prev => ({
+                    ...prev,
+                    [step.id]: true
+                }));
+                console.log(`✅ ${step.id} permission granted`);
+            } else {
+                console.log(`❌ ${step.id} permission denied: ${result}`);
+                
+                // Show settings dialog if permission permanently denied
+                if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+                    Alert.alert(
+                        'Permission Denied',
+                        `${step.title} was permanently denied. Please enable it in Settings.`,
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { 
+                                text: 'Open Settings', 
+                                onPress: async () => {
+                                    try {
+                                        await Linking.openSettings();
+                                    } catch (error) {
+                                        console.error('Failed to open settings:', error);
+                                    }
+                                }
+                            }
+                        ]
+                    );
+                }
+            }
+
+            return granted;
+        } catch (error) {
+            console.error(`❌ Android permission request failed:`, error);
+            return false;
+        }
+    };
+
+    const requestIOSPermission = async (step) => {
+        try {
+            if (step.id === 'overlay') {
+                // Skip overlay permission on iOS
+                setPermissions(prev => ({
+                    ...prev,
+                    [step.id]: true
+                }));
+                return true;
+            }
+
+            // For iOS, we'd need react-native-permissions or native modules
+            // For now, simulate permission request
             const granted = await new Promise((resolve) => {
                 Alert.alert(
-                    `${permissionSteps[currentStep].title}`,
-                    `Allow ${permissionSteps[currentStep].title}?`,
+                    step.title,
+                    `Allow ${step.title}?`,
                     [
                         {
-                            text: 'Deny',
+                            text: 'Don\'t Allow',
                             onPress: () => resolve(false),
                             style: 'cancel'
                         },
@@ -95,19 +265,17 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             if (granted) {
                 setPermissions(prev => ({
                     ...prev,
-                    [permissionType]: true
+                    [step.id]: true
                 }));
-                console.log(`✅ ${permissionType} permission granted`);
-                return true;
+                console.log(`✅ ${step.id} permission granted (iOS simulated)`);
             } else {
-                console.log(`❌ ${permissionType} permission denied`);
-                return false;
+                console.log(`❌ ${step.id} permission denied (iOS simulated)`);
             }
+
+            return granted;
         } catch (error) {
-            console.error(`❌ ${permissionType} permission error:`, error);
+            console.error(`❌ iOS permission request failed:`, error);
             return false;
-        } finally {
-            setIsRequestingPermission(false);
         }
     };
 
@@ -201,10 +369,10 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             <View style={styles.botContainer}>
                 {/* Native Ad */}
                 <View style={styles.adContainer}>
-                    <NativeAdComponent
+                    {/* <NativeAdComponent
                         adUnitId={ADS_UNIT.NATIVE}
                         hasMedia={false}
-                    />
+                    /> */}
                 </View>
                 
                 {/* Bottom Navigation */}
