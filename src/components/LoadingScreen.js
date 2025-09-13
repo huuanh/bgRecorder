@@ -1,10 +1,22 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Image, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '../constants';
-import { initAds, preloadInterstitialAd, preloadAppOpenAd, ADS_UNIT } from '../adManager.js';
+import AdManager, { ADS_UNIT } from '../AdManager.js';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { SmallNativeAd } from './NativeAdComponent';
 
 const LoadingScreen = () => {
+  // State for loading text and progress
+  const [loadingText, setLoadingText] = useState('Loading...');
+  const [remoteConfigLoaded, setRemoteConfigLoaded] = useState(false);
+  const [adManagerLoaded, setAdManagerLoaded] = useState(false);
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
+  const [timeoutReached, setTimeoutReached] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
+  // Animated value for smooth progress bar
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  
   // Preload ads only once
   const interstitialRef = useRef(null);
   const appOpenRef = useRef(null);
@@ -15,63 +27,46 @@ const LoadingScreen = () => {
       try {
         console.log('🔧 Initializing services...');
         setLoadingText('Loading.');
-        
-        // Initialize RemoteConfig first
-        console.log('🔧 Loading RemoteConfig...');
-        setLoadingText('Loading..');
-        await RemoteConfigManager.initialize();
-        console.log('🔧 RemoteConfigManager initialized successfully');
-        
-        if (!isCompleted) {
-          setRemoteConfigLoaded(true);
-        }
+        setProgress(20);
         
         // Initialize AdManager
         console.log('🔧 Loading AdManager...');
         setLoadingText('Loading...');
+        setProgress(50);
         await AdManager.initialize();
         console.log('🔧 AdManager initialized successfully');
         
         if (!isCompleted) {
           setAdManagerLoaded(true);
-        }
-        
-        // Initialize AnalyticsManager
-        console.log('🔧 Loading AnalyticsManager...');
-        setLoadingText('Loading.');
-        await AnalyticsManager.initialize();
-        console.log('🔧 AnalyticsManager initialized successfully');
-        
-        if (!isCompleted) {
-          setAnalyticsLoaded(true);
+          setProgress(80);
         }
         
         setLoadingText('Ready to start!');
+        setProgress(100);
         
       } catch (error) {
         console.log('⚠️ Service initialization error:', error);
         setLoadingText('Loading Failed - Continuing...');
+        setProgress(100);
         
         // Set all as loaded even if failed to allow app to continue
         if (!isCompleted) {
-          setRemoteConfigLoaded(true);
           setAdManagerLoaded(true);
-          setAnalyticsLoaded(true);
         }
       }
     };
-    // Initialize MobileAds SDK
+    // Initialize services with timeout
     const timeoutId = setTimeout(() => {
       console.log('⏰ Services loading timeout reached (10s)');
       setLoadingText('Loading Timeout - Continuing...');
+      setProgress(100);
       
       if (!isCompleted) {
         setTimeoutReached(true);
-        setRemoteConfigLoaded(true);
         setAdManagerLoaded(true);
-        setAnalyticsLoaded(true);
       }
     }, 10000);
+    
     initializeServices();
      // Cleanup function
     return () => {
@@ -80,25 +75,56 @@ const LoadingScreen = () => {
     };
   }, []);
 
+  // Add smooth progress animation
+  useEffect(() => {
+    // Animate progress bar
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [progress, progressAnim]);
+
+  // Add smooth progress animation
+  useEffect(() => {
+    // Start with initial progress
+    const initialProgress = setInterval(() => {
+      setProgress(prev => {
+        if (prev < 15) {
+          return prev + 1;
+        }
+        clearInterval(initialProgress);
+        return prev;
+      });
+    }, 100);
+
+    return () => clearInterval(initialProgress);
+  }, []);
+
   return (
     <View style={styles.loadingContainer}>
       <View style={styles.iconBox}>
         <Image source={require('../../assets/loading/icon.png')} style={styles.icon} />
       </View>
-      <Text style={styles.title}>Background Video Recoder</Text>
+      <Text style={styles.title}>Background Video Recorder</Text>
       <View style={styles.progressBarContainer}>
-        <View style={styles.progressBar} />
+        <Animated.View 
+          style={[
+            styles.progressBar, 
+            { 
+              width: progressAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+                extrapolate: 'clamp',
+              })
+            }
+          ]} 
+        />
         <View style={styles.progressBarBg} />
       </View>
+      <Text style={styles.loadingText}>{loadingText}</Text>
       <Text style={styles.adsText}>This action may contain ads</Text>
-      {/* Banner Ad at bottom */}
-      <View style={{ marginTop: 24 }}>
-        {/* <BannerAd
-          unitId={ADS_UNIT.BANNER}
-          size={BannerAdSize.FULL_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-        /> */}
-      </View>
+      
     </View>
   );
 };
@@ -112,7 +138,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   iconBox: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.TERTIARY,
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
@@ -127,7 +153,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.TEXT,
+    color: COLORS.TERTIARY,
     marginBottom: 40,
     textAlign: 'center',
   },
@@ -146,22 +172,28 @@ const styles = StyleSheet.create({
     right: 0,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.TERTIARY,
     opacity: 0.4,
   },
   progressBar: {
-    width: '80%',
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.TEXT,
+    backgroundColor: COLORS.TERTIARY,
     zIndex: 1,
   },
   adsText: {
-    color: COLORS.TEXT,
+    color: COLORS.TERTIARY,
     fontSize: 14,
     marginTop: 4,
     textAlign: 'center',
     opacity: 0.7,
+  },
+  loadingText: {
+    color: COLORS.TERTIARY,
+    fontSize: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
 

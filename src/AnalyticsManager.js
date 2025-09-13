@@ -1,4 +1,3 @@
-import RemoteConfigManager from './RemoteConfigManager';
 
 // Try to import Firebase Analytics, fallback if not available
 let analytics = null;
@@ -18,7 +17,6 @@ class AnalyticsManager {
         try {
             if (this.hasFirebaseAnalytics) {
                 // Set analytics collection enabled based on remote config
-                const isEnabled = RemoteConfigManager.isAnalyticsEnabled();
                 await analytics().setAnalyticsCollectionEnabled(isEnabled);
                 console.log('📊 Firebase Analytics initialized, enabled:', isEnabled);
             } else {
@@ -40,12 +38,6 @@ class AnalyticsManager {
         try {
             if (!this.isInitialized) {
                 console.log('📊 Analytics not initialized, skipping event:', eventName);
-                return;
-            }
-
-            const isEnabled = RemoteConfigManager.isAnalyticsEnabled();
-            if (!isEnabled) {
-                console.log('📊 Analytics disabled, skipping event:', eventName);
                 return;
             }
 
@@ -188,12 +180,6 @@ class AnalyticsManager {
                 return;
             }
 
-            const isEnabled = RemoteConfigManager.isAnalyticsEnabled();
-            if (!isEnabled) {
-                console.log('📊 Analytics disabled, skipping user property:', name);
-                return;
-            }
-
             if (this.hasFirebaseAnalytics) {
                 // Use Firebase Analytics if available
                 await analytics().setUserProperty(name, value);
@@ -213,12 +199,6 @@ class AnalyticsManager {
         try {
             if (!this.isInitialized) {
                 console.log('📊 Analytics not initialized, skipping user ID');
-                return;
-            }
-
-            const isEnabled = RemoteConfigManager.isAnalyticsEnabled();
-            if (!isEnabled) {
-                console.log('📊 Analytics disabled, skipping user ID');
                 return;
             }
 

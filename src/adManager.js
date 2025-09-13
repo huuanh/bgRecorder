@@ -1,9 +1,16 @@
-import { AppOpenAd, InterstitialAd, BannerAd, AdEventType, TestIds, AdsConsent, MobileAds, NativeAd, NativeAdView, NativeAdEventType, HeadlineView, MediaView, TaglineView, AdvertiserView, CallToActionView, IconView } from 'react-native-google-mobile-ads';
+import { AppOpenAd, InterstitialAd, BannerAd, AdEventType, TestIds, AdsConsent, MobileAds, NativeAd, NativeAdView, NativeAdEventType, RewardedAd, HeadlineView, MediaView, TaglineView, AdvertiserView, CallToActionView, IconView } from 'react-native-google-mobile-ads';
 import { IS_PRODUCTION } from './constants';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import mobileAds from 'react-native-google-mobile-ads';
+// import AnalyticsManager from './AnalyticsManager';
 
-
+let AnalyticsManager = null;
+try {
+    AnalyticsManager = require('./AnalyticsManager').default;
+} catch (error) {
+    console.log('Managers not available in AdManager');
+}
 // Quản lý các ad unit cho từng môi trường
 export const ADS_UNIT_VALUES = {
   DEV: {
@@ -11,12 +18,14 @@ export const ADS_UNIT_VALUES = {
     INTERSTITIAL: TestIds.INTERSTITIAL,
     APP_OPEN: TestIds.APP_OPEN,
     NATIVE: TestIds.NATIVE,
+    REWARDED: TestIds.REWARDED,
   },
   PROD: {
     BANNER: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
     INTERSTITIAL: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
     APP_OPEN: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
     NATIVE: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
+    REWARDED: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
   },
 };
 
@@ -55,7 +64,7 @@ class AdManager {
 
     // Load Google Mobile Ads if available
     loadGoogleMobileAds() {
-        console.log('🔄 Loading Google Mobile Ads module...');
+        console.log('🔄 Loading Google Mobile Ads module...', mobileAds); 
         try {
             const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
             console.log('📦 Module loaded, extracting components...');
@@ -123,28 +132,9 @@ class AdManager {
             // Import the module again to get the latest reference
             const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
             
-            // Try different ways to access the initialize method
-            let initializeMethod = null;
-            
-            if (GoogleMobileAdsModule.MobileAds && typeof GoogleMobileAdsModule.MobileAds.initialize === 'function') {
-                initializeMethod = GoogleMobileAdsModule.MobileAds.initialize;
-                console.log('🔍 Using MobileAds.initialize');
-            } else if (GoogleMobileAdsModule.default && typeof GoogleMobileAdsModule.default.initialize === 'function') {
-                initializeMethod = GoogleMobileAdsModule.default.initialize;
-                console.log('🔍 Using default.initialize');
-            } else if (typeof GoogleMobileAdsModule.initialize === 'function') {
-                initializeMethod = GoogleMobileAdsModule.initialize;
-                console.log('🔍 Using direct initialize');
-            }
-            
-            if (initializeMethod) {
-                await initializeMethod();
-                console.log('✅ Google Mobile Ads initialized successfully');
-            } else {
-                console.log('⚠️ MobileAds initialize method not found, but components are available');
-                console.log('🔍 Available methods in MobileAds:', this.GoogleMobileAds ? Object.keys(this.GoogleMobileAds) : 'MobileAds not available');
-                console.log('🔍 Available methods in module:', Object.keys(GoogleMobileAdsModule));
-            }
+            // For react-native-google-mobile-ads v15.x, components work without explicit initialization
+            // The SDK will auto-initialize when first component is used
+            console.log('✅ Google Mobile Ads module is ready');
             
             this.isInitialized = true;
             

@@ -1,54 +1,40 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../constants';
-import { ADS_UNIT } from '../adManager.js';
-import { NativeAdView, HeadlineView, TaglineView, AdvertiserView, CallToActionView, IconView, TestIds } from 'react-native-google-mobile-ads';
-
-const NativeAdBox = () => {
-  // Tạm thời comment out native ad để tránh lỗi
-  return (
-    <View style={styles.adBox}>
-      <Text style={styles.adHeadline}>Demo Native Ad</Text>
-      <Text style={styles.adTagline}>This is a placeholder for native ad</Text>
-      <Text style={styles.adAdvertiser}>Google</Text>
-      <TouchableOpacity style={styles.adCallToAction}>
-        <Text style={{color: 'white'}}>Learn More</Text>
-      </TouchableOpacity>
-    </View>
-  );
-  
-  // Uncomment below when ready to test real native ads
-  /*
-  return (
-    <NativeAdView
-      unitId={TestIds.NATIVE}
-      adChoicesPlacement="topRight"
-      style={styles.adBox}
-      onError={(error) => {
-        console.log('Native Ad Error:', error);
-      }}
-      onAdLoaded={() => {
-        console.log('Native Ad Loaded');
-      }}
-    >
-      <HeadlineView style={styles.adHeadline} />
-      <TaglineView style={styles.adTagline} />
-      <AdvertiserView style={styles.adAdvertiser} />
-      <CallToActionView style={styles.adCallToAction} />
-      <IconView style={styles.adIcon} />
-    </NativeAdView>
-  );
-  */
-};
+import AdManager, { ADS_UNIT } from '../AdManager.js';
+import { NativeAdComponent } from './NativeAdComponent';
 
 const OnBoardScreen = ({ onNext }) => {
+  const [adShown, setAdShown] = useState(false);
+
+  useEffect(() => {
+    // Show App Open Ad when component mounts
+        const showAd = async () => {
+      if (!adShown) {
+        console.log('🚀 OnBoardScreen: Attempting to show App Open Ad...');
+        try {
+          // Fix: Use adManagerInstance instead of AdManager
+          const result = await AdManager.showAppOpenAd();
+          console.log('✅ App Open Ad result:', result);
+          setAdShown(true);
+        } catch (error) {
+          console.log('❌ App Open Ad failed:', error.message);
+          setAdShown(true);
+        }
+      }
+    };
+
+    const timer = setTimeout(showAd, 500);
+    return () => clearTimeout(timer);
+}, [adShown]);
+  
   return (
     <View style={styles.container}>
       <Image source={require('../../assets/onboard/bg1.png')} style={styles.bgImage} />
       <Image source={require('../../assets/onboard/1.png')} style={styles.slideImage} />
       <View style={styles.botGroup}>
         <Text style={styles.slideTitle}>Record video everywhere</Text>
-        <NativeAdBox />
+        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
         <TouchableOpacity onPress={onNext} style={styles.nextBtn}>
           <Text style={styles.nextText}>Next</Text>
         </TouchableOpacity>
@@ -88,12 +74,12 @@ const styles = StyleSheet.create({
   slideTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.PRIMARY,
+    color: COLORS.TERTIARY,
     marginBottom: 10,
     textAlign: 'center',
   },
   nextBtn: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.TERTIARY,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -107,43 +93,11 @@ const styles = StyleSheet.create({
   },
   adBox: {
     backgroundColor: COLORS.SECONDARY,
-    borderRadius: 16,
-    padding: 16,
-    // marginVertical: 16,
+    // borderRadius: 16,
+    padding: 0, // Remove padding as NativeAdComponent handles it
     width: '100%',
-    minHeight: 120,
-  },
-  adHeadline: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.TEXT,
-    marginBottom: 4,
-  },
-  adTagline: {
-    fontSize: 14,
-    color: COLORS.TEXT,
-    marginBottom: 4,
-  },
-  adAdvertiser: {
-    fontSize: 12,
-    color: COLORS.TEXT,
-    opacity: 0.7,
-    marginBottom: 8,
-  },
-  adCallToAction: {
-    backgroundColor: COLORS.PRIMARY,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignSelf: 'flex-start',
-  },
-  adIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    position: 'absolute',
-    top: 16,
-    right: 16,
+    minHeight: 200,
+    overflow: 'hidden',
   },
 });
 
