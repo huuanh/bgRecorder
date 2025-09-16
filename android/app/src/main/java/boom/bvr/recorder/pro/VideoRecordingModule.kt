@@ -135,6 +135,115 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         }
     }
     
+    @ReactMethod
+    fun getRecordedVideos(promise: Promise) {
+        try {
+            val videosList = recordingService?.getRecordedVideosList() ?: emptyList()
+            val videosDirectory = recordingService?.getRecordedVideosDirectory()
+            
+            val result = WritableNativeMap().apply {
+                putString("directory", videosDirectory)
+                putArray("videos", Arguments.createArray().apply {
+                    videosList.forEach { video ->
+                        pushMap(Arguments.createMap().apply {
+                            putDouble("id", (video["id"] as Long).toDouble())
+                            putString("title", video["title"] as String)
+                            putString("filePath", video["filePath"] as String)
+                            putString("fileSize", video["fileSize"] as String)
+                            putDouble("lastModified", (video["lastModified"] as Long).toDouble())
+                            putString("date", video["date"] as String)
+                        })
+                    }
+                })
+            }
+            
+            Log.d(TAG, "Returning ${videosList.size} recorded videos")
+            promise.resolve(result)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get recorded videos", e)
+            promise.reject("GET_VIDEOS_ERROR", "Failed to get recorded videos: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun deleteVideo(filePath: String, promise: Promise) {
+        try {
+            val file = java.io.File(filePath)
+            if (file.exists() && file.delete()) {
+                Log.d(TAG, "Video deleted successfully: $filePath")
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Video deleted successfully")
+                })
+            } else {
+                promise.reject("DELETE_ERROR", "Failed to delete video file")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete video", e)
+            promise.reject("DELETE_ERROR", "Failed to delete video: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun showRecordingOverlay(promise: Promise) {
+        try {
+            val success = recordingService?.getOverlayManager()?.showOverlay() ?: false
+            if (success) {
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Overlay shown successfully")
+                })
+            } else {
+                promise.reject("OVERLAY_ERROR", "Failed to show overlay. Check overlay permission.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show overlay", e)
+            promise.reject("OVERLAY_ERROR", "Failed to show overlay: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun hideRecordingOverlay(promise: Promise) {
+        try {
+            recordingService?.getOverlayManager()?.hideOverlay()
+            promise.resolve(WritableNativeMap().apply {
+                putBoolean("success", true)
+                putString("message", "Overlay hidden successfully")
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to hide overlay", e)
+            promise.reject("OVERLAY_ERROR", "Failed to hide overlay: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun checkOverlayPermission(promise: Promise) {
+        try {
+            val hasPermission = OverlayPermissionHelper.canDrawOverlays(reactApplicationContext)
+            promise.resolve(WritableNativeMap().apply {
+                putBoolean("hasPermission", hasPermission)
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to check overlay permission", e)
+            promise.reject("PERMISSION_ERROR", "Failed to check overlay permission: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun requestOverlayPermission(promise: Promise) {
+        try {
+            OverlayPermissionHelper.requestOverlayPermission(reactApplicationContext)
+            promise.resolve(WritableNativeMap().apply {
+                putBoolean("success", true)
+                putString("message", "Permission request sent")
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to request overlay permission", e)
+            promise.reject("PERMISSION_ERROR", "Failed to request overlay permission: ${e.message}")
+        }
+    }
+    
     private fun sendEvent(eventName: String, params: WritableMap?) {
         reactApplicationContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)

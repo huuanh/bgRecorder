@@ -1,217 +1,272 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    Dimensions,
     Alert,
-    Image,
-    PermissionsAndroid,
     Platform,
-    NativeModules,
+    Dimensions,
+    Image,
     DeviceEventEmitter,
+    NativeModules,
+    AppState
 } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../constants';
 import { NativeAdComponent } from '../NativeAdComponent';
-import { ADS_UNIT } from '../../AdManager.js';
+import { ADS_UNIT } from '../../AdManager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { VideoRecordingModule } = NativeModules;
-
 const { width } = Dimensions.get('window');
 
 const RecordTab = () => {
-    // Camera refs and permissions
-    const cameraRef = useRef(null);
-    const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
-    const { hasPermission: hasMicrophonePermission, requestPermission: requestMicrophonePermission } = useMicrophonePermission();
-    
-    // Move all recording-related state here
     const [recordingSettings, setRecordingSettings] = useState({
         preview: true,
-        duration: 5, // minutes
-        quality: 'HD',
-        camera: 'front'
+        duration: 5,
+        quality: 'HD 720p',
+        camera: 'Back'
     });
+    
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
-    const [availableStorage, setAvailableStorage] = useState('85 GB/ 125 GB');
-    const [currentVideoPath, setCurrentVideoPath] = useState(null);
-    const [cameraError, setCameraError] = useState(null);
-    const [cameraReady, setCameraReady] = useState(false);
-    
-    // Camera device setup
-    const frontCamera = useCameraDevice('front');
-    const backCamera = useCameraDevice('back');
-    const device = recordingSettings.camera === 'front' ? frontCamera : backCamera;
+    const [availableStorage, setAvailableStorage] = useState({ used: 85, total: 125 });
+    const [isServiceRecording, setIsServiceRecording] = useState(false);
 
-    // Timer for recording
     useEffect(() => {
-        let interval = null;
-        if (isRecording) {
-            interval = setInterval(async () => {
-                // Sync with service if available
-                if (VideoRecordingModule) {
-                    try {
-                        const status = await VideoRecordingModule.getRecordingStatus();
-                        if (status.isRecording) {
-                            setRecordingTime(status.duration);
-                            
-                            // Auto-stop recording when duration limit is reached
-                            if (status.duration >= recordingSettings.duration * 60) {
-                                console.log('⏰ Auto-stopping recording after duration limit');
-                                // Service will auto-stop, just update UI
-                                setIsRecording(false);
-                                
-                                // Save the auto-stopped video
-                                const autoStopVideoData = {
-                                    duration: status.duration,
-                                    fileName: createVideoFileName(),
-                                    filePath: status.filePath || null,
-                                    fileSize: status.fileSize || 'Unknown'
-                                };
-                                
-                                const savedVideo = await saveRecordedVideo(autoStopVideoData);
-                                setRecordingTime(0);
-                                
-                                if (savedVideo) {
-                                    Alert.alert(
-                                        'Auto-Stop: Recording Completed',
-                                        `Recording stopped automatically after ${recordingSettings.duration} minutes.\n\nVideo saved successfully!\nDuration: ${savedVideo.duration}\nQuality: ${savedVideo.quality}`,
-                                        [
-                                            { text: 'View in Gallery', onPress: () => {
-                                                console.log('Navigate to gallery tab');
-                                            }},
-                                            { text: 'OK' }
-                                        ]
-                                    );
-                                }
-                            }
-                        } else {
-                            // Service stopped, update UI
-                            setIsRecording(false);
-                            setRecordingTime(0);
-                        }
-                    } catch (error) {
-                        console.log('Failed to sync recording time:', error);
-                        // Fallback to local timer
-                        setRecordingTime(time => time + 1);
-                    }
-                } else {
-                    // Fallback to local timer
-                    setRecordingTime(time => time + 1);
-                }
-            }, 1000);
-        } else if (!isRecording && recordingTime !== 0) {
-            clearInterval(interval);
-        }
-        return () => clearInterval(interval);
-    }, [isRecording, recordingSettings.duration]);
-
-    // Check permissions on component mount
-    useEffect(() => {
-        checkPermissions();
+        // Check if service is already recording when component mounts
+        checkServiceStatus();
         
-        // Listen for service events
+        // Listen for recording events from native service
         const recordingStartedListener = DeviceEventEmitter.addListener(
             'onRecordingStarted',
             () => {
-                console.log('📱 Received recording started event from service');
+                console.log('📹 Recording started from service');
+                setIsRecording(true);
+                setIsServiceRecording(true);
             }
         );
-        
+
         const recordingStoppedListener = DeviceEventEmitter.addListener(
             'onRecordingStopped',
-            async (data) => {
-                console.log('📱 Received recording stopped event from service:', data);
+            (data) => {
+                console.log('⏹️ Recording stopped from service:', data);
                 setIsRecording(false);
+                setIsServiceRecording(false);
                 setRecordingTime(0);
                 
-                // Save the recorded video
-                const savedVideo = await saveRecordedVideo(data);
+                // Hide overlay if it was shown
+                hideRecordingOverlay();
                 
-                if (savedVideo) {
-                    Alert.alert(
-                        'Recording Completed',
-                        `Video recorded successfully!\nDuration: ${savedVideo.duration}\nQuality: ${savedVideo.quality}\nSaved as: ${savedVideo.title}`,
-                        [
-                            { text: 'View in Gallery', onPress: () => {
-                                // TODO: Navigate to Gallery tab or trigger refresh
-                                console.log('Navigate to gallery tab');
-                            }},
-                            { text: 'OK' }
-                        ]
-                    );
-                } else {
-                    Alert.alert(
-                        'Recording Completed',
-                        `Video recorded for ${Math.floor(data.duration / 60)}:${String(data.duration % 60).padStart(2, '0')}\nNote: Failed to save video metadata.`
-                    );
+                // Save video to storage
+                if (data.filePath && data.duration) {
+                    saveVideoToStorage(data);
                 }
+                
+                // Show completion alert
+                Alert.alert(
+                    'Recording Complete!',
+                    `Video saved successfully!\nDuration: ${formatTime(Math.floor(data.duration / 1000))}`,
+                    [
+                        { text: 'OK' },
+                        { 
+                            text: 'View in Gallery', 
+                            onPress: () => {
+                                // Navigate to gallery tab - you can implement this
+                                console.log('Navigate to gallery tab');
+                            }
+                        }
+                    ]
+                );
             }
         );
-        
-        // Check service status on mount
-        checkServiceStatus();
-        
+
+        // Handle app state changes
+        const handleAppStateChange = (nextAppState) => {
+            if (nextAppState === 'active' && isServiceRecording) {
+                // App came to foreground, sync with service
+                checkServiceStatus();
+            }
+        };
+
+        const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
         return () => {
             recordingStartedListener.remove();
             recordingStoppedListener.remove();
+            appStateSubscription?.remove();
         };
-    }, []);
-    
+    }, [isServiceRecording]);
+
+    // Timer effect for UI sync
+    useEffect(() => {
+        let interval;
+        if (isRecording) {
+            interval = setInterval(() => {
+                if (VideoRecordingModule) {
+                    VideoRecordingModule.getRecordingStatus()
+                        .then((status) => {
+                            if (status.isRecording) {
+                                setRecordingTime(Math.floor(status.duration / 1000));
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    setRecordingTime(prev => prev + 1);
+                }
+            }, 1000);
+        } else {
+            setRecordingTime(0);
+        }
+
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
+    }, [isRecording]);
+
     const checkServiceStatus = async () => {
         try {
             if (VideoRecordingModule) {
-                const status = await VideoRecordingModule.getRecordingStatus();
-                if (status.isRecording) {
+                const status = await VideoRecordingModule.isServiceRunning();
+                console.log('🔍 Service status:', status);
+                
+                if (status.isRunning && status.isRecording) {
                     setIsRecording(true);
-                    setRecordingTime(status.duration);
+                    setIsServiceRecording(true);
+                    
+                    // Get current recording duration
+                    const recordingStatus = await VideoRecordingModule.getRecordingStatus();
+                    setRecordingTime(Math.floor(recordingStatus.duration / 1000));
                 }
             }
         } catch (error) {
-            console.log('Failed to check service status:', error);
+            console.error('❌ Failed to check service status:', error);
         }
     };
 
-    const checkPermissions = async () => {
-        if (!hasCameraPermission) {
-            const cameraPermission = await requestCameraPermission();
-            if (!cameraPermission) {
-                Alert.alert('Error', 'Camera permission is required for recording');
-                return false;
+    const saveVideoToStorage = async (videoData) => {
+        try {
+            const newVideo = {
+                id: Date.now(),
+                title: videoData.filePath?.split('/').pop() || `REC_${Date.now()}.mp4`,
+                duration: formatTime(Math.floor(videoData.duration / 1000)),
+                size: '0 MB', // Calculate actual size if needed
+                date: new Date().toLocaleString(),
+                filePath: videoData.filePath,
+                quality: recordingSettings.quality,
+                camera: recordingSettings.camera,
+                thumbnail: null
+            };
+
+            const existingVideos = await AsyncStorage.getItem('recordedVideos');
+            const videos = existingVideos ? JSON.parse(existingVideos) : [];
+            videos.unshift(newVideo);
+
+            await AsyncStorage.setItem('recordedVideos', JSON.stringify(videos));
+            console.log('✅ Video saved to storage:', newVideo);
+        } catch (error) {
+            console.error('❌ Failed to save video to storage:', error);
+        }
+    };
+
+    const hideRecordingOverlay = async () => {
+        try {
+            if (VideoRecordingModule) {
+                await VideoRecordingModule.hideRecordingOverlay();
+                console.log('✅ Recording overlay hidden');
             }
+        } catch (error) {
+            console.error('❌ Failed to hide overlay:', error);
         }
-        
-        if (!hasMicrophonePermission) {
-            const micPermission = await requestMicrophonePermission();
-            if (!micPermission) {
-                Alert.alert('Error', 'Microphone permission is required for recording');
-                return false;
+    };
+
+    const handleRecordPress = async () => {
+        if (isRecording) {
+            // Stop recording
+            try {
+                console.log('🛑 Stopping recording...');
+                
+                // Hide overlay first
+                await hideRecordingOverlay();
+                
+                if (VideoRecordingModule) {
+                    await VideoRecordingModule.stopRecording();
+                    console.log('✅ Recording stop request sent');
+                } else {
+                    console.log('⚠️ VideoRecordingModule not available');
+                    setIsRecording(false);
+                }
+            } catch (error) {
+                console.error('❌ Failed to stop recording:', error);
+                Alert.alert('Error', 'Failed to stop recording');
             }
-        }
-        
-        return true;
-    };
-
-    const createVideoFileName = () => {
-        const now = new Date();
-        const timestamp = now.toISOString().replace(/[:.]/g, '-');
-        return `video_${timestamp}.mp4`;
-    };
-
-    const getVideoQualitySettings = () => {
-        switch (recordingSettings.quality) {
-            case 'HD':
-                return { width: 1280, height: 720 };
-            case 'FHD':
-                return { width: 1920, height: 1080 };
-            case '4K':
-                return { width: 3840, height: 2160 };
-            default:
-                return { width: 1280, height: 720 };
+        } else {
+            // Start recording
+            try {
+                console.log('▶️ Starting recording with settings:', recordingSettings);
+                
+                // Check overlay permission if preview is enabled
+                if (recordingSettings.preview) {
+                    try {
+                        const permissionCheck = await VideoRecordingModule.checkOverlayPermission();
+                        console.log('🔍 Overlay permission check:', permissionCheck);
+                        
+                        if (!permissionCheck.hasPermission) {
+                            Alert.alert(
+                                'Overlay Permission Required',
+                                'To show video preview overlay, we need permission to draw over other apps. Please grant this permission.',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { 
+                                        text: 'Grant Permission', 
+                                        onPress: async () => {
+                                            await VideoRecordingModule.requestOverlayPermission();
+                                            Alert.alert('Permission', 'Please go to Settings and enable "Display over other apps" permission, then try recording again.');
+                                        }
+                                    }
+                                ]
+                            );
+                            return;
+                        }
+                    } catch (permissionError) {
+                        console.error('❌ Failed to check overlay permission:', permissionError);
+                    }
+                }
+                
+                if (VideoRecordingModule) {
+                    const result = await VideoRecordingModule.startRecording(recordingSettings);
+                    console.log('✅ Recording start result:', result);
+                    
+                    // Show background recording info
+                    Alert.alert(
+                        'Recording Started!',
+                        recordingSettings.preview 
+                            ? 'Video is now recording with preview overlay. You can minimize the app or use other apps while recording continues.'
+                            : 'Video is now recording in the background. You can minimize the app or use other apps while recording continues.',
+                        [{ text: 'OK' }]
+                    );
+                    
+                    // Show overlay if preview is enabled
+                    if (recordingSettings.preview) {
+                        setTimeout(async () => {
+                            try {
+                                await VideoRecordingModule.showRecordingOverlay();
+                                console.log('✅ Recording overlay shown');
+                            } catch (error) {
+                                console.error('❌ Failed to show overlay:', error);
+                            }
+                        }, 500);
+                    }
+                } else {
+                    console.log('⚠️ VideoRecordingModule not available, using fallback');
+                    setIsRecording(true);
+                }
+            } catch (error) {
+                console.error('❌ Failed to start recording:', error);
+                Alert.alert('Error', `Failed to start recording: ${error.message}`);
+            }
         }
     };
 
@@ -222,313 +277,108 @@ const RecordTab = () => {
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const saveRecordedVideo = async (videoData) => {
-        try {
-            // Create video metadata
-            const videoMetadata = {
-                id: Date.now(),
-                title: videoData.fileName || createVideoFileName(),
-                duration: formatTime(videoData.duration || recordingTime),
-                size: videoData.fileSize || 'Unknown',
-                date: new Date().toLocaleString(),
-                filePath: videoData.filePath,
-                quality: recordingSettings.quality === 'HD' ? 'HD 720p' : 
-                        recordingSettings.quality === 'FHD' ? 'FHD 1080p' : 
-                        recordingSettings.quality === '4K' ? 'UHD 4K' : 'HD 720p',
-                camera: recordingSettings.camera === 'front' ? 'Front' : 'Back',
-                thumbnail: null
-            };
-
-            // Save to AsyncStorage or local storage
-            const storedVideos = await getStoredVideos();
-            const updatedVideos = [videoMetadata, ...storedVideos];
-            await saveVideosToStorage(updatedVideos);
-
-            console.log('✅ Video saved successfully:', videoMetadata);
-            return videoMetadata;
-        } catch (error) {
-            console.error('❌ Failed to save video:', error);
-            return null;
+    const handleSettingPress = (setting, currentValue) => {
+        if (isRecording) {
+            Alert.alert('Cannot Change Settings', 'Stop recording first to change settings.');
+            return;
         }
-    };
 
-    const getStoredVideos = async () => {
-        try {
-            const stored = await AsyncStorage.getItem('recorded_videos');
-            return stored ? JSON.parse(stored) : [];
-        } catch (error) {
-            console.error('Failed to get stored videos:', error);
-            return [];
+        let options = [];
+        let title = '';
+
+        switch (setting) {
+            case 'preview':
+                options = ['On', 'Off'];
+                title = 'Preview Mode';
+                break;
+            case 'duration':
+                options = ['3 mins', '5 mins', '10 mins', '15 mins', '30 mins'];
+                title = 'Recording Duration';
+                break;
+            case 'quality':
+                options = ['HD 720p', 'FHD 1080p', 'UHD 4K'];
+                title = 'Video Quality';
+                break;
+            case 'camera':
+                options = ['Front', 'Back'];
+                title = 'Camera Selection';
+                break;
         }
-    };
 
-    const saveVideosToStorage = async (videos) => {
-        try {
-            await AsyncStorage.setItem('recorded_videos', JSON.stringify(videos));
-            console.log('Videos saved to storage:', videos.length);
-        } catch (error) {
-            console.error('Failed to save videos to storage:', error);
-        }
-    };
-
-    const handleSettingPress = (setting, value) => {
-        setRecordingSettings(prev => ({
-            ...prev,
-            [setting]: value
-        }));
-    };
-
-    const handleRecordPress = async () => {
-        if (!isRecording) {
-            // Check permissions before starting
-            const hasPermissions = await checkPermissions();
-            if (!hasPermissions) return;
-
-            // Camera restriction doesn't prevent background recording
-            if (!device && !cameraError) {
-                Alert.alert('Error', 'Camera device is not available');
-                return;
-            }
-
-            try {
-                // Start background recording service
-                if (VideoRecordingModule) {
-                    const settings = {
-                        duration: recordingSettings.duration,
-                        quality: recordingSettings.quality,
-                        camera: recordingSettings.camera,
-                        preview: recordingSettings.preview && !cameraError
-                    };
-                    
-                    const result = await VideoRecordingModule.startRecording(settings);
-                    
-                    if (result.success) {
-                        setIsRecording(true);
-                        setRecordingTime(0);
-                        console.log('🔴 Started background recording service');
-                        
-                        const warningText = cameraError ? 
-                            '\n\n⚠️ Camera preview is disabled due to restrictions, but recording will work in background.' : 
-                            '\n\nRecording will continue even if you minimize the app or go to home screen.';
-                        
-                        Alert.alert(
-                            'Background Recording Started', 
-                            `Recording ${recordingSettings.quality} video for ${recordingSettings.duration} minutes using ${recordingSettings.camera} camera.${warningText}`,
-                            [{ text: 'OK' }]
-                        );
-                    } else {
-                        throw new Error(result.message || 'Failed to start recording');
-                    }
-                } else {
-                    throw new Error('VideoRecordingModule not available');
-                }
-                
-            } catch (error) {
-                console.error('❌ Failed to start recording:', error);
-                Alert.alert('Error', 'Failed to start recording: ' + error.message);
-            }
-        } else {
-            // Stop background recording service
-            try {
-                if (VideoRecordingModule) {
-                    const result = await VideoRecordingModule.stopRecording();
-                    
-                    if (result.success) {
-                        setIsRecording(false);
-                        console.log('⏹️ Stopped background recording service');
-                        
-                        // Save the manually stopped video
-                        const manualStopVideoData = {
-                            duration: recordingTime,
-                            fileName: createVideoFileName(),
-                            filePath: result.filePath || null,
-                            fileSize: result.fileSize || 'Unknown'
-                        };
-                        
-                        const savedVideo = await saveRecordedVideo(manualStopVideoData);
-                        setRecordingTime(0);
-                        
-                        if (savedVideo) {
-                            Alert.alert(
-                                'Recording Stopped',
-                                `Video saved successfully!\nDuration: ${savedVideo.duration}\nQuality: ${savedVideo.quality}\nSaved as: ${savedVideo.title}`,
-                                [
-                                    { text: 'View in Gallery', onPress: () => {
-                                        console.log('Navigate to gallery tab');
-                                    }},
-                                    { text: 'OK' }
-                                ]
-                            );
+        Alert.alert(
+            title,
+            'Choose an option:',
+            [
+                ...options.map(option => ({
+                    text: option,
+                    onPress: () => {
+                        if (setting === 'preview') {
+                            setRecordingSettings(prev => ({
+                                ...prev,
+                                [setting]: option === 'On'
+                            }));
+                        } else if (setting === 'duration') {
+                            const duration = parseInt(option.split(' ')[0]);
+                            setRecordingSettings(prev => ({
+                                ...prev,
+                                [setting]: duration
+                            }));
                         } else {
-                            Alert.alert(
-                                'Recording Stopped',
-                                'Background recording has been stopped successfully.'
-                            );
+                            setRecordingSettings(prev => ({
+                                ...prev,
+                                [setting]: option
+                            }));
                         }
-                    } else {
-                        throw new Error(result.message || 'Failed to stop recording');
                     }
-                } else {
-                    throw new Error('VideoRecordingModule not available');
-                }
-            } catch (error) {
-                console.error('❌ Failed to stop recording:', error);
-                Alert.alert('Error', 'Failed to stop recording: ' + error.message);
-                setIsRecording(false);
-            }
-        }
+                })),
+                { text: 'Cancel', style: 'cancel' }
+            ]
+        );
     };
 
-    const renderSettingButton = (iconSource, label, value, options, setting) => (
-        <TouchableOpacity 
-            style={styles.settingButton}
-            onPress={() => {
-                if (options && options.length > 1) {
-                    Alert.alert(
-                        `Select ${label}`,
-                        '',
-                        options.map(option => ({
-                            text: option.label,
-                            onPress: () => handleSettingPress(setting, option.value)
-                        }))
-                    );
-                }
-            }}
-        >
-            <View style={styles.settingIcon}>
-                <Image source={iconSource} style={styles.settingIconImage} />
-            </View>
-            <Text style={styles.settingLabel}>{label}</Text>
-            <Text style={styles.settingValue}>{value}</Text>
-        </TouchableOpacity>
-    );
+    const getSettingDisplayValue = (setting) => {
+        switch (setting) {
+            case 'preview':
+                return recordingSettings.preview ? 'On' : 'Off';
+            case 'duration':
+                return `${recordingSettings.duration} mins`;
+            default:
+                return recordingSettings[setting];
+        }
+    };
 
     return (
-        <View style={styles.tabContent}>
-            {/* Camera Preview */}
-            {recordingSettings.preview && device && hasCameraPermission && !cameraError ? (
-                <View style={styles.cameraContainer}>
-                    <Camera
-                        ref={cameraRef}
-                        style={styles.camera}
-                        device={device}
-                        isActive={true}
-                        video={true}
-                        audio={hasMicrophonePermission}
-                        orientation="portrait"
-                        onInitialized={() => {
-                            console.log('📷 Camera initialized successfully');
-                            setCameraReady(true);
-                            setCameraError(null);
-                        }}
-                        onError={(error) => {
-                            console.error('📷 Camera error:', error);
-                            setCameraError(error);
-                            setCameraReady(false);
-                            
-                            // Handle specific camera errors
-                            if (error.code === 'camera-is-restricted') {
-                                Alert.alert(
-                                    'Camera Restricted',
-                                    'Camera access is restricted by device policy. You can still record videos in background mode without preview.',
-                                    [
-                                        { text: 'Turn Off Preview', onPress: () => handleSettingPress('preview', false) },
-                                        { text: 'OK' }
-                                    ]
-                                );
-                            } else {
-                                Alert.alert(
-                                    'Camera Error',
-                                    `Camera failed to initialize: ${error.message}. You can still record without preview.`,
-                                    [
-                                        { text: 'Turn Off Preview', onPress: () => handleSettingPress('preview', false) },
-                                        { text: 'OK' }
-                                    ]
-                                );
-                            }
-                        }}
-                    />
-                    {isRecording && (
-                        <View style={styles.recordingIndicator}>
-                            <View style={styles.recordingDot} />
-                            <Text style={styles.recordingText}>REC</Text>
-                        </View>
-                    )}
-                </View>
-            ) : recordingSettings.preview ? (
-                <View style={styles.cameraPlaceholder}>
-                    <Text style={styles.cameraPlaceholderText}>
-                        {cameraError ? 
-                            (cameraError.code === 'camera-is-restricted' ? 
-                                '📷 Camera Restricted\nBackground recording still available' :
-                                `📷 Camera Error\n${cameraError.message || 'Unknown error'}`
-                            ) :
-                            (!hasCameraPermission ? 'Camera permission required' : 
-                             !device ? 'Camera not available' : 'Camera preview loading...')
-                        }
-                    </Text>
-                    {cameraError && (
-                        <TouchableOpacity 
-                            style={styles.retryButton}
-                            onPress={() => {
-                                setCameraError(null);
-                                setCameraReady(false);
-                            }}
-                        >
-                            <Text style={styles.retryButtonText}>Retry Camera</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-            ) : null}
-
+        <View style={styles.container}>
             {/* Settings Row */}
             <View style={styles.settingsRow}>
-                {renderSettingButton(
-                    require('../../../assets/home/ic/icon_preview.png'), 
-                    'Preview', 
-                    recordingSettings.preview ? 'On' : 'Off',
-                    [
-                        { label: 'On', value: true },
-                        { label: 'Off', value: false }
-                    ],
-                    'preview'
-                )}
-                {renderSettingButton(
-                    require('../../../assets/home/ic/icon_clock.png'), 
-                    `${recordingSettings.duration} mins`, 
-                    '',
-                    [
-                        { label: '3 mins', value: 3 },
-                        { label: '5 mins', value: 5 },
-                        { label: '10 mins', value: 10 },
-                        { label: '15 mins', value: 15 },
-                        { label: '30 mins', value: 30 }
-                    ],
-                    'duration'
-                )}
-                {renderSettingButton(
-                    require('../../../assets/home/ic/ic_record2.png'), 
-                    'Quality', 
-                    recordingSettings.quality === 'HD' ? 'HD 720p' : 
-                    recordingSettings.quality === 'FHD' ? 'FHD 1080p' : 
-                    recordingSettings.quality === '4K' ? 'UHD 4K' : 'HD 720p',
-                    [
-                        { label: 'HD 720p', value: 'HD' },
-                        { label: 'FHD 1080p', value: 'FHD' },
-                        { label: 'UHD 4K', value: '4K' }
-                    ],
-                    'quality'
-                )}
-                {renderSettingButton(
-                    require('../../../assets/home/ic/icon_swap.png'), 
-                    recordingSettings.camera === 'front' ? 'Front' : 'Back', 
-                    '',
-                    [
-                        { label: 'Front Camera', value: 'front' },
-                        { label: 'Back Camera', value: 'back' }
-                    ],
-                    'camera'
-                )}
+                {['preview', 'duration', 'quality', 'camera'].map((setting) => (
+                    <TouchableOpacity
+                        key={setting}
+                        style={styles.settingButton}
+                        onPress={() => handleSettingPress(setting, recordingSettings[setting])}
+                        disabled={isRecording}
+                    >
+                        <Image
+                            source={getSettingIcon(setting)}
+                            style={[
+                                styles.settingIconImage,
+                                { tintColor: isRecording ? '#9CA3AF' : '#1E3A8A' }
+                            ]}
+                        />
+                        <Text style={[
+                            styles.settingLabel,
+                            { color: isRecording ? '#9CA3AF' : '#1F2937' }
+                        ]}>
+                            {setting.charAt(0).toUpperCase() + setting.slice(1)}
+                        </Text>
+                        <Text style={[
+                            styles.settingValue,
+                            { color: isRecording ? '#9CA3AF' : '#4B5563' }
+                        ]}>
+                            {getSettingDisplayValue(setting)}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
             {/* Recording Timer */}
@@ -536,6 +386,11 @@ const RecordTab = () => {
                 <Text style={styles.timerText}>
                     {formatTime(recordingTime)}
                 </Text>
+                {isRecording && (
+                    <View style={styles.recordingIndicator}>
+                        <Text style={styles.recordingBadge}>REC</Text>
+                    </View>
+                )}
             </View>
 
             {/* Native Ad */}
@@ -547,230 +402,174 @@ const RecordTab = () => {
             </View>
 
             {/* Record Button */}
-            <View style={styles.recordButtonContainer}>
-                <TouchableOpacity 
-                    style={[
-                        styles.recordButton,
-                        { backgroundColor: isRecording ? '#FF4757' : '#2F3542' }
-                    ]}
-                    onPress={handleRecordPress}
-                >
-                    <View style={[
-                        styles.recordButtonInner,
-                        { backgroundColor: isRecording ? '#FF3742' : '#1e272e' }
-                    ]}>
-                        {isRecording ? (
-                            <View style={styles.stopIcon} />
-                        ) : (
-                            <View style={styles.playIcon} />
-                        )}
-                    </View>
-                </TouchableOpacity>
-                {/* <Text style={styles.recordButtonText}>
-                    {isRecording ? 'Stop Recording' : 'Start Recording'}
-                </Text> */}
-            </View>
+            <TouchableOpacity
+                style={[
+                    styles.recordButton,
+                    { backgroundColor: isRecording ? '#EF4444' : '#1E3A8A' }
+                ]}
+                onPress={handleRecordPress}
+            >
+                <Text style={styles.recordButtonIcon}>
+                    {isRecording ? '⏹️' : '▶️'}
+                </Text>
+            </TouchableOpacity>
 
             {/* Storage Info */}
             <View style={styles.storageContainer}>
-                <Text style={styles.storageText}>{availableStorage}</Text>
                 <View style={styles.storageBar}>
-                    <View style={[styles.storageUsed, { width: '68%' }]} />
+                    <View
+                        style={[
+                            styles.storageUsed,
+                            { width: `${(availableStorage.used / availableStorage.total) * 100}%` }
+                        ]}
+                    />
                 </View>
+                <Text style={styles.storageText}>
+                    {availableStorage.used} GB/ {availableStorage.total} GB
+                </Text>
             </View>
+
+            {/* Background Recording Status */}
+            {isServiceRecording && (
+                <View style={styles.backgroundStatus}>
+                    <Text style={styles.backgroundStatusText}>
+                        🔴 Recording in background - You can minimize this app
+                    </Text>
+                </View>
+            )}
         </View>
     );
 };
 
+const getSettingIcon = (setting) => {
+    switch (setting) {
+        case 'preview':
+            return require('../../../assets/home/ic/icon_preview.png');
+        case 'duration':
+            return require('../../../assets/home/ic/icon_clock.png');
+        case 'quality':
+            return require('../../../assets/home/ic/ic_record2.png');
+        case 'camera':
+            return require('../../../assets/home/ic/icon_swap.png');
+        default:
+            return require('../../../assets/home/ic/icon_preview.png');
+    }
+};
+
 const styles = StyleSheet.create({
-    tabContent: {
+    container: {
         flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 0,
-    },
-    cameraContainer: {
-        width: '100%',
-        height: 200,
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginBottom: 15,
-        position: 'relative',
-    },
-    camera: {
-        flex: 1,
-    },
-    cameraPlaceholder: {
-        width: '100%',
-        height: 200,
-        borderRadius: 12,
-        backgroundColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderStyle: 'dashed',
-    },
-    cameraPlaceholderText: {
-        fontSize: 14,
-        color: '#6B7280',
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    retryButton: {
-        backgroundColor: '#1E3A8A',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
-        marginTop: 8,
-    },
-    retryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    recordingIndicator: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 0, 0, 0.8)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    recordingDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#FFFFFF',
-        marginRight: 4,
-    },
-    recordingText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: 'bold',
+        padding: 20,
+        backgroundColor: '#F8F9FA',
     },
     settingsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 10,
+        marginBottom: 30,
     },
     settingButton: {
+        alignItems: 'center',
         flex: 1,
-        alignItems: 'center',
-        marginHorizontal: 5,
-    },
-    settingIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 30,
-        backgroundColor: COLORS.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 5,
+        paddingVertical: 10,
+        paddingHorizontal: 5,
     },
     settingIconImage: {
         width: 24,
         height: 24,
-        tintColor: '#1E3A8A',
-    },
-    settingIconText: {
-        fontSize: 24,
+        marginBottom: 5,
     },
     settingLabel: {
         fontSize: 12,
-        color: '#6B7280',
+        fontWeight: '600',
         marginBottom: 2,
+        textAlign: 'center',
     },
     settingValue: {
-        fontSize: 11,
-        color: '#1F2937',
-        fontWeight: '600',
+        fontSize: 10,
+        fontWeight: '500',
+        textAlign: 'center',
     },
     timerContainer: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 30,
+        position: 'relative',
     },
     timerText: {
         fontSize: 48,
-        fontWeight: '900',
+        fontWeight: 'bold',
         color: '#1E3A8A',
-        fontFamily: 'monospace',
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+    recordingIndicator: {
+        position: 'absolute',
+        top: -10,
+        right: width * 0.25,
+    },
+    recordingBadge: {
+        backgroundColor: '#EF4444',
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
     },
     adContainer: {
-        marginBottom: 10,
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    recordButtonContainer: {
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 30,
     },
     recordButton: {
-        width: 60,
-        height: 60,
+        width: 120,
+        height: 120,
         borderRadius: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 15,
-        elevation: 5,
+        alignSelf: 'center',
+        marginBottom: 30,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
     },
-    recordButtonInner: {
-        width: 30,
-        height: 30,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    playIcon: {
-        width: 0,
-        height: 0,
-        borderLeftWidth: 25,
-        borderRightWidth: 0,
-        borderTopWidth: 15,
-        borderBottomWidth: 15,
-        borderLeftColor: '#FFFFFF',
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        marginLeft: 5,
-    },
-    stopIcon: {
-        width: 30,
-        height: 30,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 4,
-    },
-    recordButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1F2937',
+    recordButtonIcon: {
+        fontSize: 40,
+        color: '#FFFFFF',
     },
     storageContainer: {
         alignItems: 'center',
     },
-    storageText: {
-        fontSize: 14,
-        color: '#6B7280',
-        marginBottom: 8,
-    },
     storageBar: {
         width: width * 0.6,
-        height: 4,
+        height: 6,
         backgroundColor: '#E5E7EB',
-        borderRadius: 2,
+        borderRadius: 3,
+        marginBottom: 8,
         overflow: 'hidden',
     },
     storageUsed: {
         height: '100%',
         backgroundColor: '#1E3A8A',
-        borderRadius: 2,
+        borderRadius: 3,
+    },
+    storageText: {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    backgroundStatus: {
+        marginTop: 20,
+        padding: 12,
+        backgroundColor: '#FEF3C7',
+        borderRadius: 8,
+        borderLeftWidth: 4,
+        borderLeftColor: '#F59E0B',
+    },
+    backgroundStatusText: {
+        fontSize: 14,
+        color: '#92400E',
+        fontWeight: '500',
+        textAlign: 'center',
     },
 });
 

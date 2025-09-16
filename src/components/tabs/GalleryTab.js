@@ -9,12 +9,13 @@ import {
     Image,
     Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import VideoPlayer from '../VideoPlayer';
 import { addTestVideo, clearAllVideos } from '../../utils/testUtils';
 import { COLORS } from '../../constants';
+import { NativeModules } from 'react-native';
 
 const { width } = Dimensions.get('window');
+const { VideoRecordingModule } = NativeModules;
 
 const GalleryTab = () => {
     const [activeTab, setActiveTab] = useState('video'); // 'video' or 'audio'
@@ -29,7 +30,7 @@ const GalleryTab = () => {
     ]);
 
     useEffect(() => {
-        // Load actual recorded videos from storage
+        // Load actual recorded videos from app directory
         loadRecordedVideos();
         
         // Refresh every 5 seconds to catch new videos
@@ -42,35 +43,50 @@ const GalleryTab = () => {
 
     const loadRecordedVideos = async () => {
         try {
-            const storedVideos = await AsyncStorage.getItem('recorded_videos');
-            if (storedVideos) {
-                const parsedVideos = JSON.parse(storedVideos);
-                setVideos(parsedVideos);
-                console.log('Loaded recorded videos from storage:', parsedVideos.length);
+            if (!VideoRecordingModule) {
+                console.error('VideoRecordingModule not available');
+                setVideos([]);
+                return;
+            }
+
+            const result = await VideoRecordingModule.getRecordedVideos();
+            console.log('Videos directory:', result.directory);
+            console.log('Loaded videos from app directory:', result.videos.length);
+            
+            if (result.videos && result.videos.length > 0) {
+                // Convert native video data to match our UI format
+                const formattedVideos = result.videos.map(video => ({
+                    id: video.id,
+                    title: video.title,
+                    duration: formatDuration(video.lastModified), // Placeholder - will be updated when video metadata is available
+                    size: video.fileSize,
+                    date: video.date,
+                    filePath: video.filePath,
+                    quality: 'HD 720p', // Default - can be enhanced later
+                    camera: 'Back', // Default - can be enhanced later
+                    thumbnail: null,
+                    lastModified: video.lastModified
+                }));
+                
+                setVideos(formattedVideos);
             } else {
-                // Create some sample data for testing if no videos found
-                const sampleVideos = [
-                    {
-                        id: Date.now(),
-                        title: 'Sample_Recording_001.mp4',
-                        duration: '00:02:30',
-                        size: '45 MB',
-                        date: new Date().toLocaleString(),
-                        filePath: null, // Will be populated by actual recordings
-                        quality: 'HD 720p',
-                        camera: 'Front',
-                        thumbnail: null
-                    }
-                ];
-                setVideos(sampleVideos);
-                // Save sample data
-                await AsyncStorage.setItem('recorded_videos', JSON.stringify(sampleVideos));
-                console.log('Created sample video data');
+                console.log('No videos found in app directory');
+                setVideos([]);
             }
         } catch (error) {
-            console.error('Failed to load videos:', error);
+            console.error('Failed to load videos from app directory:', error);
             setVideos([]);
         }
+    };
+
+    const formatDuration = (timestamp) => {
+        // Simple duration format based on file age - this is a placeholder
+        // In a real implementation, you would extract actual video duration
+        const now = Date.now();
+        const diff = Math.floor((now - timestamp) / 1000);
+        if (diff < 60) return '00:00:30'; // Default short duration
+        if (diff < 3600) return `00:${Math.floor(diff/60).toString().padStart(2, '0')}:00`;
+        return `${Math.floor(diff/3600).toString().padStart(2, '0')}:00:00`;
     };
 
     const handleVideoAction = (videoId, action) => {
@@ -113,13 +129,26 @@ const GalleryTab = () => {
 
     const deleteVideo = async (videoId) => {
         try {
-            const updatedVideos = videos.filter(v => v.id !== videoId);
-            setVideos(updatedVideos);
-            await AsyncStorage.setItem('recorded_videos', JSON.stringify(updatedVideos));
+            const video = videos.find(v => v.id === videoId);
+            if (!video || !video.filePath) {
+                Alert.alert('Error', 'Video file not found');
+                return;
+            }
+
+            if (!VideoRecordingModule) {
+                Alert.alert('Error', 'Video recording module not available');
+                return;
+            }
+
+            await VideoRecordingModule.deleteVideo(video.filePath);
+            
+            // Refresh the video list after deletion
+            await loadRecordedVideos();
+            
             Alert.alert('Success', 'Video deleted successfully');
         } catch (error) {
             console.error('Failed to delete video:', error);
-            Alert.alert('Error', 'Failed to delete video');
+            Alert.alert('Error', 'Failed to delete video: ' + error.message);
         }
     };
 
@@ -219,7 +248,7 @@ const GalleryTab = () => {
                 }}
             >
                 <Image 
-                    source={require('../../../assets/home/ic/ic_setting.png')} 
+                    source={require('../../../assets/home/ic/ic_3dot.png')} 
                     style={styles.actionIcon} 
                 />
             </TouchableOpacity>
@@ -286,7 +315,7 @@ const GalleryTab = () => {
                     await refreshVideoList();
                 }}>
                     <Image 
-                        source={require('../../../assets/home/ic/ic_record.png')} 
+                        source={require('../../../assets/home/ic/ic_3dot.png')} 
                         style={styles.actionButtonIcon} 
                     />
                     <Text style={styles.actionButtonText}>Add Test</Text>
@@ -473,9 +502,9 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     actionIcon: {
-        width: 16,
-        height: 16,
-        tintColor: '#6B7280',
+        // width: 16,
+        // height: 60,
+        // tintColor: '#6B7280',
     },
     emptyState: {
         alignItems: 'center',

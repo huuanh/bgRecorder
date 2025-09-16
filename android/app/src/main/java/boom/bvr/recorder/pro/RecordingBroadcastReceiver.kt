@@ -4,8 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.WritableNativeMap
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class RecordingBroadcastReceiver(private val reactContext: ReactApplicationContext) : BroadcastReceiver() {
@@ -19,22 +20,40 @@ class RecordingBroadcastReceiver(private val reactContext: ReactApplicationConte
         
         when (intent?.action) {
             "com.bgrecorder.RECORDING_STARTED" -> {
-                sendEvent("onRecordingStarted", null)
+                sendEventToReactNative("onRecordingStarted", null)
             }
             "com.bgrecorder.RECORDING_STOPPED" -> {
                 val duration = intent.getLongExtra("duration", 0L)
-                sendEvent("onRecordingStopped", WritableNativeMap().apply {
+                val filePath = intent.getStringExtra("filePath")
+                val fileName = intent.getStringExtra("fileName")
+                val fileSize = intent.getStringExtra("fileSize")
+                val quality = intent.getStringExtra("quality")
+                val camera = intent.getStringExtra("camera")
+                val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
+                
+                val params = Arguments.createMap().apply {
                     putDouble("duration", duration.toDouble())
-                })
+                    putString("filePath", filePath)
+                    putString("fileName", fileName)
+                    putString("fileSize", fileSize)
+                    putString("quality", quality)
+                    putString("camera", camera)
+                    putDouble("timestamp", timestamp.toDouble())
+                }
+                
+                Log.d(TAG, "Sending recording stopped event with metadata: $params")
+                sendEventToReactNative("onRecordingStopped", params)
             }
         }
     }
     
-    private fun sendEvent(eventName: String, params: WritableNativeMap?) {
-        if (reactContext.hasActiveReactInstance()) {
+    private fun sendEventToReactNative(eventName: String, params: WritableMap?) {
+        try {
             reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 .emit(eventName, params)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send event to React Native", e)
         }
     }
 }

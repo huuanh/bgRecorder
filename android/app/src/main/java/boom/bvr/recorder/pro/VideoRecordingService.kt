@@ -1,40 +1,59 @@
 package boom.bvr.recorder.pro
 
+import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.os.Binder
-import android.os.Build
-import android.os.IBinder
+import android.graphics.Color
+import android.hardware.camera2.*
+import android.media.MediaRecorder
+import android.os.*
 import android.util.Log
+import android.util.Size
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
 class VideoRecordingService : Service() {
     
-    private val binder = LocalBinder()
-    private var isRecording = false
-    private var recordingStartTime: Long = 0
-    private var recordingDuration: Int = 5 // minutes
-    private var recordingQuality: String = "HD"
-    private var cameraType: String = "front"
-    private var enablePreview: Boolean = true
-    
     companion object {
         const val TAG = "VideoRecordingService"
-        const val NOTIFICATION_ID = 1001
+        const val NOTIFICATION_ID = 1
         const val CHANNEL_ID = "video_recording_channel"
-        const val ACTION_START_RECORDING = "START_RECORDING"
-        const val ACTION_STOP_RECORDING = "STOP_RECORDING"
         
-        // Recording settings extras
+        // Actions
+        const val ACTION_START_RECORDING = "start_recording"
+        const val ACTION_STOP_RECORDING = "stop_recording"
+        
+        // Extras
         const val EXTRA_DURATION = "duration"
         const val EXTRA_QUALITY = "quality"
         const val EXTRA_CAMERA = "camera"
         const val EXTRA_PREVIEW = "preview"
     }
+    
+    private var mediaRecorder: MediaRecorder? = null
+    private var cameraDevice: CameraDevice? = null
+    private var cameraManager: CameraManager? = null
+    private var recordingSurface: Surface? = null
+    private var previewSurface: Surface? = null
+    private var overlayManager: OverlayManager? = null
+    private var captureSession: CameraCaptureSession? = null
+    
+    private var isRecording = false
+    private var startTime = 0L
+    private var recordingSettings = mutableMapOf<String, Any>()
+    private var recordingFile: File? = null
+    
+    private val handler = Handler(Looper.getMainLooper())
+    private var autoStopRunnable: Runnable? = null
+    
+    private val binder = LocalBinder()
     
     inner class LocalBinder : Binder() {
         fun getService(): VideoRecordingService = this@VideoRecordingService
@@ -44,6 +63,8 @@ class VideoRecordingService : Service() {
         super.onCreate()
         Log.d(TAG, "VideoRecordingService created")
         createNotificationChannel()
+        cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        overlayManager = OverlayManager(this)
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -51,25 +72,308 @@ class VideoRecordingService : Service() {
         
         when (intent?.action) {
             ACTION_START_RECORDING -> {
-                // Get recording settings from intent
-                recordingDuration = intent.getIntExtra(EXTRA_DURATION, 5)
-                recordingQuality = intent.getStringExtra(EXTRA_QUALITY) ?: "HD"
-                cameraType = intent.getStringExtra(EXTRA_CAMERA) ?: "front"
-                enablePreview = intent.getBooleanExtra(EXTRA_PREVIEW, true)
+                val duration = intent.getIntExtra(EXTRA_DURATION, 5) * 60 * 1000L // Convert to milliseconds
+                val quality = intent.getStringExtra(EXTRA_QUALITY) ?: "HD 720p"
+                val camera = intent.getStringExtra(EXTRA_CAMERA) ?: "Back"
+                val preview = intent.getBooleanExtra(EXTRA_PREVIEW, false)
+                
+                recordingSettings = mutableMapOf(
+                    "duration" to duration,
+                    "quality" to quality,
+                    "camera" to camera,
+                    "preview" to preview
+                )
                 
                 startRecording()
+                setupAutoStop(duration)
             }
             ACTION_STOP_RECORDING -> {
                 stopRecording()
             }
         }
         
-        return START_STICKY // Restart service if killed
+        return START_STICKY // Service will be restarted if killed
     }
     
-    override fun onBind(intent: Intent?): IBinder {
-        Log.d(TAG, "Service bound")
-        return binder
+    override fun onBind(intent: Intent): IBinder = binder
+    
+    @RequiresPermission(Manifest.permission.CAMERA)
+    private fun startRecording() {
+        try {
+            Log.d(TAG, "Starting recording with settings: $recordingSettings")
+            
+            if (isRecording) {
+                Log.w(TAG, "Already recording")
+                return
+            }
+            
+            // Create output file
+            createOutputFile()
+            
+            // Setup media recorder
+            setupMediaRecorder()
+            
+            // Setup camera (overlay will be shown in camera callback)
+            setupCamera()
+            
+            // Start foreground notification
+            startForeground(NOTIFICATION_ID, createNotification("Recording video...", true))
+            
+            // Start recording
+            mediaRecorder?.start()
+            isRecording = true
+            startTime = System.currentTimeMillis()
+            
+            // Send broadcast
+            sendBroadcast(Intent("com.bgrecorder.RECORDING_STARTED"))
+            
+            Log.d(TAG, "Recording started successfully")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start recording", e)
+            stopRecording()
+        }
+    }
+    
+    private fun stopRecording() {
+        try {
+            Log.d(TAG, "Stopping recording")
+            
+            if (!isRecording) {
+                Log.w(TAG, "Not recording")
+                return
+            }
+            
+            // Stop auto-stop timer
+            autoStopRunnable?.let { handler.removeCallbacks(it) }
+            
+            // Hide overlay
+            overlayManager?.stopRecording()
+            overlayManager?.hideOverlay()
+            
+            // Stop media recorder
+            mediaRecorder?.apply {
+                try {
+                    stop()
+                    reset()
+                    release()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error stopping MediaRecorder", e)
+                }
+            }
+            mediaRecorder = null
+            
+            // Close camera
+            captureSession?.close()
+            captureSession = null
+            cameraDevice?.close()
+            cameraDevice = null
+            
+            // Clear preview surface
+            previewSurface = null
+            
+            val duration = System.currentTimeMillis() - startTime
+            isRecording = false
+            
+            // Update notification
+            val notification = createNotification("Recording completed", false)
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(NOTIFICATION_ID, notification)
+            
+            // Get file size
+            val fileSize = recordingFile?.let { file ->
+                if (file.exists()) {
+                    val sizeInBytes = file.length()
+                    when {
+                        sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
+                        sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
+                        sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
+                        else -> "$sizeInBytes B"
+                    }
+                } else "Unknown"
+            } ?: "Unknown"
+
+            // Send broadcast with full metadata
+            sendBroadcast(Intent("com.bgrecorder.RECORDING_STOPPED").apply {
+                putExtra("duration", duration)
+                putExtra("filePath", recordingFile?.absolutePath)
+                putExtra("fileName", recordingFile?.name)
+                putExtra("fileSize", fileSize)
+                putExtra("quality", recordingSettings["quality"] as? String ?: "HD 720p")
+                putExtra("camera", recordingSettings["camera"] as? String ?: "Back")
+                putExtra("timestamp", System.currentTimeMillis())
+            })
+            
+            Log.d(TAG, "Recording stopped. Duration: ${duration}ms, File: ${recordingFile?.absolutePath}")
+            
+            // Stop foreground service after delay
+            handler.postDelayed({
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }, 3000)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop recording", e)
+        }
+    }
+    
+    private fun createOutputFile() {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "REC_${timestamp}.mp4"
+        
+        // Create app-specific directory for recorded videos
+        val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
+        if (!appDataDir.exists()) {
+            val created = appDataDir.mkdirs()
+            Log.d(TAG, "Created app directory: $created, Path: ${appDataDir.absolutePath}")
+        }
+        
+        recordingFile = File(appDataDir, fileName)
+        Log.d(TAG, "Output file will be: ${recordingFile?.absolutePath}")
+        
+        // Ensure parent directory exists
+        recordingFile?.parentFile?.let { parentDir ->
+            if (!parentDir.exists()) {
+                parentDir.mkdirs()
+            }
+        }
+    }
+    
+    private fun setupMediaRecorder() {
+        mediaRecorder = MediaRecorder().apply {
+            setVideoSource(MediaRecorder.VideoSource.SURFACE)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            
+            // Set quality based on settings
+            val quality = recordingSettings["quality"] as String
+            when (quality) {
+                "HD 720p" -> {
+                    setVideoSize(1280, 720)
+                    setVideoEncodingBitRate(8000000)
+                }
+                "FHD 1080p" -> {
+                    setVideoSize(1920, 1080)
+                    setVideoEncodingBitRate(12000000)
+                }
+                "UHD 4K" -> {
+                    setVideoSize(3840, 2160)
+                    setVideoEncodingBitRate(20000000)
+                }
+                else -> {
+                    setVideoSize(1280, 720)
+                    setVideoEncodingBitRate(8000000)
+                }
+            }
+            
+            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+            setVideoFrameRate(30)
+            setOutputFile(recordingFile?.absolutePath)
+            
+            prepare()
+            recordingSurface = surface
+        }
+    }
+    
+    @RequiresPermission(Manifest.permission.CAMERA)
+    private fun setupCamera() {
+        try {
+            val cameraId = if (recordingSettings["camera"] == "Front") "1" else "0"
+            
+            cameraManager?.openCamera(cameraId, object : CameraDevice.StateCallback() {
+                override fun onOpened(camera: CameraDevice) {
+                    Log.d(TAG, "Camera opened: $cameraId")
+                    cameraDevice = camera
+                    
+                    // Show overlay if preview is enabled (after camera is ready)
+                    val showPreview = recordingSettings["preview"] as? Boolean ?: false
+                    Log.d(TAG, "OVERLAY_DEBUG: Show preview setting: $showPreview")
+                    
+                    if (showPreview) {
+                        val service = this@VideoRecordingService
+                        Log.d(TAG, "OVERLAY_DEBUG: About to show overlay with overlay manager: ${overlayManager != null}")
+                        
+                        val overlayResult = overlayManager?.showOverlay(cameraDevice, {
+                            // Callback when user closes overlay - stop recording
+                            Log.d(TAG, "OVERLAY_DEBUG: User requested stop recording from overlay")
+                            stopRecording()
+                        }, service)
+                        
+                        Log.d(TAG, "OVERLAY_DEBUG: Overlay show result: $overlayResult")
+                        overlayManager?.startRecording()
+                    }
+                    
+                    startCameraRecording()
+                }
+                
+                override fun onDisconnected(camera: CameraDevice) {
+                    Log.d(TAG, "Camera disconnected")
+                    camera.close()
+                    cameraDevice = null
+                }
+                
+                override fun onError(camera: CameraDevice, error: Int) {
+                    Log.e(TAG, "Camera error: $error")
+                    camera.close()
+                    cameraDevice = null
+                }
+            }, null)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to setup camera", e)
+        }
+    }
+    
+    private fun startCameraRecording() {
+        try {
+            val captureRequestBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
+            captureRequestBuilder?.addTarget(recordingSurface!!)
+            
+            // Add preview surface if overlay is showing
+            previewSurface?.let { surface ->
+                captureRequestBuilder?.addTarget(surface)
+                Log.d(TAG, "OVERLAY_DEBUG: Added preview surface to capture request")
+            }
+            
+            val surfaces = mutableListOf<Surface>().apply {
+                add(recordingSurface!!)
+                previewSurface?.let { add(it) }
+            }
+            
+            cameraDevice?.createCaptureSession(
+                surfaces,
+                object : CameraCaptureSession.StateCallback() {
+                    override fun onConfigured(session: CameraCaptureSession) {
+                        try {
+                            captureSession = session
+                            session.setRepeatingRequest(
+                                captureRequestBuilder!!.build(),
+                                null,
+                                null
+                            )
+                            Log.d(TAG, "OVERLAY_DEBUG: Camera capture session started with ${surfaces.size} surfaces")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to start capture session", e)
+                        }
+                    }
+                    
+                    override fun onConfigureFailed(session: CameraCaptureSession) {
+                        Log.e(TAG, "Capture session configuration failed")
+                    }
+                },
+                null
+            )
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start camera recording", e)
+        }
+    }
+    
+    private fun setupAutoStop(duration: Long) {
+        autoStopRunnable = Runnable {
+            Log.d(TAG, "Auto-stopping recording after ${duration}ms")
+            stopRecording()
+        }
+        handler.postDelayed(autoStopRunnable!!, duration)
     }
     
     private fun createNotificationChannel() {
@@ -79,7 +383,7 @@ class VideoRecordingService : Service() {
                 "Video Recording",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Background video recording notification"
+                description = "Background video recording service"
                 setSound(null, null)
                 enableVibration(false)
             }
@@ -89,65 +393,7 @@ class VideoRecordingService : Service() {
         }
     }
     
-    private fun startRecording() {
-        if (isRecording) {
-            Log.w(TAG, "Recording already in progress")
-            return
-        }
-        
-        recordingStartTime = System.currentTimeMillis()
-        isRecording = true
-        
-        Log.d(TAG, "Starting recording: quality=$recordingQuality, duration=${recordingDuration}min, camera=$cameraType, preview=$enablePreview")
-        
-        // Start foreground service with notification
-        val notification = createRecordingNotification()
-        startForeground(NOTIFICATION_ID, notification)
-        
-        // For now, we'll create a placeholder recording process
-        // In a real implementation, this would integrate with camera API
-        Log.d(TAG, "Mock recording started - actual camera integration needed")
-        
-        // Schedule auto-stop after duration
-        scheduleAutoStop()
-        
-        // Broadcast recording started
-        sendBroadcast(Intent("com.bgrecorder.RECORDING_STARTED"))
-    }
-    
-    private fun stopRecording() {
-        if (!isRecording) {
-            Log.w(TAG, "No recording in progress")
-            return
-        }
-        
-        isRecording = false
-        
-        Log.d(TAG, "Stopping recording")
-        
-        // TODO: Stop camera recording and save file
-        
-        // Stop foreground service
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(Service.STOP_FOREGROUND_REMOVE)
-        } else {
-            @Suppress("DEPRECATION")
-            stopForeground(true)
-        }
-        stopSelf()
-        
-        // Broadcast recording stopped
-        val recordingTime = (System.currentTimeMillis() - recordingStartTime) / 1000
-        val intent = Intent("com.bgrecorder.RECORDING_STOPPED").apply {
-            putExtra("duration", recordingTime)
-        }
-        sendBroadcast(intent)
-        
-        // Show completion notification
-        showCompletionNotification(recordingTime)
-    }
-    
-    private fun createRecordingNotification(): Notification {
+    private fun createNotification(message: String, isRecording: Boolean): Notification {
         val stopIntent = Intent(this, VideoRecordingService::class.java).apply {
             action = ACTION_STOP_RECORDING
         }
@@ -156,63 +402,98 @@ class VideoRecordingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        val openAppIntent = packageManager.getLaunchIntentForPackage(packageName)
-        val openAppPendingIntent = PendingIntent.getActivity(
-            this, 0, openAppIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Recording Video")
-            .setContentText("$recordingQuality quality • ${recordingDuration}min • $cameraType camera${if (!enablePreview) " • No preview" else ""}")
+            .setContentTitle("Background Video Recorder")
+            .setContentText(message)
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setOngoing(true)
-            .setContentIntent(openAppPendingIntent)
-            .addAction(
-                android.R.drawable.ic_media_pause,
-                "Stop",
-                stopPendingIntent
-            )
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Recording ${if (enablePreview) "with preview" else "in background only"} using $recordingQuality quality $cameraType camera for ${recordingDuration} minutes"))
-            .build()
-    }
-    
-    private fun scheduleAutoStop() {
-        Thread {
-            try {
-                Thread.sleep(recordingDuration * 60 * 1000L) // Convert minutes to milliseconds
+            .setColor(Color.RED)
+            .setOngoing(isRecording)
+            .setAutoCancel(!isRecording)
+            .apply {
                 if (isRecording) {
-                    Log.d(TAG, "Auto-stopping recording after $recordingDuration minutes")
-                    stopRecording()
+                    addAction(
+                        android.R.drawable.ic_media_pause,
+                        "Stop Recording",
+                        stopPendingIntent
+                    )
                 }
-            } catch (e: InterruptedException) {
-                Log.d(TAG, "Auto-stop timer interrupted")
             }
-        }.start()
+            .build()
     }
     
-    private fun showCompletionNotification(durationSeconds: Long) {
-        val openAppIntent = packageManager.getLaunchIntentForPackage(packageName)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, openAppIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+    // Public methods for module access
+    fun getRecordingStatus(): Boolean = isRecording
+    
+    fun getOverlayManager(): OverlayManager? = overlayManager
+    
+    fun setPreviewSurface(surface: Surface?) {
+        previewSurface = surface
+        Log.d(TAG, "OVERLAY_DEBUG: Preview surface set: ${surface != null}")
+        Log.d(TAG, "OVERLAY_DEBUG: Current state - isRecording: $isRecording, cameraDevice: ${cameraDevice != null}, captureSession: ${captureSession != null}")
         
-        val minutes = durationSeconds / 60
-        val seconds = durationSeconds % 60
-        val durationText = String.format("%02d:%02d", minutes, seconds)
+        // If recording is active and camera device exists, restart capture session
+        if (isRecording && cameraDevice != null && captureSession != null) {
+            Log.d(TAG, "OVERLAY_DEBUG: Restarting capture session with preview surface")
+            try {
+                // Close current session first
+                captureSession?.close()
+                captureSession = null
+                
+                // Small delay to ensure session is closed, then start new session
+                handler.postDelayed({
+                    Log.d(TAG, "OVERLAY_DEBUG: Starting new capture session after delay")
+                    startCameraRecording()
+                }, 100)
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "OVERLAY_DEBUG: Failed to restart capture session with preview", e)
+            }
+        } else {
+            Log.d(TAG, "OVERLAY_DEBUG: Not restarting capture session - conditions not met")
+        }
+    }
+    
+    fun getRecordingDuration(): Long = 
+        if (isRecording) System.currentTimeMillis() - startTime else 0L
+    
+    fun getRecordingSettings(): Map<String, Any> = recordingSettings.toMap()
+    
+    fun getRecordedVideosDirectory(): String? {
+        val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
+        return if (appDataDir.exists()) appDataDir.absolutePath else null
+    }
+    
+    fun getRecordedVideosList(): List<Map<String, Any>> {
+        val videosList = mutableListOf<Map<String, Any>>()
+        val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
         
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Recording Completed")
-            .setContentText("Video recorded for $durationText")
-            .setSmallIcon(android.R.drawable.ic_media_ff)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
+        if (appDataDir.exists() && appDataDir.isDirectory) {
+            val videoFiles = appDataDir.listFiles { file ->
+                file.isFile && file.name.endsWith(".mp4", ignoreCase = true)
+            }
             
-        val notificationManager = NotificationManagerCompat.from(this)
-        notificationManager.notify(NOTIFICATION_ID + 1, notification)
+            videoFiles?.sortedByDescending { it.lastModified() }?.forEach { file ->
+                val sizeInBytes = file.length()
+                val sizeFormatted = when {
+                    sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
+                    sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
+                    sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
+                    else -> "$sizeInBytes B"
+                }
+                
+                videosList.add(mapOf(
+                    "id" to file.lastModified(),
+                    "title" to file.name,
+                    "filePath" to file.absolutePath,
+                    "fileSize" to sizeFormatted,
+                    "lastModified" to file.lastModified(),
+                    "date" to SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
+                ))
+            }
+        }
+        
+        Log.d(TAG, "Found ${videosList.size} recorded videos in app directory")
+        return videosList
     }
     
     override fun onDestroy() {
@@ -221,23 +502,6 @@ class VideoRecordingService : Service() {
         if (isRecording) {
             stopRecording()
         }
-    }
-    
-    // Public methods for React Native bridge
-    fun getRecordingStatus(): Boolean = isRecording
-    
-    fun getRecordingDuration(): Long {
-        return if (isRecording) {
-            (System.currentTimeMillis() - recordingStartTime) / 1000
-        } else 0
-    }
-    
-    fun getRecordingSettings(): Map<String, Any> {
-        return mapOf(
-            "duration" to recordingDuration,
-            "quality" to recordingQuality,
-            "camera" to cameraType,
-            "preview" to enablePreview
-        )
+        overlayManager?.destroy()
     }
 }
