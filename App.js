@@ -39,29 +39,29 @@ function App() {
 
   // Note: Mobile Ads initialization is handled by AdManager
   useEffect(() => {
-    const initializeMobileAds = async () => {
-      try {
-        // Try different ways to initialize
-        if (GoogleMobileAds && typeof GoogleMobileAds.initialize === 'function') {
-          await GoogleMobileAds.initialize();
-          console.log('✅ Mobile Ads initialized via GoogleMobileAds.initialize');
-        } else if (GoogleMobileAds && typeof GoogleMobileAds === 'function') {
-          const adsInstance = GoogleMobileAds();
-          if (adsInstance && typeof adsInstance.initialize === 'function') {
-            await adsInstance.initialize();
-            console.log('✅ Mobile Ads initialized via GoogleMobileAds().initialize');
-          } else {
-            console.log('⚠️ Mobile Ads initialize method not available, but components should work');
-          }
-        } else {
-          console.log('⚠️ GoogleMobileAds not available as expected');
-        }
-      } catch (error) {
-        console.log('⚠️ Mobile Ads initialization error (non-critical):', error);
-      }
-    };
+    // const initializeMobileAds = async () => {
+    //   try {
+    //     // Try different ways to initialize
+    //     if (GoogleMobileAds && typeof GoogleMobileAds.initialize === 'function') {
+    //       await GoogleMobileAds.initialize();
+    //       console.log('✅ Mobile Ads initialized via GoogleMobileAds.initialize');
+    //     } else if (GoogleMobileAds && typeof GoogleMobileAds === 'function') {
+    //       const adsInstance = GoogleMobileAds();
+    //       if (adsInstance && typeof adsInstance.initialize === 'function') {
+    //         await adsInstance.initialize();
+    //         console.log('✅ Mobile Ads initialized via GoogleMobileAds().initialize');
+    //       } else {
+    //         console.log('⚠️ Mobile Ads initialize method not available, but components should work');
+    //       }
+    //     } else {
+    //       console.log('⚠️ GoogleMobileAds not available as expected');
+    //     }
+    //   } catch (error) {
+    //     console.log('⚠️ Mobile Ads initialization error (non-critical):', error);
+    //   }
+    // };
     
-    initializeMobileAds();
+    // initializeMobileAds();
   }, []);
 
 

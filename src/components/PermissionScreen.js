@@ -369,10 +369,10 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             <View style={styles.botContainer}>
                 {/* Native Ad */}
                 <View style={styles.adContainer}>
-                    {/* <NativeAdComponent
+                    <NativeAdComponent
                         adUnitId={ADS_UNIT.NATIVE}
                         hasMedia={false}
-                    /> */}
+                    />
                 </View>
                 
                 {/* Bottom Navigation */}

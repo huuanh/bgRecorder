@@ -16,7 +16,7 @@ export const NativeAdComponent = (props) => {
             try {
                 console.log('🔍 Loading Native Ad...', props);
                 const unitId = props.adUnitId || ADS_UNIT.NATIVE;
-                
+
                 const ad = await NativeAd.createForAdRequest(unitId);
                 console.log('✅ Native Ad loaded:', {
                     headline: ad.headline,
@@ -24,7 +24,7 @@ export const NativeAdComponent = (props) => {
                     icon: ad.icon ? 'Available' : 'None',
                     callToAction: ad.callToAction
                 });
-                
+
                 setNativeAd(ad);
                 setIsLoading(false);
             } catch (error) {
@@ -36,7 +36,7 @@ export const NativeAdComponent = (props) => {
         loadNativeAd();
     }, []);
 
-    if (isLoading || true) {
+    if (isLoading) {
         return (
             <View style={styles.nativeAdContainer}>
                 <View style={styles.nativeAdView}>
@@ -58,11 +58,13 @@ export const NativeAdComponent = (props) => {
         <View style={styles.nativeAdContainer}>
             {/* Sponsored Label with Toggle Button */}
             <View style={styles.sponsoredLabelContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.toggleMediaButton}
                     onPress={() => setIsMediaVisible(!isMediaVisible)}
                 >
-                    {isMediaVisible ? <View></View> : <View></View>}
+                    <Text style={styles.toggleMediaButtonText}>
+                        {isMediaVisible ? '📺' : '👁️'}
+                    </Text>
                 </TouchableOpacity>
                 <View style={styles.sponsoredLabel}>
                     <Text style={styles.sponsoredText}>Ad</Text>
@@ -70,7 +72,7 @@ export const NativeAdComponent = (props) => {
             </View>
             <NativeAdView nativeAd={nativeAd} style={styles.nativeAdView}>
                 {/* Media Section - Conditionally Rendered */}
-                {isMediaVisible && props.hasMedia &&(
+                {isMediaVisible && props.hasMedia && (
                     <TouchableOpacity
                         style={styles.nativeAdMediaContainer}
                         onPress={() => {
@@ -122,22 +124,18 @@ export const NativeAdComponent = (props) => {
                         )}
 
                         <View style={styles.nativeAdInfoRow}>
-                                {nativeAd.starRating && (
-                                    <TouchableOpacity activeOpacity={0.8}>
-                                        <NativeAsset assetType={NativeAssetType.STAR_RATING}>
-                                            <Text style={styles.nativeAdRating}>⭐ {nativeAd.starRating}/5</Text>
-                                        </NativeAsset>
-                                    </TouchableOpacity>
-                                )}
+                            {nativeAd.starRating > 0 && (
+                                <NativeAsset assetType={NativeAssetType.STAR_RATING}>
+                                    <Text style={styles.nativeAdRating}>⭐ {nativeAd.starRating}/5</Text>
+                                </NativeAsset>
+                            )}
 
-                                {nativeAd.price && (
-                                    <TouchableOpacity activeOpacity={0.8}>
-                                        <NativeAsset assetType={NativeAssetType.PRICE}>
-                                            <Text style={styles.nativeAdPrice}>{nativeAd.price}</Text>
-                                        </NativeAsset>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
+                            {nativeAd.price && nativeAd.price.trim() !== "" && (
+                                <NativeAsset assetType={NativeAssetType.PRICE}>
+                                    <Text style={styles.nativeAdPrice}>{nativeAd.price}</Text>
+                                </NativeAsset>
+                            )}
+                        </View>
 
                         {/* Body/Tagline Section */}
                         {nativeAd.body && (
@@ -152,19 +150,19 @@ export const NativeAdComponent = (props) => {
 
                 {/* Call to Action Button */}
                 {nativeAd.callToAction && (
-                    <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
-                        <TouchableOpacity
-                            style={styles.nativeAdCTA}
-                            onPress={() => {
-                                console.log('Native ad CTA clicked');
-                                // The native ad will handle the actual click automatically
-                            }}
-                        >
+                    <TouchableOpacity
+                        style={styles.nativeAdCTA}
+                        onPress={() => {
+                            console.log('Native ad CTA clicked');
+                            // The native ad will handle the actual click automatically
+                        }}
+                    >
+                        <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
                             <Text style={styles.nativeAdCTAText}>
                                 {nativeAd.callToAction}
                             </Text>
-                        </TouchableOpacity>
-                    </NativeAsset>
+                        </NativeAsset>
+                    </TouchableOpacity>
                 )}
             </NativeAdView>
         </View>
@@ -190,6 +188,7 @@ const styles = StyleSheet.create({
         minHeight: 120,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingTop: 10,
     },
     nativeAdView: {
         justifyContent: 'center',
@@ -223,17 +222,18 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     toggleMediaButton: {
-        // backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        // paddingHorizontal: 6,
-        // paddingVertical: 2,
-        // borderRadius: 4,
-        // marginRight: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginRight: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     toggleMediaButtonText: {
-        width: 20,
-        height: 20,
         fontSize: 12,
         color: '#ffffff',
+        textAlign: 'center',
     },
     nativeAdHeader: {
         flexDirection: 'row',
@@ -331,5 +331,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
         fontWeight: '500',
+    },
+    errorText: {
+        color: COLORS.TERTIARY,
+        fontSize: 14,
+        textAlign: 'center',
+        fontWeight: '500',
+        opacity: 0.7,
     },
 });
