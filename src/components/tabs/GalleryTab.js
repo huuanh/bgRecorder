@@ -8,9 +8,12 @@ import {
     Dimensions,
     Image,
     Alert,
+    Share,
 } from 'react-native';
 import VideoPlayer from '../VideoPlayer';
 import VideoThumbnail from '../VideoThumbnail';
+import VideoActionModal from '../VideoActionModal';
+import RenameModal from '../RenameModal';
 import LazyLoadScrollView from '../LazyLoadScrollView';
 import { NativeAdComponent } from '../NativeAdComponent';
 import { COLORS } from '../../constants';
@@ -27,6 +30,10 @@ const GalleryTab = () => {
     const [showVideoPlayer, setShowVideoPlayer] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [thumbnailsLoaded, setThumbnailsLoaded] = useState(new Set());
+    const [showActionModal, setShowActionModal] = useState(false);
+    const [actionModalVideo, setActionModalVideo] = useState(null);
+    const [showRenameModal, setShowRenameModal] = useState(false);
+    const [renameModalVideo, setRenameModalVideo] = useState(null);
 
     const [audioFiles] = useState([
         // Placeholder for audio files - to be implemented later
@@ -166,9 +173,30 @@ const GalleryTab = () => {
                     Alert.alert('Error', 'Video file path not found. The video file might have been deleted.');
                 }
                 break;
+            case 'rename':
+                setShowActionModal(false);
+                setTimeout(() => {
+                    setRenameModalVideo(video);
+                    setShowRenameModal(true);
+                }, 300);
+                break;
             case 'share':
-                // TODO: Implement share functionality
-                Alert.alert('Share Video', `Sharing: ${video.title}`);
+                setShowActionModal(false);
+                setTimeout(() => {
+                    handleShare(video.id);
+                }, 300);
+                break;
+            case 'compress':
+                // TODO: Implement compress functionality
+                Alert.alert('Compress Video', `Compress feature for: ${video.title}\nComing soon!`);
+                break;
+            case 'video_to_mp3':
+                // TODO: Implement video to MP3 conversion
+                Alert.alert('Video to MP3', `Convert to MP3 feature for: ${video.title}\nComing soon!`);
+                break;
+            case 'trim':
+                // TODO: Implement trim functionality
+                Alert.alert('Trim Video', `Trim feature for: ${video.title}\nComing soon!`);
                 break;
             case 'delete':
                 Alert.alert(
@@ -224,6 +252,67 @@ const GalleryTab = () => {
             'Video Information',
             `📹 Title: ${video.title}\n⏱️ Duration: ${video.duration}\n💾 File Size: ${video.size}\n🎬 Quality: ${video.quality}\n📷 Camera: ${video.camera} camera\n📅 Date: ${video.date}\n📂 Path: ${video.filePath}`
         );
+    };
+
+    const handleRename = async (videoId, newName) => {
+        try {
+            const video = videos.find(v => v.id === videoId);
+            if (!video || !video.filePath) {
+                Alert.alert('Error', 'Video file not found');
+                return;
+            }
+
+            if (!VideoRecordingModule) {
+                Alert.alert('Error', 'Video recording module not available');
+                return;
+            }
+
+            // Add file extension to new name
+            const fileExtension = video.title.split('.').pop();
+            const newFileName = `${newName}.${fileExtension}`;
+
+            await VideoRecordingModule.renameVideo(video.filePath, newFileName);
+            
+            // Refresh the video list after rename
+            await loadRecordedVideosQuick();
+            
+            Alert.alert('Success', `Video renamed to: ${newFileName}`);
+        } catch (error) {
+            console.error('Failed to rename video:', error);
+            Alert.alert('Error', 'Failed to rename video: ' + error.message);
+        }
+    };
+
+    const handleShare = async (videoId) => {
+        try {
+            const video = videos.find(v => v.id === videoId);
+            if (!video || !video.filePath) {
+                Alert.alert('Error', 'Video file not found');
+                return;
+            }
+
+            if (!VideoRecordingModule) {
+                Alert.alert('Error', 'Video recording module not available');
+                return;
+            }
+
+            // Use React Native's Share API with file URI
+            const result = await Share.share({
+                title: 'Share Video',
+                message: `Check out this video: ${video.title}`,
+                url: `file://${video.filePath}`,
+            });
+
+            if (result.action === Share.sharedAction) {
+                console.log('Video shared successfully');
+            } else if (result.action === Share.dismissedAction) {
+                console.log('Share dialog dismissed');
+            }
+            
+        } catch (error) {
+            console.error('Failed to share video:', error);
+            Alert.alert('Share Error', 'Failed to share video: ' + error.message);
+        }
     };
 
     const renderTabBar = () => (
@@ -299,17 +388,8 @@ const GalleryTab = () => {
             <TouchableOpacity 
                 style={styles.videoActions}
                 onPress={() => {
-                    Alert.alert(
-                        'Video Actions',
-                        `Choose an action for ${video.title}`,
-                        [
-                            { text: 'Play', onPress: () => handleVideoAction(video.id, 'play') },
-                            { text: 'Share', onPress: () => handleVideoAction(video.id, 'share') },
-                            { text: 'Info', onPress: () => handleVideoAction(video.id, 'info') },
-                            { text: 'Delete', onPress: () => handleVideoAction(video.id, 'delete'), style: 'destructive' },
-                            { text: 'Cancel', style: 'cancel' }
-                        ]
-                    );
+                    setActionModalVideo(video);
+                    setShowActionModal(true);
                 }}
             >
                 <Image 
@@ -381,6 +461,30 @@ const GalleryTab = () => {
                     setShowVideoPlayer(false);
                     setSelectedVideo(null);
                 }}
+            />
+            
+            <VideoActionModal
+                visible={showActionModal}
+                video={actionModalVideo}
+                onClose={() => {
+                    setShowActionModal(false);
+                    setActionModalVideo(null);
+                }}
+                onAction={(actionId) => {
+                    if (actionModalVideo) {
+                        handleVideoAction(actionModalVideo.id, actionId);
+                    }
+                }}
+            />
+            
+            <RenameModal
+                visible={showRenameModal}
+                video={renameModalVideo}
+                onClose={() => {
+                    setShowRenameModal(false);
+                    setRenameModalVideo(null);
+                }}
+                onRename={handleRename}
             />
         </View>
     );

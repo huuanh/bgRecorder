@@ -14,8 +14,8 @@ const OnBoardScreen = ({ onNext }) => {
         console.log('🚀 OnBoardScreen: Attempting to show App Open Ad...');
         try {
           // Fix: Use adManagerInstance instead of AdManager
-          const result = await AdManager.showAppOpenAd();
-          console.log('✅ App Open Ad result:', result);
+          // const result = await AdManager.showAppOpenAd();
+          // console.log('✅ App Open Ad result:', result);
           setAdShown(true);
         } catch (error) {
           console.log('❌ App Open Ad failed:', error.message);

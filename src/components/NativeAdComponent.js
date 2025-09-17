@@ -174,7 +174,7 @@ export const NativeAdComponent = (props) => {
 const styles = StyleSheet.create({
     // Native Ad Styles
     nativeAdContainer: {
-        width: width - 20,
+        width: "100%",
         borderRadius: 5,
         overflow: 'hidden',
         borderWidth: 2,
@@ -189,7 +189,8 @@ const styles = StyleSheet.create({
         minHeight: 120,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 10,
+        // paddingTop: 10,
+        // marginHorizontal: 10,
     },
     nativeAdView: {
         justifyContent: 'center',
@@ -216,6 +217,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
+        opacity: 0.6,
     },
     sponsoredText: {
         fontSize: 9,

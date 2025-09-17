@@ -8,10 +8,14 @@ import android.content.ServiceConnection
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
+import android.net.Uri
+import android.os.Build
 import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Base64
 import android.util.Log
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.ByteArrayOutputStream
@@ -37,7 +41,18 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             addAction("com.bgrecorder.RECORDING_STARTED")
             addAction("com.bgrecorder.RECORDING_STOPPED")
         }
-        reactContext.registerReceiver(broadcastReceiver, filter)
+        
+        // Use ContextCompat.registerReceiver for Android 13+ compatibility
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.registerReceiver(
+                reactContext,
+                broadcastReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            reactContext.registerReceiver(broadcastReceiver, filter)
+        }
     }
     
     override fun getName(): String = "VideoRecordingModule"
@@ -321,6 +336,100 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete video", e)
             promise.reject("DELETE_ERROR", "Failed to delete video: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun renameVideo(filePath: String, newFileName: String, promise: Promise) {
+        try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Video file not found: $filePath")
+                return
+            }
+            
+            // Create new file path with the new name
+            val parentDir = file.parentFile
+            val newFile = File(parentDir, newFileName)
+            
+            // Check if target filename already exists
+            if (newFile.exists()) {
+                promise.reject("FILE_EXISTS", "A file with the name '$newFileName' already exists")
+                return
+            }
+            
+            // Perform the rename
+            val success = file.renameTo(newFile)
+            
+            if (success) {
+                // Clear cache entries for the old file
+                val oldCacheKey = "${file.absolutePath}_${file.lastModified()}"
+                thumbnailCache.remove(oldCacheKey)
+                durationCache.remove(file.absolutePath)
+                
+                Log.d(TAG, "Video renamed successfully from ${file.name} to ${newFile.name}")
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Video renamed successfully")
+                    putString("oldPath", filePath)
+                    putString("newPath", newFile.absolutePath)
+                    putString("newFileName", newFileName)
+                })
+            } else {
+                promise.reject("RENAME_FAILED", "Failed to rename video file")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to rename video", e)
+            promise.reject("RENAME_ERROR", "Failed to rename video: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun shareVideo(filePath: String, shareType: String, promise: Promise) {
+        try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Video file not found: $filePath")
+                return
+            }
+            
+            val context = reactApplicationContext
+            val authority = "${context.packageName}.fileprovider"
+            val uri: Uri = FileProvider.getUriForFile(context, authority, file)
+            
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                type = "video/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                
+                // Set specific package based on share type
+                when (shareType) {
+                    "share_whatsapp" -> setPackage("com.whatsapp")
+                    "share_telegram" -> setPackage("org.telegram.messenger")
+                    "share_email" -> type = "message/rfc822"
+                    "share_bluetooth" -> setPackage("com.android.bluetooth")
+                    // For general share and others, let user choose
+                }
+            }
+            
+            val chooserIntent = Intent.createChooser(shareIntent, "Share Video")
+            chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            
+            // Check if there are apps available to handle this intent
+            if (shareIntent.resolveActivity(context.packageManager) != null || shareType == "share_general") {
+                context.startActivity(chooserIntent)
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Share dialog opened successfully")
+                })
+            } else {
+                promise.reject("NO_APP_AVAILABLE", "No app available to handle this share type")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to share video", e)
+            promise.reject("SHARE_ERROR", "Failed to share video: ${e.message}")
         }
     }
     
