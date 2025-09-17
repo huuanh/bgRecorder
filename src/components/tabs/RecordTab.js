@@ -23,9 +23,9 @@ const { width } = Dimensions.get('window');
 const RecordTab = () => {
     const [recordingSettings, setRecordingSettings] = useState({
         preview: true,
-        duration: 5,
+        duration: 3,
         quality: 'HD 720p',
-        camera: 'Back'
+        camera: 'Front'
     });
     
     const [isRecording, setIsRecording] = useState(false);

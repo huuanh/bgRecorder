@@ -10,6 +10,7 @@ export const NativeAdComponent = (props) => {
     const [nativeAd, setNativeAd] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isMediaVisible, setIsMediaVisible] = useState(true);
+    const hasToggle = props.hasToggleMedia !== undefined ? props.hasToggleMedia : false;
 
     useEffect(() => {
         const loadNativeAd = async () => {
@@ -58,14 +59,14 @@ export const NativeAdComponent = (props) => {
         <View style={styles.nativeAdContainer}>
             {/* Sponsored Label with Toggle Button */}
             <View style={styles.sponsoredLabelContainer}>
-                <TouchableOpacity
+                {hasToggle && <TouchableOpacity
                     style={styles.toggleMediaButton}
                     onPress={() => setIsMediaVisible(!isMediaVisible)}
                 >
                     <Text style={styles.toggleMediaButtonText}>
                         {isMediaVisible ? '📺' : '👁️'}
                     </Text>
-                </TouchableOpacity>
+                </TouchableOpacity>}
                 <View style={styles.sponsoredLabel}>
                     <Text style={styles.sponsoredText}>Ad</Text>
                 </View>

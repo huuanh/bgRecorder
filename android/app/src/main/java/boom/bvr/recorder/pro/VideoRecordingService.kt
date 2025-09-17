@@ -221,13 +221,8 @@ class VideoRecordingService : Service() {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val fileName = "REC_${timestamp}.mp4"
         
-        // Create app-specific directory for recorded videos
-        val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
-        if (!appDataDir.exists()) {
-            val created = appDataDir.mkdirs()
-            Log.d(TAG, "Created app directory: $created, Path: ${appDataDir.absolutePath}")
-        }
-        
+        // Use the consistent directory method
+        val appDataDir = File(getRecordedVideosDirectory())
         recordingFile = File(appDataDir, fileName)
         Log.d(TAG, "Output file will be: ${recordingFile?.absolutePath}")
         
@@ -458,14 +453,18 @@ class VideoRecordingService : Service() {
     
     fun getRecordingSettings(): Map<String, Any> = recordingSettings.toMap()
     
-    fun getRecordedVideosDirectory(): String? {
+    fun getRecordedVideosDirectory(): String {
         val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
-        return if (appDataDir.exists()) appDataDir.absolutePath else null
+        if (!appDataDir.exists()) {
+            val created = appDataDir.mkdirs()
+            Log.d(TAG, "Created videos directory: $created, Path: ${appDataDir.absolutePath}")
+        }
+        return appDataDir.absolutePath
     }
     
     fun getRecordedVideosList(): List<Map<String, Any>> {
         val videosList = mutableListOf<Map<String, Any>>()
-        val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
+        val appDataDir = File(getRecordedVideosDirectory()) // Use the consistent directory method
         
         if (appDataDir.exists() && appDataDir.isDirectory) {
             val videoFiles = appDataDir.listFiles { file ->

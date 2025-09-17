@@ -5,16 +5,27 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.media.ThumbnailUtils
 import android.os.IBinder
+import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import java.io.ByteArrayOutputStream
+import java.io.File
 
 class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
     
     private var recordingService: VideoRecordingService? = null
     private var serviceBound = false
     private val broadcastReceiver = RecordingBroadcastReceiver(reactContext)
+    
+    // Cache for thumbnails and durations to improve performance
+    private val thumbnailCache = mutableMapOf<String, String?>()
+    private val durationCache = mutableMapOf<String, String>()
     
     companion object {
         const val TAG = "VideoRecordingModule"
@@ -137,9 +148,19 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     
     @ReactMethod
     fun getRecordedVideos(promise: Promise) {
+        getRecordedVideos(true, promise) // Default with thumbnails
+    }
+    
+    @ReactMethod
+    fun getRecordedVideosQuick(promise: Promise) {
+        getRecordedVideos(false, promise) // Quick load without thumbnails
+    }
+    
+    private fun getRecordedVideos(includeThumbnails: Boolean, promise: Promise) {
         try {
-            val videosList = recordingService?.getRecordedVideosList() ?: emptyList()
-            val videosDirectory = recordingService?.getRecordedVideosDirectory()
+            // Use a consistent directory path regardless of service state
+            val videosDirectory = getVideosDirectory()
+            val videosList = getVideosFromDirectory(videosDirectory, includeThumbnails)
             
             val result = WritableNativeMap().apply {
                 putString("directory", videosDirectory)
@@ -152,17 +173,135 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                             putString("fileSize", video["fileSize"] as String)
                             putDouble("lastModified", (video["lastModified"] as Long).toDouble())
                             putString("date", video["date"] as String)
+                            putString("thumbnail", video["thumbnail"] as? String ?: "")
+                            putString("duration", video["duration"] as? String ?: "00:00")
                         })
                     }
                 })
             }
             
-            Log.d(TAG, "Returning ${videosList.size} recorded videos")
+            Log.d(TAG, "Returning ${videosList.size} recorded videos from consistent directory")
             promise.resolve(result)
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get recorded videos", e)
             promise.reject("GET_VIDEOS_ERROR", "Failed to get recorded videos: ${e.message}")
+        }
+    }
+    
+    private fun getVideosDirectory(): String {
+        val appDataDir = java.io.File(reactApplicationContext.getExternalFilesDir(null), "RecordedVideos")
+        if (!appDataDir.exists()) {
+            val created = appDataDir.mkdirs()
+            Log.d(TAG, "Created videos directory: $created, Path: ${appDataDir.absolutePath}")
+        }
+        return appDataDir.absolutePath
+    }
+    
+    private fun getVideosFromDirectory(directoryPath: String, includeThumbnails: Boolean = true): List<Map<String, Any>> {
+        val videosList = mutableListOf<Map<String, Any>>()
+        val directory = java.io.File(directoryPath)
+        
+        if (directory.exists() && directory.isDirectory) {
+            val videoFiles = directory.listFiles { file ->
+                file.isFile && file.name.endsWith(".mp4", ignoreCase = true)
+            }
+            
+            videoFiles?.sortedByDescending { it.lastModified() }?.forEach { file ->
+                val sizeInBytes = file.length()
+                val sizeFormatted = when {
+                    sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
+                    sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
+                    sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
+                    else -> "$sizeInBytes B"
+                }
+                
+                // Use cache key based on file path and last modified time
+                val cacheKey = "${file.absolutePath}_${file.lastModified()}"
+                
+                // Get thumbnail from cache or generate new one (only if requested)
+                val thumbnailBase64 = if (includeThumbnails) {
+                    thumbnailCache[cacheKey] ?: generateVideoThumbnail(file.absolutePath).also {
+                        thumbnailCache[cacheKey] = it
+                    }
+                } else null
+                
+                // Get video duration from cache or calculate new one
+                val videoDuration = durationCache[cacheKey] ?: getVideoDuration(file.absolutePath).also {
+                    durationCache[cacheKey] = it
+                }
+                
+                val videoMap = mutableMapOf<String, Any>(
+                    "id" to file.lastModified(),
+                    "title" to file.name,
+                    "filePath" to file.absolutePath,
+                    "fileSize" to sizeFormatted,
+                    "lastModified" to file.lastModified(),
+                    "date" to java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(file.lastModified())),
+                    "duration" to videoDuration
+                )
+                
+                // Add thumbnail if available
+                thumbnailBase64?.let { 
+                    videoMap["thumbnail"] = it 
+                }
+                
+                videosList.add(videoMap)
+            }
+        }
+        
+        Log.d(TAG, "Found ${videosList.size} videos in directory: $directoryPath")
+        return videosList
+    }
+    
+    private fun generateVideoThumbnail(videoPath: String): String? {
+        return try {
+            val bitmap = ThumbnailUtils.createVideoThumbnail(
+                videoPath, 
+                MediaStore.Images.Thumbnails.MINI_KIND
+            )
+            
+            if (bitmap != null) {
+                // Convert bitmap to base64 string
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+                val byteArray = byteArrayOutputStream.toByteArray()
+                val base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                
+                bitmap.recycle() // Free memory
+                "data:image/jpeg;base64,$base64String"
+            } else {
+                Log.w(TAG, "Failed to generate thumbnail for: $videoPath")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating thumbnail for: $videoPath", e)
+            null
+        }
+    }
+    
+    private fun getVideoDuration(videoPath: String): String {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(videoPath)
+            
+            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            retriever.release()
+            
+            // Convert milliseconds to MM:SS or HH:MM:SS format
+            val totalSeconds = durationMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            val seconds = totalSeconds % 60
+            
+            if (hours > 0) {
+                String.format("%02d:%02d:%02d", hours, minutes, seconds)
+            } else {
+                String.format("%02d:%02d", minutes, seconds)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting video duration for: $videoPath", e)
+            "00:00" // Default duration on error
         }
     }
     
@@ -182,6 +321,27 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete video", e)
             promise.reject("DELETE_ERROR", "Failed to delete video: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun getVideoThumbnail(filePath: String, promise: Promise) {
+        try {
+            val file = java.io.File(filePath)
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Video file not found: $filePath")
+                return
+            }
+            
+            val cacheKey = "${file.absolutePath}_${file.lastModified()}"
+            val thumbnail = thumbnailCache[cacheKey] ?: generateVideoThumbnail(file.absolutePath).also {
+                thumbnailCache[cacheKey] = it
+            }
+            
+            promise.resolve(thumbnail ?: "")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get video thumbnail", e)
+            promise.reject("THUMBNAIL_ERROR", "Failed to get video thumbnail: ${e.message}")
         }
     }
     

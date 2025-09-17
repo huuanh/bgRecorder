@@ -9,31 +9,41 @@ import {
     Alert,
     Dimensions,
     Image,
+    PanResponder,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Video from 'react-native-video';
+import { NativeAdComponent } from './NativeAdComponent';
 
 const { width, height } = Dimensions.get('window');
 
-const VideoPlayer = ({ visible, video, onClose }) => {
+const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
+    const insets = useSafeAreaInsets();
     const videoRef = useRef(null);
-    const [paused, setPaused] = useState(false);
+    const [paused, setPaused] = useState(true); // Start paused to show ad
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [showControls, setShowControls] = useState(true);
     const [loading, setLoading] = useState(true);
+    const [playbackRate, setPlaybackRate] = useState(1.0);
+    const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+    const [seeking, setSeeking] = useState(false);
+
+    const speedOptions = [0.25, 0.5, 1.0, 1.5, 2.0];
 
     if (!video) return null;
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return `${mins.toString().padStart(2, '0')}:${secs
+            .toString()
+            .padStart(2, '0')}`;
     };
 
     const onLoad = (data) => {
         setDuration(data.duration);
         setLoading(false);
-        console.log('Video loaded:', data);
     };
 
     const onProgress = (data) => {
@@ -46,35 +56,55 @@ const VideoPlayer = ({ visible, video, onClose }) => {
         Alert.alert(
             'Playback Error',
             'Failed to play video. The file might be corrupted or in an unsupported format.',
-            [
-                { text: 'OK', onPress: onClose }
-            ]
+            [{ text: 'OK', onPress: onClose }]
         );
     };
 
-    const togglePlayPause = () => {
-        setPaused(!paused);
-    };
+    const togglePlayPause = () => setPaused(!paused);
 
-    const seekToTime = (time) => {
-        videoRef.current?.seek(time);
-    };
+    const seekToTime = (time) => videoRef.current?.seek(time);
 
-    const onSeek = (data) => {
-        setCurrentTime(data.currentTime);
-    };
-
-    const toggleControls = () => {
-        setShowControls(!showControls);
-    };
+    const toggleControls = () => setShowControls(!showControls);
 
     const onVideoPress = () => {
         setShowControls(true);
-        // Hide controls after 3 seconds
-        setTimeout(() => {
-            setShowControls(false);
-        }, 3000);
+        setShowSpeedMenu(false); // Hide speed menu when video is pressed
+        setTimeout(() => setShowControls(false), 3000);
     };
+
+    const selectSpeed = (speed) => {
+        setPlaybackRate(speed);
+        setShowSpeedMenu(false);
+    };
+
+    // Create PanResponder for progress bar dragging
+    const progressPanResponder = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (evt) => {
+            setSeeking(true);
+            setShowControls(true); // Keep controls visible during seek
+        },
+        onPanResponderMove: (evt, gestureState) => {
+            // Calculate new time based on touch position
+            const progressBarWidth = width - 100; // Approximate width minus margins
+            const touchX = evt.nativeEvent.locationX;
+            const progress = Math.max(0, Math.min(1, touchX / progressBarWidth));
+            const newTime = progress * duration;
+            
+            setCurrentTime(newTime);
+        },
+        onPanResponderRelease: (evt, gestureState) => {
+            // Seek to the final position
+            const progressBarWidth = width - 100;
+            const touchX = evt.nativeEvent.locationX;
+            const progress = Math.max(0, Math.min(1, touchX / progressBarWidth));
+            const newTime = progress * duration;
+            
+            seekToTime(newTime);
+            setSeeking(false);
+        },
+    });
 
     const renderControls = () => {
         if (!showControls) return null;
@@ -85,12 +115,14 @@ const VideoPlayer = ({ visible, video, onClose }) => {
             <View style={styles.controlsContainer}>
                 {/* Top Controls */}
                 <View style={styles.topControls}>
-                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                        <Image 
-                            source={require('../../assets/home/ic/ic_setting.png')} 
-                            style={styles.closeIcon} 
-                        />
-                    </TouchableOpacity>
+                    {onClose && (
+                        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                            <Image
+                                source={require('../../assets/home/ic/ic_setting.png')}
+                                style={styles.closeIcon}
+                            />
+                        </TouchableOpacity>
+                    )}
                     <Text style={styles.videoTitle} numberOfLines={1}>
                         {video.title}
                     </Text>
@@ -98,116 +130,135 @@ const VideoPlayer = ({ visible, video, onClose }) => {
 
                 {/* Bottom Controls */}
                 <View style={styles.bottomControls}>
+                    {/* Native Ad - Show when paused */}
+                    {paused && (
+                        <View style={styles.nativeAdContainer}>
+                            <NativeAdComponent />
+                        </View>
+                    )}
+                    
                     {/* Progress Bar */}
+                    <View style={styles.speedMenu}>
+                        <View style={styles.speedOptions}>
+                            <Text style={styles.speedMenuTitle}>Play speed</Text>
+                            {speedOptions.map((speed) => (
+                                <TouchableOpacity
+                                    key={speed}
+                                    style={[
+                                        styles.speedOption,
+                                        playbackRate === speed && styles.speedOptionActive
+                                    ]}
+                                    onPress={() => selectSpeed(speed)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.speedOptionText,
+                                            playbackRate === speed && styles.speedOptionTextActive
+                                        ]}
+                                    >
+                                        {speed}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
                     <View style={styles.progressContainer}>
+                        <TouchableOpacity style={styles.playButton} onPress={togglePlayPause}>
+                            <Image
+                                source={
+                                    paused
+                                        ? require('../../assets/home/ic/ic_play.png')
+                                        : require('../../assets/home/ic/ic_record.png')
+                                }
+                                style={styles.playIcon}
+                            />
+                        </TouchableOpacity>
                         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-                        <View style={styles.progressBar}>
+                        <View 
+                            style={styles.progressBar}
+                            {...progressPanResponder.panHandlers}
+                        >
                             <View style={[styles.progressFill, { width: `${progress}%` }]} />
-                            <TouchableOpacity
+                            <View
                                 style={[styles.progressThumb, { left: `${progress}%` }]}
-                                onPress={() => {
-                                    // Simple seek implementation
-                                    const newTime = (progress / 100) * duration;
-                                    seekToTime(newTime);
-                                }}
                             />
                         </View>
                         <Text style={styles.timeText}>{formatTime(duration)}</Text>
-                    </View>
-
-                    {/* Play Controls */}
-                    <View style={styles.playControls}>
-                        <TouchableOpacity
-                            style={styles.controlButton}
-                            onPress={() => seekToTime(Math.max(0, currentTime - 10))}
-                        >
-                            <Text style={styles.controlButtonText}>-10s</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.playButton}
-                            onPress={togglePlayPause}
-                        >
-                            <Image 
-                                source={paused ? 
-                                    require('../../assets/home/ic/ic_record.png') : 
-                                    require('../../assets/home/ic/ic_setting.png')
-                                } 
-                                style={styles.playIcon} 
-                            />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.controlButton}
-                            onPress={() => seekToTime(Math.min(duration, currentTime + 10))}
-                        >
-                            <Text style={styles.controlButtonText}>+10s</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
             </View>
         );
     };
 
-    const renderLoadingOverlay = () => {
-        if (!loading) return null;
-
-        return (
+    const renderLoadingOverlay = () =>
+        loading ? (
             <View style={styles.loadingOverlay}>
                 <Text style={styles.loadingText}>Loading video...</Text>
             </View>
-        );
-    };
+        ) : null;
 
-    return (
-        <Modal
-            visible={visible}
-            animationType="slide"
-            onRequestClose={onClose}
-            supportedOrientations={['portrait', 'landscape']}
-        >
-            <StatusBar hidden />
-            <View style={styles.container}>
-                <TouchableOpacity
-                    style={styles.videoContainer}
-                    onPress={onVideoPress}
-                    activeOpacity={1}
-                >
-                    <Video
-                        ref={videoRef}
-                        source={{ uri: video.filePath }}
-                        style={styles.video}
-                        resizeMode="contain"
-                        paused={paused}
-                        onLoad={onLoad}
-                        onProgress={onProgress}
-                        onSeek={onSeek}
-                        onError={onError}
-                        onEnd={() => setPaused(true)}
-                        progressUpdateInterval={250}
-                    />
-                </TouchableOpacity>
-
-                {renderLoadingOverlay()}
-                {renderControls()}
-            </View>
-        </Modal>
+    const videoElement = (
+        <View style={styles.container}>
+            <TouchableOpacity
+                style={styles.videoContainer}
+                onPress={onVideoPress}
+                activeOpacity={1}
+            >
+                <Video
+                    ref={videoRef}
+                    source={{ uri: video.filePath }}
+                    style={styles.video}
+                    resizeMode="contain"
+                    paused={paused}
+                    rate={playbackRate}
+                    onLoad={onLoad}
+                    onProgress={onProgress}
+                    onError={onError}
+                    onEnd={() => setPaused(true)}
+                    progressUpdateInterval={250}
+                />
+            </TouchableOpacity>
+            {/* Thêm nativeAd */}
+            {renderLoadingOverlay()}
+            {renderControls()}
+        </View>
     );
+
+    if (fullscreen) {
+        return (
+            <Modal
+                visible={visible}
+                animationType="slide"
+                onRequestClose={onClose}
+                supportedOrientations={['portrait', 'landscape']}
+            >
+                {/* <StatusBar hidden={true} /> */}
+                {videoElement}
+            </Modal>
+        );
+    }
+
+    // Inline mode (SafeArea vẫn hoạt động)
+    return <View style={{ flex: 1 }}>{videoElement}</View>;
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000000',
+        width,
+        height: '100%',
     },
     videoContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        width,
+        height,
     },
     video: {
-        width: width,
-        height: height,
+        width,
+        height,
     },
     controlsContainer: {
         position: 'absolute',
@@ -220,7 +271,7 @@ const styles = StyleSheet.create({
     topControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 50,
+        paddingTop: 20,
         paddingHorizontal: 20,
         paddingBottom: 20,
     },
@@ -244,17 +295,63 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    speedMenu: {
+        // position: 'absolute',
+        // top: 80,
+        left: 10,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        borderRadius: 12,
+        // paddingHorizontal: 20,
+        // minWidth: 120,
+        paddingVertical: 10,
+    },
+    speedMenuTitle: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+        // marginBottom: 12,
+        textAlign: 'center',
+    },
+    speedOptions: {
+        flexDirection: 'row',
+        // justifyContent: 'space-between',
+    },
+    speedOption: {
+        paddingHorizontal: 10,
+        // paddingVertical: 6,
+        borderRadius: 6,
+        minWidth: 35,
+        alignItems: 'center',
+    },
+    speedOptionActive: {
+        backgroundColor: '#1E3A8A',
+    },
+    speedOptionText: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    speedOptionTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
     bottomControls: {
         position: 'absolute',
-        bottom: 30,
+        bottom: 10,
         left: 0,
         right: 0,
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
+    },
+    nativeAdContainer: {
+        marginBottom: 10,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: 'rgba(0,0,0,0.3)',
     },
     progressContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        // marginBottom: 20,
     },
     timeText: {
         color: '#FFFFFF',
@@ -264,56 +361,48 @@ const styles = StyleSheet.create({
     },
     progressBar: {
         flex: 1,
-        height: 4,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderRadius: 2,
+        height: 20, // Increased height for better touch area
+        // backgroundColor: 'rgba(255,255,255,0.3)',
+        borderRadius: 10,
         marginHorizontal: 10,
         position: 'relative',
+        justifyContent: 'center',
     },
     progressFill: {
-        height: '100%',
+        height: 4,
         backgroundColor: '#1E3A8A',
         borderRadius: 2,
+        position: 'absolute',
+        top: 8,
     },
     progressThumb: {
         position: 'absolute',
-        top: -6,
+        top: 2,
         width: 16,
         height: 16,
         borderRadius: 8,
         backgroundColor: '#1E3A8A',
         marginLeft: -8,
-    },
-    playControls: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    controlButton: {
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 25,
-        marginHorizontal: 10,
-    },
-    controlButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '600',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
     },
     playButton: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 30,
+        height: 30,
+        // borderRadius: 30,
         backgroundColor: 'rgba(0,0,0,0.7)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginHorizontal: 20,
+        // marginHorizontal: 20,
     },
     playIcon: {
-        width: 24,
-        height: 24,
+        width: 20,
+        height: 20,
         tintColor: '#FFFFFF',
+        resizeMode: 'contain',
     },
     loadingOverlay: {
         position: 'absolute',

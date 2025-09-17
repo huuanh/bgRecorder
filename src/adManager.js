@@ -639,7 +639,7 @@ class AdManager {
             this.lastAppOpenAdTime = currentTime; // Set last shown time
 
             return new Promise((resolve, reject) => {
-                const appOpenAd = this.AppOpenAd.createForAdRequest(this.getAppOpenAdUnitId(), {
+                const appOpenAd = this.AppOpenAd.createForAdRequest(ADS_UNIT.APP_OPEN, {
                     requestNonPersonalizedAdsOnly: true,
                 });
 
@@ -768,11 +768,10 @@ class AdManager {
             cooldownRemaining: Math.max(0, this.APP_OPEN_AD_COOLDOWN - (Date.now() - this.lastAppOpenAdTime)),
             preloadStatus: this.getPreloadStatus(),
             adUnitIds: {
-                banner: this.getBannerAdUnitId(),
-                interstitial: this.getInterstitialAdUnitId(),
-                interstitialCrack: this.getInterstitialCrackAdUnitId(),
-                rewarded: this.getRewardedAdUnitId(),
-                appOpen: this.getAppOpenAdUnitId()
+                banner: ADS_UNIT.BANNER,
+                interstitial: ADS_UNIT.INTERSTITIAL,
+                rewarded: ADS_UNIT.REWARDED,
+                appOpen: ADS_UNIT.APP_OPEN
             }
         };
     }

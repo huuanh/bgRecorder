@@ -10,38 +10,42 @@ import {
     Alert,
 } from 'react-native';
 import VideoPlayer from '../VideoPlayer';
-import { addTestVideo, clearAllVideos } from '../../utils/testUtils';
+import VideoThumbnail from '../VideoThumbnail';
+import LazyLoadScrollView from '../LazyLoadScrollView';
+import { NativeAdComponent } from '../NativeAdComponent';
 import { COLORS } from '../../constants';
 import { NativeModules } from 'react-native';
+import { ADS_UNIT } from '../../AdManager.js';
 
 const { width } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const GalleryTab = () => {
     const [activeTab, setActiveTab] = useState('video'); // 'video' or 'audio'
-    const [videos, setVideos] = useState([
-        
-    ]);
+    const [videos, setVideos] = useState([]);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [thumbnailsLoaded, setThumbnailsLoaded] = useState(new Set());
 
     const [audioFiles] = useState([
         // Placeholder for audio files - to be implemented later
     ]);
 
     useEffect(() => {
-        // Load actual recorded videos from app directory
-        loadRecordedVideos();
+        // Load videos quickly without thumbnails first
+        loadRecordedVideosQuick();
         
-        // Refresh every 5 seconds to catch new videos
+        // Set up periodic refresh (reduced frequency)
         const interval = setInterval(() => {
-            loadRecordedVideos();
-        }, 5000);
+            loadRecordedVideosQuick(); // Quick refresh without thumbnails
+        }, 30000);
         
         return () => clearInterval(interval);
     }, []);
 
-    const loadRecordedVideos = async () => {
+    // Quick load - get video list without thumbnails for fast initial display
+    const loadRecordedVideosQuick = async () => {
         try {
             if (!VideoRecordingModule) {
                 console.error('VideoRecordingModule not available');
@@ -49,34 +53,93 @@ const GalleryTab = () => {
                 return;
             }
 
-            const result = await VideoRecordingModule.getRecordedVideos();
-            console.log('Videos directory:', result.directory);
-            console.log('Loaded videos from app directory:', result.videos.length);
+            setIsLoading(true);
+            
+            // Use the quick method to get basic video info without thumbnails
+            const result = await VideoRecordingModule.getRecordedVideosQuick();
+                
+            console.log('Quick videos from native module:', result.videos ? result.videos.length : 0);
+            
+            if (result.videos && result.videos.length > 0) {
+                // Format videos without thumbnails for fast display
+                const formattedVideos = result.videos.map(video => ({
+                    id: video.id,
+                    title: video.title,
+                    duration: video.duration || '00:00',
+                    size: video.fileSize,
+                    date: video.date,
+                    filePath: video.filePath,
+                    quality: 'HD 720p',
+                    camera: 'Back',
+                    thumbnail: null, // No thumbnail initially - will be loaded by VideoThumbnail component
+                    lastModified: video.lastModified
+                }));
+                
+                console.log('Setting videos in state (quick):', formattedVideos.length);
+                setVideos(formattedVideos);
+            } else {
+                console.log('No videos found in directory');
+                setVideos([]);
+            }
+        } catch (error) {
+            console.error('Failed to load videos quickly:', error);
+            setVideos([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Full load with thumbnails - for manual refresh
+    const loadRecordedVideos = async (quick = false) => {
+        try {
+            if (!VideoRecordingModule) {
+                console.error('VideoRecordingModule not available');
+                setVideos([]);
+                return;
+            }
+
+            setIsLoading(true);
+
+            // Use full load to get thumbnails if not quick mode
+            const result = quick 
+                ? await VideoRecordingModule.getRecordedVideosQuick()
+                : await VideoRecordingModule.getRecordedVideos();
+                
+            console.log('Videos directory from native:', result.directory);
+            console.log('Videos from native module:', result.videos ? result.videos.length : 0);
             
             if (result.videos && result.videos.length > 0) {
                 // Convert native video data to match our UI format
                 const formattedVideos = result.videos.map(video => ({
                     id: video.id,
                     title: video.title,
-                    duration: formatDuration(video.lastModified), // Placeholder - will be updated when video metadata is available
+                    duration: video.duration || '00:00',
                     size: video.fileSize,
                     date: video.date,
                     filePath: video.filePath,
-                    quality: 'HD 720p', // Default - can be enhanced later
-                    camera: 'Back', // Default - can be enhanced later
-                    thumbnail: null,
+                    quality: 'HD 720p',
+                    camera: 'Back',
+                    thumbnail: quick ? null : video.thumbnail, // Only include thumbnail if not quick
                     lastModified: video.lastModified
                 }));
                 
+                console.log('Setting videos in state:', formattedVideos.length);
                 setVideos(formattedVideos);
             } else {
-                console.log('No videos found in app directory');
+                console.log('No videos found in directory:', result.directory);
                 setVideos([]);
             }
         } catch (error) {
             console.error('Failed to load videos from app directory:', error);
             setVideos([]);
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    // Handle thumbnail loaded callback
+    const handleThumbnailLoaded = (videoId) => {
+        setThumbnailsLoaded(prev => new Set([...prev, videoId]));
     };
 
     const formatDuration = (timestamp) => {
@@ -153,13 +216,13 @@ const GalleryTab = () => {
     };
 
     const refreshVideoList = async () => {
-        await loadRecordedVideos();
+        await loadRecordedVideos(false); // Full reload with thumbnails
     };
 
     const showVideoInfo = (video) => {
         Alert.alert(
             'Video Information',
-            `Title: ${video.title}\nDuration: ${video.duration}\nSize: ${video.size}\nQuality: ${video.quality}\nCamera: ${video.camera}\nDate: ${video.date}`
+            `📹 Title: ${video.title}\n⏱️ Duration: ${video.duration}\n💾 File Size: ${video.size}\n🎬 Quality: ${video.quality}\n📷 Camera: ${video.camera} camera\n📅 Date: ${video.date}\n📂 Path: ${video.filePath}`
         );
     };
 
@@ -213,22 +276,24 @@ const GalleryTab = () => {
                 }
             }}
         >
-            <View style={styles.videoThumbnail}>
-                <Image 
-                    source={require('../../../assets/home/ic/ic_record.png')} 
-                    style={styles.thumbnailIcon} 
-                />
-                <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>{video.duration}</Text>
-                </View>
-            </View>
+            <VideoThumbnail 
+                video={video}
+                width={80}
+                height={80}
+                onThumbnailLoad={handleThumbnailLoaded}
+            />
             <View style={styles.videoInfo}>
                 <Text style={styles.videoTitle} numberOfLines={1}>
                     {video.title}
                 </Text>
-                <Text style={styles.videoMeta}>
-                    {video.size} • {video.quality} • {video.camera} camera
-                </Text>
+                <View style={styles.videoMetaRow}>
+                    <View style={styles.sizeContainer}>
+                        <Text style={styles.sizeText}>{video.size}</Text>
+                    </View>
+                    <Text style={styles.videoMeta}>
+                        {video.quality} • {video.camera} camera
+                    </Text>
+                </View>
                 <Text style={styles.videoDate}>{video.date}</Text>
             </View>
             <TouchableOpacity 
@@ -256,11 +321,16 @@ const GalleryTab = () => {
     );
 
     const renderVideoTab = () => (
-        <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentContainer}>
             {videos.length > 0 ? (
-                <View style={styles.videoList}>
-                    {videos.map(renderVideoItem)}
-                </View>
+                <LazyLoadScrollView
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    data={videos}
+                    renderItem={renderVideoItem}
+                    itemHeight={96} // Approximate height of video item
+                    preloadOffset={300}
+                />
             ) : (
                 <View style={styles.emptyState}>
                     <Image 
@@ -273,7 +343,7 @@ const GalleryTab = () => {
                     </Text>
                 </View>
             )}
-        </ScrollView>
+        </View>
     );
 
     const renderAudioTab = () => (
@@ -302,44 +372,7 @@ const GalleryTab = () => {
             
             {activeTab === 'video' ? renderVideoTab() : renderAudioTab()}
             
-            <View style={styles.bottomActions}>
-                <TouchableOpacity style={styles.actionButton} onPress={refreshVideoList}>
-                    <Image 
-                        source={require('../../../assets/home/ic/icon_swap.png')} 
-                        style={styles.actionButtonIcon} 
-                    />
-                    <Text style={styles.actionButtonText}>Refresh</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={async () => {
-                    await addTestVideo();
-                    await refreshVideoList();
-                }}>
-                    <Image 
-                        source={require('../../../assets/home/ic/ic_3dot.png')} 
-                        style={styles.actionButtonIcon} 
-                    />
-                    <Text style={styles.actionButtonText}>Add Test</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={async () => {
-                    Alert.alert(
-                        'Clear All Videos',
-                        'Are you sure you want to clear all videos from storage?',
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Clear', style: 'destructive', onPress: async () => {
-                                await clearAllVideos();
-                                await refreshVideoList();
-                            }}
-                        ]
-                    );
-                }}>
-                    <Image 
-                        source={require('../../../assets/home/ic/ic_setting.png')} 
-                        style={styles.actionButtonIcon} 
-                    />
-                    <Text style={styles.actionButtonText}>Clear</Text>
-                </TouchableOpacity>
-            </View>
+            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false}/>
             
             <VideoPlayer
                 visible={showVideoPlayer}
@@ -356,15 +389,15 @@ const GalleryTab = () => {
 const styles = StyleSheet.create({
     tabContent: {
         flex: 1,
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingTop: 0,
     },
     tabBar: {
         flexDirection: 'row',
-        backgroundColor: '#F8F9FA',
+        // backgroundColor: '#F8F9FA',
         borderRadius: 12,
         padding: 4,
-        marginBottom: 20,
+        marginBottom: 10,
     },
     tabButton: {
         flex: 1,
@@ -373,16 +406,19 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 12,
         paddingHorizontal: 16,
-        borderRadius: 8,
+        // borderRadius: 8,
         position: 'relative',
     },
     activeTabButton: {
-        backgroundColor: '#FFFFFF',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        // color: '#8a371eff',
+        // backgroundColor: '#FFFFFF',
+        // elevation: 2,
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 1 },
+        // shadowOpacity: 0.1,
+        // shadowRadius: 2,
+        borderBottomWidth: 4,
+        borderBottomColor: '#f54c18ff',
     },
     tabIcon: {
         width: 20,
@@ -391,7 +427,7 @@ const styles = StyleSheet.create({
         tintColor: '#6B7280',
     },
     activeTabIcon: {
-        tintColor: '#1E3A8A',
+        tintColor: '#f54c18ff',
     },
     tabText: {
         fontSize: 14,
@@ -400,7 +436,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     activeTabText: {
-        color: '#1E3A8A',
+        color: '#f54c18ff',
     },
     tabBadge: {
         backgroundColor: '#1E3A8A',
@@ -419,20 +455,21 @@ const styles = StyleSheet.create({
     contentContainer: {
         flex: 1,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
+    scrollView: {
+        flex: 1,
     },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1F2937',
+    refreshButton: {
+        padding: 8,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
     },
-    videoCount: {
-        fontSize: 14,
-        color: '#6B7280',
+    refreshIcon: {
+        width: 20,
+        height: 20,
+        tintColor: '#1E3A8A',
+    },
+    refreshIconLoading: {
+        opacity: 0.5,
     },
     videoList: {
         flex: 1,
@@ -440,19 +477,19 @@ const styles = StyleSheet.create({
     videoItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        // backgroundColor: '#FFFFFF',
+        // borderRadius: 12,
+        padding: 8,
+        marginBottom: 0,
+        // elevation: 2,
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 1 },
+        // shadowOpacity: 0.1,
+        // shadowRadius: 2,
     },
     videoThumbnail: {
         width: 80,
-        height: 60,
+        height: 80,
         backgroundColor: '#F3F4F6',
         borderRadius: 8,
         justifyContent: 'center',
@@ -465,19 +502,24 @@ const styles = StyleSheet.create({
         height: 24,
         tintColor: '#1E3A8A',
     },
+    thumbnailImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 8,
+    },
     durationBadge: {
         position: 'absolute',
         bottom: 4,
-        right: 4,
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        left: 4,
+        backgroundColor: COLORS.SECONDARY,
         borderRadius: 4,
         paddingHorizontal: 4,
         paddingVertical: 2,
     },
     durationText: {
-        color: '#FFFFFF',
+        color: COLORS.TERTIARY,
         fontSize: 10,
-        fontWeight: '600',
+        fontWeight: '900',
     },
     videoInfo: {
         flex: 1,
@@ -493,6 +535,25 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6B7280',
         marginBottom: 2,
+    },
+    videoMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        // justifyContent: 'space-between',
+        marginBottom: 2,
+    },
+    sizeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E5F3FF',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    sizeText: {
+        fontSize: 11,
+        color: '#1E3A8A',
+        fontWeight: '600',
     },
     videoDate: {
         fontSize: 11,
@@ -527,28 +588,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
         textAlign: 'center',
-    },
-    bottomActions: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingVertical: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
-    },
-    actionButton: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    actionButtonIcon: {
-        width: 20,
-        height: 20,
-        tintColor: '#6B7280',
-        marginBottom: 4,
-    },
-    actionButtonText: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '500',
     },
 });
 
