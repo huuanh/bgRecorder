@@ -48,6 +48,8 @@ class OverlayManager(private val context: Context) {
             overlayView = RecordingOverlayView(context).apply {
                 onCloseCallback = {
                     hideOverlay()
+                    // Update notification to show overlay is hidden
+                    service?.updateNotification("Recording video... (Overlay hidden)")
                 }
                 onStopRecordingCallback = onStopRecording
                 Log.d(TAG, "OVERLAY_DEBUG: Setting service to overlay: ${service != null}")
@@ -73,8 +75,16 @@ class OverlayManager(private val context: Context) {
                 y = 200
             }
             
+            // Set window manager and layout params for dragging
+            windowManager?.let { wm ->
+                overlayView?.setWindowManagerAndParams(wm, layoutParams)
+            }
+            
             windowManager?.addView(overlayView, layoutParams)
             isOverlayShowing = true
+            
+            // Update notification to show overlay is visible
+            service?.updateNotification("Recording video... (Overlay shown)")
             
             Log.d(TAG, "OVERLAY_DEBUG: Overlay shown successfully")
             return true

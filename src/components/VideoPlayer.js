@@ -28,6 +28,7 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const [seeking, setSeeking] = useState(false);
+    const [hasEnded, setHasEnded] = useState(false);
 
     const speedOptions = [0.25, 0.5, 1.0, 1.5, 2.0];
 
@@ -44,10 +45,15 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
     const onLoad = (data) => {
         setDuration(data.duration);
         setLoading(false);
+        setHasEnded(false); // Reset hasEnded when video loads
     };
 
     const onProgress = (data) => {
         setCurrentTime(data.currentTime);
+        // Reset hasEnded if video is playing (in case of manual seek)
+        if (hasEnded && data.currentTime < duration - 1) {
+            setHasEnded(false);
+        }
     };
 
     const onError = (error) => {
@@ -60,7 +66,16 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
         );
     };
 
-    const togglePlayPause = () => setPaused(!paused);
+    const togglePlayPause = () => {
+        if (hasEnded) {
+            // If video has ended, seek to start and play
+            seekToTime(0);
+            setHasEnded(false);
+            setPaused(false);
+        } else {
+            setPaused(!paused);
+        }
+    };
 
     const seekToTime = (time) => videoRef.current?.seek(time);
 
@@ -214,7 +229,10 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
                     onLoad={onLoad}
                     onProgress={onProgress}
                     onError={onError}
-                    onEnd={() => setPaused(true)}
+                    onEnd={() => {
+                        setPaused(true);
+                        setHasEnded(true);
+                    }}
                     progressUpdateInterval={250}
                 />
             </TouchableOpacity>
@@ -271,15 +289,15 @@ const styles = StyleSheet.create({
     topControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 20,
-        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingHorizontal: 10,
         paddingBottom: 20,
     },
     closeButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        // backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
@@ -299,7 +317,7 @@ const styles = StyleSheet.create({
         // position: 'absolute',
         // top: 80,
         left: 10,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        // backgroundColor: 'rgba(0,0,0,0.8)',
         borderRadius: 12,
         // paddingHorizontal: 20,
         // minWidth: 120,

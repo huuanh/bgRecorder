@@ -24,7 +24,7 @@ const RecordTab = () => {
     const [recordingSettings, setRecordingSettings] = useState({
         preview: true,
         duration: 3,
-        quality: 'HD 720p',
+        quality: 'HD',
         camera: 'Front'
     });
     
@@ -68,14 +68,7 @@ const RecordTab = () => {
                     'Recording Complete!',
                     `Video saved successfully!\nDuration: ${formatTime(Math.floor(data.duration / 1000))}`,
                     [
-                        { text: 'OK' },
-                        { 
-                            text: 'View in Gallery', 
-                            onPress: () => {
-                                // Navigate to gallery tab - you can implement this
-                                console.log('Navigate to gallery tab');
-                            }
-                        }
+                        { text: 'OK' }
                     ]
                 );
             }
@@ -322,7 +315,7 @@ const RecordTab = () => {
                 title = 'Recording Duration';
                 break;
             case 'quality':
-                options = ['HD 720p', 'FHD 1080p', 'UHD 4K'];
+                options = ['SD', 'HD', 'Full HD'];
                 title = 'Video Quality';
                 break;
             case 'camera':
@@ -454,15 +447,6 @@ const RecordTab = () => {
                     {availableStorage.used} GB/ {availableStorage.total} GB
                 </Text>
             </View>
-
-            {/* Background Recording Status */}
-            {isServiceRecording && (
-                <View style={styles.backgroundStatus}>
-                    <Text style={styles.backgroundStatusText}>
-                        🔴 Recording in background - You can minimize this app
-                    </Text>
-                </View>
-            )}
         </View>
     );
 };

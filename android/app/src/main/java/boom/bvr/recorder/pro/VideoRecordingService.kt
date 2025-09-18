@@ -29,6 +29,7 @@ class VideoRecordingService : Service() {
         // Actions
         const val ACTION_START_RECORDING = "start_recording"
         const val ACTION_STOP_RECORDING = "stop_recording"
+        const val ACTION_SHOW_OVERLAY = "show_overlay"
         
         // Extras
         const val EXTRA_DURATION = "duration"
@@ -73,7 +74,7 @@ class VideoRecordingService : Service() {
         when (intent?.action) {
             ACTION_START_RECORDING -> {
                 val duration = intent.getIntExtra(EXTRA_DURATION, 5) * 60 * 1000L // Convert to milliseconds
-                val quality = intent.getStringExtra(EXTRA_QUALITY) ?: "HD 720p"
+                val quality = intent.getStringExtra(EXTRA_QUALITY) ?: "HD"
                 val camera = intent.getStringExtra(EXTRA_CAMERA) ?: "Back"
                 val preview = intent.getBooleanExtra(EXTRA_PREVIEW, false)
                 
@@ -89,6 +90,12 @@ class VideoRecordingService : Service() {
             }
             ACTION_STOP_RECORDING -> {
                 stopRecording()
+            }
+            ACTION_SHOW_OVERLAY -> {
+                if (isRecording) {
+                    overlayManager?.showOverlay(cameraDevice, { stopRecording() }, this)
+                    updateNotification("Recording video... (Overlay shown)")
+                }
             }
         }
         
@@ -245,26 +252,22 @@ class VideoRecordingService : Service() {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setOutputFile(recordingFile?.absolutePath)
             
-            // Set audio encoding
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioSamplingRate(44100)
-            setAudioEncodingBitRate(128000)
-            
-            // Set quality based on settings
+            // Set quality based on settings (Portrait orientation)
             val quality = recordingSettings["quality"] as String
             when (quality) {
-                "HD 720p" -> {
+                "SD" -> {
+                    setVideoSize(854, 480)
+                    setVideoEncodingBitRate(4000000)
+                }
+                "HD" -> {
                     setVideoSize(1280, 720)
                     setVideoEncodingBitRate(8000000)
                 }
-                "FHD 1080p" -> {
+                "Full HD" -> {
                     setVideoSize(1920, 1080)
                     setVideoEncodingBitRate(12000000)
-                }
-                "UHD 4K" -> {
-                    setVideoSize(3840, 2160)
-                    setVideoEncodingBitRate(20000000)
                 }
                 else -> {
                     setVideoSize(1280, 720)
@@ -274,7 +277,19 @@ class VideoRecordingService : Service() {
             
             setVideoEncoder(MediaRecorder.VideoEncoder.H264)
             setVideoFrameRate(30)
-            setOutputFile(recordingFile?.absolutePath)
+            
+            // Set orientation for portrait recording
+            val isFrontCamera = recordingSettings["camera"] == "Front"
+            if (isFrontCamera) {
+                setOrientationHint(270) // Front camera
+            } else {
+                setOrientationHint(90)  // Back camera
+            }
+            
+            // Set audio encoding
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setAudioSamplingRate(44100)
+            setAudioEncodingBitRate(128000)
             
             prepare()
             recordingSurface = surface
@@ -409,6 +424,14 @@ class VideoRecordingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
+        val showOverlayIntent = Intent(this, VideoRecordingService::class.java).apply {
+            action = ACTION_SHOW_OVERLAY
+        }
+        val showOverlayPendingIntent = PendingIntent.getService(
+            this, 1, showOverlayIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Background Video Recorder")
             .setContentText(message)
@@ -423,9 +446,22 @@ class VideoRecordingService : Service() {
                         "Stop Recording",
                         stopPendingIntent
                     )
+                    addAction(
+                        android.R.drawable.ic_menu_view,
+                        "Show Overlay",
+                        showOverlayPendingIntent
+                    )
                 }
             }
             .build()
+    }
+    
+    fun updateNotification(message: String) {
+        if (isRecording) {
+            val notification = createNotification(message, true)
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(NOTIFICATION_ID, notification)
+        }
     }
     
     // Public methods for module access

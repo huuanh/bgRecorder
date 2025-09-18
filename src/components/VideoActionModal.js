@@ -15,19 +15,19 @@ const { width, height } = Dimensions.get('window');
 const VideoActionModal = ({ visible, onClose, video, onAction }) => {
     // Define different menu items for video and audio
     const videoMenuItems = [
-        { id: 'rename', icon: '✏️', title: 'Rename', color: COLORS.TERTIARY },
-        { id: 'share', icon: '🔗', title: 'Share', color: COLORS.TERTIARY },
-        { id: 'compress', icon: '🗜️', title: 'Compress', color: COLORS.TERTIARY },
-        { id: 'video_to_mp3', icon: '🎵', title: 'Video to Audio', color: COLORS.TERTIARY },
-        { id: 'trim', icon: '✂️', title: 'Trim', color: COLORS.TERTIARY },
-        { id: 'delete', icon: '🗑️', title: 'Delete', color: COLORS.ERROR },
+        { id: 'rename', icon: require('../../assets/home/ic/action/rename.png'), title: 'Rename', color: COLORS.TERTIARY },
+        { id: 'share', icon: require('../../assets/home/ic/action/share.png'), title: 'Share', color: COLORS.TERTIARY },
+        { id: 'compress', icon: require('../../assets/home/ic/action/compress.png'), title: 'Compress', color: COLORS.TERTIARY },
+        { id: 'video_to_mp3', icon: require('../../assets/home/ic/action/tomp3.png'), title: 'Video to Audio', color: COLORS.TERTIARY },
+        { id: 'trim', icon: require('../../assets/home/ic/action/trim.png'), title: 'Trim', color: COLORS.TERTIARY },
+        { id: 'delete', icon: require('../../assets/home/ic/action/del.png'), title: 'Delete', color: COLORS.ERROR },
     ];
 
     const audioMenuItems = [
-        { id: 'rename', icon: '✏️', title: 'Rename', color: COLORS.TERTIARY },
-        { id: 'share', icon: '🔗', title: 'Share', color: COLORS.TERTIARY },
-        { id: 'delete', icon: '🗑️', title: 'Delete', color: COLORS.ERROR },
-        { id: 'info', icon: 'ℹ️', title: 'Info', color: COLORS.TERTIARY },
+        { id: 'rename', icon: require('../../assets/home/ic/action/rename.png'), title: 'Rename', color: COLORS.TERTIARY },
+        { id: 'share', icon: require('../../assets/home/ic/action/share.png'), title: 'Share', color: COLORS.TERTIARY },
+        { id: 'info', icon: require('../../assets/home/ic/ic_setting.png'), title: 'Info', color: COLORS.TERTIARY },
+        { id: 'delete', icon: require('../../assets/home/ic/action/del.png'), title: 'Delete', color: COLORS.ERROR },
     ];
 
     // Determine which menu items to show based on file type
@@ -75,7 +75,10 @@ const VideoActionModal = ({ visible, onClose, video, onAction }) => {
                                     activeOpacity={0.7}
                                 >
                                     <View style={styles.menuItemContent}>
-                                        <Text style={styles.menuIcon}>{item.icon}</Text>
+                                        <Image 
+                                            source={item.icon} 
+                                            style={[styles.menuIcon, { tintColor: item.color }]} 
+                                        />
                                         <Text style={[styles.menuText, { color: item.color }]}>
                                             {item.title}
                                         </Text>
@@ -139,10 +142,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     menuIcon: {
-        fontSize: 20,
+        width: 20,
+        height: 20,
         marginRight: 12,
-        width: 24,
-        textAlign: 'center',
     },
     menuText: {
         fontSize: 16,

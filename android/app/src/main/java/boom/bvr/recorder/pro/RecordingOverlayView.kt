@@ -7,6 +7,8 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.hardware.camera2.*
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.AttributeSet
 import android.util.Log
 import android.view.*
@@ -36,6 +38,15 @@ class RecordingOverlayView @JvmOverloads constructor(
     private var startTime = 0L
     private var updateJob: Job? = null
     private var frameUpdateCount = 0 // Add counter for frame updates
+
+    // Touch and drag variables
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+    private var isDragging = false
+    private var initialX = 0
+    private var initialY = 0
+    private var windowManager: WindowManager? = null
+    private var layoutParams: WindowManager.LayoutParams? = null
 
     var onCloseCallback: (() -> Unit)? = null
     var onStopRecordingCallback: (() -> Unit)? = null
@@ -107,7 +118,7 @@ class RecordingOverlayView @JvmOverloads constructor(
         }
         containerView.addView(timeLabel)
 
-        // Create close button
+        // Create hide button
         closeButton = ImageButton(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 (32 * context.resources.displayMetrics.density).toInt(),
@@ -117,15 +128,70 @@ class RecordingOverlayView @JvmOverloads constructor(
                 marginEnd = (8 * context.resources.displayMetrics.density).toInt()
                 topMargin = (8 * context.resources.displayMetrics.density).toInt()
             }
-            setImageDrawable(createCloseIcon())
+            setImageDrawable(createHideIcon())
             background = createCircleDrawable(Color.parseColor("#80000000"))
             scaleType = ImageView.ScaleType.CENTER
             setOnClickListener {
-                onStopRecordingCallback?.invoke()
+                // Only hide overlay, don't stop recording
                 onCloseCallback?.invoke()
             }
         }
         containerView.addView(closeButton)
+
+        // Add touch listener for dragging
+        containerView.setOnTouchListener { view, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    lastTouchX = event.rawX
+                    lastTouchY = event.rawY
+                    isDragging = false
+                    // Add scale animation to show it's pressable
+                    view.animate().scaleX(0.95f).scaleY(0.95f).setDuration(100).start()
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.rawX - lastTouchX
+                    val deltaY = event.rawY - lastTouchY
+                    
+                    // Consider it dragging if moved more than 10 pixels
+                    if (!isDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+                        isDragging = true
+                        // Haptic feedback when dragging starts
+                        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vibrator.vibrate(50)
+                        }
+                        // Scale up slightly when dragging
+                        view.animate().scaleX(1.05f).scaleY(1.05f).setDuration(100).start()
+                    }
+                    
+                    if (isDragging) {
+                        updateOverlayPosition(deltaX.toInt(), deltaY.toInt())
+                        lastTouchX = event.rawX
+                        lastTouchY = event.rawY
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    // Return to normal scale
+                    view.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+                    
+                    if (!isDragging) {
+                        // If not dragging, treat as click - don't handle here to allow child views to handle
+                        false
+                    } else {
+                        isDragging = false
+                        // Snap to nearest edge after dragging
+                        snapToNearestEdge()
+                        true
+                    }
+                }
+                else -> false
+            }
+        }
 
         addView(containerView)
         startBlinkingAnimation()
@@ -161,6 +227,31 @@ class RecordingOverlayView @JvmOverloads constructor(
 
                 canvas.drawLine(centerX - size, centerY - size, centerX + size, centerY + size, paint)
                 canvas.drawLine(centerX + size, centerY - size, centerX - size, centerY + size, paint)
+            }
+
+            override fun setAlpha(alpha: Int) {}
+            override fun setColorFilter(colorFilter: ColorFilter?) {}
+            override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+        }
+    }
+
+    private fun createHideIcon(): Drawable {
+        return object : Drawable() {
+            override fun draw(canvas: Canvas) {
+                val paint = Paint().apply {
+                    color = Color.WHITE
+                    strokeWidth = 2f * context.resources.displayMetrics.density
+                    isAntiAlias = true
+                    strokeCap = Paint.Cap.ROUND
+                }
+
+                val bounds = bounds
+                val centerX = bounds.centerX().toFloat()
+                val centerY = bounds.centerY().toFloat()
+                val size = 6f * context.resources.displayMetrics.density
+
+                // Draw horizontal line (minimize/hide icon)
+                canvas.drawLine(centerX - size, centerY, centerX + size, centerY, paint)
             }
 
             override fun setAlpha(alpha: Int) {}
@@ -306,24 +397,89 @@ class RecordingOverlayView @JvmOverloads constructor(
                 return
             }
             
-            // Set up transform matrix for proper camera preview
+            // For portrait recording with portrait dimensions, minimal transform needed
             val matrix = Matrix()
             val centerX = viewWidth / 2f
             val centerY = viewHeight / 2f
             
-            // Apply rotation if needed (for front camera)
+            // Only apply mirror effect for front camera
             val cameraIsBack = recordingSettings?.get("camera") != "Front"
             if (!cameraIsBack) {
-                matrix.postRotate(270f, centerX, centerY)
+                // Front camera: mirror horizontally for selfie effect
+                matrix.postScale(-1f, 1f, centerX, centerY)
             }
             
             textureView.setTransform(matrix)
-            Log.d(TAG, "OVERLAY_DEBUG: TextureView transform applied")
+            Log.d(TAG, "OVERLAY_DEBUG: TextureView transform applied for ${if (cameraIsBack) "back" else "front"} camera")
         }
     }
     
     private val recordingSettings: Map<String, Any>?
         get() = service?.getRecordingSettings()
+
+    fun setWindowManagerAndParams(wm: WindowManager, params: WindowManager.LayoutParams) {
+        windowManager = wm
+        layoutParams = params
+        initialX = params.x
+        initialY = params.y
+    }
+
+    private fun updateOverlayPosition(deltaX: Int, deltaY: Int) {
+        layoutParams?.let { params ->
+            params.x += deltaX
+            params.y += deltaY
+            
+            // Get screen dimensions to constrain movement
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val screenHeight = displayMetrics.heightPixels
+            
+            // Get overlay dimensions
+            val overlayWidth = (200 * displayMetrics.density).toInt()
+            val overlayHeight = (280 * displayMetrics.density).toInt()
+            
+            // Constrain to screen boundaries
+            params.x = params.x.coerceIn(0, screenWidth - overlayWidth)
+            params.y = params.y.coerceIn(0, screenHeight - overlayHeight)
+            
+            try {
+                windowManager?.updateViewLayout(this, params)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update overlay position", e)
+            }
+        }
+    }
+
+    private fun snapToNearestEdge() {
+        layoutParams?.let { params ->
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val screenHeight = displayMetrics.heightPixels
+            
+            val overlayWidth = (200 * displayMetrics.density).toInt()
+            val centerX = params.x + overlayWidth / 2
+            
+            // Snap to left or right edge based on which is closer
+            val targetX = if (centerX < screenWidth / 2) {
+                20 // Left edge with some margin
+            } else {
+                screenWidth - overlayWidth - 20 // Right edge with some margin
+            }
+            
+            // Animate to the target position
+            val animator = ValueAnimator.ofInt(params.x, targetX)
+            animator.duration = 200
+            animator.addUpdateListener { animation ->
+                params.x = animation.animatedValue as Int
+                try {
+                    windowManager?.updateViewLayout(this, params)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to animate overlay position", e)
+                }
+            }
+            animator.start()
+        }
+    }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
