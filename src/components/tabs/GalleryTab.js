@@ -14,6 +14,7 @@ import VideoThumbnail from '../VideoThumbnail';
 import VideoActionModal from '../VideoActionModal';
 import RenameModal from '../RenameModal';
 import CompressModal from '../CompressModal';
+import Mp3ConvertModal from '../Mp3ConvertModal';
 import LazyLoadScrollView from '../LazyLoadScrollView';
 import { NativeAdComponent } from '../NativeAdComponent';
 import { COLORS } from '../../constants';
@@ -26,6 +27,7 @@ const { VideoRecordingModule } = NativeModules;
 const GalleryTab = () => {
     const [activeTab, setActiveTab] = useState('video'); // 'video' or 'audio'
     const [videos, setVideos] = useState([]);
+    const [audioFiles, setAudioFiles] = useState([]);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [showVideoPlayer, setShowVideoPlayer] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -36,18 +38,18 @@ const GalleryTab = () => {
     const [renameModalVideo, setRenameModalVideo] = useState(null);
     const [showCompressModal, setShowCompressModal] = useState(false);
     const [compressModalVideo, setCompressModalVideo] = useState(null);
-
-    const [audioFiles] = useState([
-        // Placeholder for audio files - to be implemented later
-    ]);
+    const [showMp3ConvertModal, setShowMp3ConvertModal] = useState(false);
+    const [mp3ConvertModalVideo, setMp3ConvertModalVideo] = useState(null);
 
     useEffect(() => {
-        // Load videos quickly without thumbnails first
+        // Load videos and audio files quickly
         loadRecordedVideosQuick();
+        loadAudioFiles();
         
         // Set up periodic refresh (reduced frequency)
         const interval = setInterval(() => {
             loadRecordedVideosQuick(); // Quick refresh without thumbnails
+            loadAudioFiles(); // Refresh audio files
         }, 30000);
         
         return () => clearInterval(interval);
@@ -144,6 +146,44 @@ const GalleryTab = () => {
         }
     };
 
+    // Load audio files
+    const loadAudioFiles = async () => {
+        try {
+            if (!VideoRecordingModule) {
+                console.error('VideoRecordingModule not available');
+                setAudioFiles([]);
+                return;
+            }
+
+            const result = await VideoRecordingModule.getAudioFiles();
+                
+            console.log('Audio files from native module:', result.audios ? result.audios.length : 0);
+            
+            if (result.audios && result.audios.length > 0) {
+                // Format audio files for UI
+                const formattedAudios = result.audios.map(audio => ({
+                    id: audio.id,
+                    title: audio.title,
+                    duration: audio.duration || '00:00',
+                    size: audio.fileSize,
+                    date: audio.date,
+                    filePath: audio.filePath,
+                    format: audio.format,
+                    lastModified: audio.lastModified
+                }));
+                
+                console.log('Setting audio files in state:', formattedAudios.length);
+                setAudioFiles(formattedAudios);
+            } else {
+                console.log('No audio files found');
+                setAudioFiles([]);
+            }
+        } catch (error) {
+            console.error('Failed to load audio files:', error);
+            setAudioFiles([]);
+        }
+    };
+
     // Handle thumbnail loaded callback
     const handleThumbnailLoaded = (videoId) => {
         setThumbnailsLoaded(prev => new Set([...prev, videoId]));
@@ -194,8 +234,11 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'video_to_mp3':
-                // TODO: Implement video to MP3 conversion
-                Alert.alert('Video to MP3', `Convert to MP3 feature for: ${video.title}\nComing soon!`);
+                setShowActionModal(false);
+                setTimeout(() => {
+                    setMp3ConvertModalVideo(video);
+                    setShowMp3ConvertModal(true);
+                }, 300);
                 break;
             case 'trim':
                 // TODO: Implement trim functionality
@@ -246,8 +289,99 @@ const GalleryTab = () => {
         }
     };
 
+    const handleAudioAction = (audioId, action) => {
+        const audio = audioFiles.find(a => a.id === audioId);
+        if (!audio) return;
+
+        switch (action) {
+            case 'play':
+                // Open audio file with system player
+                handleShareAudio(audio.id);
+                break;
+            case 'share':
+                handleShareAudio(audio.id);
+                break;
+            case 'delete':
+                Alert.alert(
+                    'Delete Audio',
+                    `Are you sure you want to delete ${audio.title}?`,
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Delete', 
+                            style: 'destructive',
+                            onPress: () => deleteAudio(audioId)
+                        }
+                    ]
+                );
+                break;
+            case 'info':
+                showAudioInfo(audio);
+                break;
+        }
+    };
+
+    const deleteAudio = async (audioId) => {
+        try {
+            const audio = audioFiles.find(a => a.id === audioId);
+            if (!audio || !audio.filePath) {
+                Alert.alert('Error', 'Audio file not found');
+                return;
+            }
+
+            if (!VideoRecordingModule) {
+                Alert.alert('Error', 'Video recording module not available');
+                return;
+            }
+
+            await VideoRecordingModule.deleteAudio(audio.filePath);
+            
+            // Refresh the audio list after deletion
+            await loadAudioFiles();
+            
+            Alert.alert('Success', 'Audio deleted successfully');
+        } catch (error) {
+            console.error('Failed to delete audio:', error);
+            Alert.alert('Error', 'Failed to delete audio: ' + error.message);
+        }
+    };
+
+    const handleShareAudio = async (audioId) => {
+        try {
+            const audio = audioFiles.find(a => a.id === audioId);
+            if (!audio || !audio.filePath) {
+                Alert.alert('Error', 'Audio file not found');
+                return;
+            }
+
+            if (!VideoRecordingModule) {
+                Alert.alert('Error', 'Video recording module not available');
+                return;
+            }
+
+            // Use native module to share audio file
+            await VideoRecordingModule.shareVideo(audio.filePath, 'share_general');
+            
+        } catch (error) {
+            console.error('Failed to share audio:', error);
+            if (error.message.includes('NO_APP_AVAILABLE')) {
+                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+            } else {
+                Alert.alert('Share Error', 'Failed to share audio: ' + error.message);
+            }
+        }
+    };
+
+    const showAudioInfo = (audio) => {
+        Alert.alert(
+            'Audio Information',
+            `🎵 Title: ${audio.title}\n⏱️ Duration: ${audio.duration}\n💾 File Size: ${audio.size}\n🔊 Format: ${audio.format}\n📅 Date: ${audio.date}\n📂 Path: ${audio.filePath}`
+        );
+    };
+
     const refreshVideoList = async () => {
         await loadRecordedVideos(false); // Full reload with thumbnails
+        await loadAudioFiles(); // Refresh audio files
     };
 
     const showVideoInfo = (video) => {
@@ -324,6 +458,22 @@ const GalleryTab = () => {
             // );
         } catch (error) {
             console.error('Failed to refresh video list after compression:', error);
+        }
+    };
+
+    const handleMp3Convert = async (audioFilePath) => {
+        try {
+            // Refresh audio list to include the new converted audio
+            await loadAudioFiles();
+            
+            // Show success message
+            Alert.alert(
+                'Success', 
+                'Video converted to audio successfully! You can find it in your audio gallery.',
+                [{ text: 'OK' }]
+            );
+        } catch (error) {
+            console.error('Failed to refresh audio list after conversion:', error);
         }
     };
 
@@ -406,6 +556,47 @@ const GalleryTab = () => {
         </TouchableOpacity>
     );
 
+    const renderAudioItem = (audio) => (
+        <TouchableOpacity 
+            key={audio.id} 
+            style={styles.videoItem}
+            onPress={() => {
+                // Play audio on tap
+                handleShareAudio(audio.id);
+            }}
+        >
+            <View style={styles.audioThumbnail}>
+                <Image 
+                    source={require('../../../assets/home/ic/ic-music.png')} 
+                    style={styles.audioIcon} 
+                />
+                <View style={styles.audioBadge}>
+                    <Text style={styles.audioBadgeText}>{audio.format}</Text>
+                </View>
+            </View>
+            <View style={styles.videoInfo}>
+                <Text style={styles.videoTitle} numberOfLines={1}>
+                    {audio.title}
+                </Text>
+                <Text style={styles.sizeText}>Time: {audio.date}</Text>
+                <Text style={styles.sizeText}>Duration: {audio.duration}</Text>
+                <Text style={styles.sizeText}>Size: {audio.size}</Text>
+            </View>
+            <TouchableOpacity 
+                style={styles.videoActions}
+                onPress={() => {
+                    setActionModalVideo({...audio, isAudio: true});
+                    setShowActionModal(true);
+                }}
+            >
+                <Image 
+                    source={require('../../../assets/home/ic/ic_3dot.png')} 
+                    style={styles.actionIcon} 
+                />
+            </TouchableOpacity>
+        </TouchableOpacity>
+    );
+
     const renderVideoTab = () => (
         <View style={styles.contentContainer}>
             {videos.length > 0 ? (
@@ -433,23 +624,29 @@ const GalleryTab = () => {
     );
 
     const renderAudioTab = () => (
-        <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Audio</Text>
-                <Text style={styles.videoCount}>{audioFiles.length} files</Text>
-            </View>
-
-            <View style={styles.emptyState}>
-                <Image 
-                    source={require('../../../assets/home/ic/ic-music.png')} 
-                    style={styles.emptyIcon} 
+        <View style={styles.contentContainer}>
+            {audioFiles.length > 0 ? (
+                <LazyLoadScrollView
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    data={audioFiles}
+                    renderItem={renderAudioItem}
+                    itemHeight={96} // Approximate height of audio item
+                    preloadOffset={300}
                 />
-                <Text style={styles.emptyTitle}>Audio recording coming soon</Text>
-                <Text style={styles.emptyDescription}>
-                    Audio recording feature will be available in future updates
-                </Text>
-            </View>
-        </ScrollView>
+            ) : (
+                <View style={styles.emptyState}>
+                    <Image 
+                        source={require('../../../assets/home/ic/ic-music.png')} 
+                        style={styles.emptyIcon} 
+                    />
+                    <Text style={styles.emptyTitle}>No audio files yet</Text>
+                    <Text style={styles.emptyDescription}>
+                        Convert videos to audio to see them here
+                    </Text>
+                </View>
+            )}
+        </View>
     );
 
     return (
@@ -478,7 +675,11 @@ const GalleryTab = () => {
                 }}
                 onAction={(actionId) => {
                     if (actionModalVideo) {
-                        handleVideoAction(actionModalVideo.id, actionId);
+                        if (actionModalVideo.isAudio) {
+                            handleAudioAction(actionModalVideo.id, actionId);
+                        } else {
+                            handleVideoAction(actionModalVideo.id, actionId);
+                        }
                     }
                 }}
             />
@@ -501,6 +702,16 @@ const GalleryTab = () => {
                     setCompressModalVideo(null);
                 }}
                 onCompress={handleCompress}
+            />
+            
+            <Mp3ConvertModal
+                visible={showMp3ConvertModal}
+                video={mp3ConvertModalVideo}
+                onClose={() => {
+                    setShowMp3ConvertModal(false);
+                    setMp3ConvertModalVideo(null);
+                }}
+                onConvert={handleMp3Convert}
             />
         </View>
     );
@@ -690,6 +901,35 @@ const styles = StyleSheet.create({
         // width: 16,
         // height: 60,
         // tintColor: '#6B7280',
+    },
+    audioThumbnail: {
+        width: 80,
+        height: 80,
+        backgroundColor: '#FFF3E0',
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        position: 'relative',
+    },
+    audioIcon: {
+        width: 32,
+        height: 32,
+        tintColor: '#FF6B00',
+    },
+    audioBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        backgroundColor: '#FF6B00',
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    audioBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 8,
+        fontWeight: 'bold',
     },
     emptyState: {
         alignItems: 'center',

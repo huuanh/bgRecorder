@@ -1,10 +1,12 @@
 package boom.bvr.recorder.pro
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
@@ -77,7 +79,23 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         try {
             Log.d(TAG, "Starting recording with settings: $settings")
             
+            // Check required permissions first
             val context = reactApplicationContext
+            val missingPermissions = mutableListOf<String>()
+            
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add("CAMERA")
+            }
+            
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add("RECORD_AUDIO")
+            }
+            
+            if (missingPermissions.isNotEmpty()) {
+                promise.reject("PERMISSION_ERROR", "Missing permissions: ${missingPermissions.joinToString(", ")}")
+                return
+            }
+            
             val serviceIntent = Intent(context, VideoRecordingService::class.java).apply {
                 action = VideoRecordingService.ACTION_START_RECORDING
                 putExtra(VideoRecordingService.EXTRA_DURATION, settings.getInt("duration"))
@@ -206,6 +224,42 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         }
     }
     
+    @ReactMethod
+    fun getAudioFiles(promise: Promise) {
+        try {
+            Log.d(TAG, "Getting audio files...")
+            
+            // Get audio directory path
+            val audioDirectory = getAudioDirectory()
+            val audiosList = getAudioFromDirectory(audioDirectory)
+            
+            val result = WritableNativeMap().apply {
+                putString("directory", audioDirectory)
+                putArray("audios", Arguments.createArray().apply {
+                    audiosList.forEach { audio ->
+                        pushMap(Arguments.createMap().apply {
+                            putDouble("id", (audio["id"] as Long).toDouble())
+                            putString("title", audio["title"] as String)
+                            putString("filePath", audio["filePath"] as String)
+                            putString("fileSize", audio["fileSize"] as String)
+                            putDouble("lastModified", (audio["lastModified"] as Long).toDouble())
+                            putString("date", audio["date"] as String)
+                            putString("duration", audio["duration"] as? String ?: "00:00")
+                            putString("format", audio["format"] as String)
+                        })
+                    }
+                })
+            }
+            
+            Log.d(TAG, "Returning ${audiosList.size} audio files from directory")
+            promise.resolve(result)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get audio files", e)
+            promise.reject("GET_AUDIO_ERROR", "Failed to get audio files: ${e.message}")
+        }
+    }
+    
     private fun getVideosDirectory(): String {
         val appDataDir = java.io.File(reactApplicationContext.getExternalFilesDir(null), "RecordedVideos")
         if (!appDataDir.exists()) {
@@ -213,6 +267,15 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             Log.d(TAG, "Created videos directory: $created, Path: ${appDataDir.absolutePath}")
         }
         return appDataDir.absolutePath
+    }
+    
+    private fun getAudioDirectory(): String {
+        val audioDataDir = java.io.File(reactApplicationContext.getExternalFilesDir(null), "RecordedVideos/Audio")
+        if (!audioDataDir.exists()) {
+            val created = audioDataDir.mkdirs()
+            Log.d(TAG, "Created audio directory: $created, Path: ${audioDataDir.absolutePath}")
+        }
+        return audioDataDir.absolutePath
     }
     
     private fun getVideosFromDirectory(directoryPath: String, includeThumbnails: Boolean = true): List<Map<String, Any>> {
@@ -344,6 +407,101 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         }
     }
     
+    private fun getAudioFromDirectory(directoryPath: String): List<Map<String, Any>> {
+        val audiosList = mutableListOf<Map<String, Any>>()
+        val directory = java.io.File(directoryPath)
+        
+        if (directory.exists() && directory.isDirectory) {
+            val audioFiles = directory.listFiles { file ->
+                file.isFile && (file.name.endsWith(".m4a", ignoreCase = true) || 
+                               file.name.endsWith(".mp3", ignoreCase = true) ||
+                               file.name.endsWith(".aac", ignoreCase = true))
+            }
+            
+            audioFiles?.sortedByDescending { it.lastModified() }?.forEach { file ->
+                val sizeInBytes = file.length()
+                val sizeFormatted = when {
+                    sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
+                    sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
+                    sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
+                    else -> "${sizeInBytes} B"
+                }
+                
+                // Get audio duration
+                val audioDuration = getAudioDuration(file.absolutePath)
+                
+                // Get audio format
+                val audioFormat = file.extension.uppercase()
+                
+                val audioMap = mutableMapOf<String, Any>(
+                    "id" to file.lastModified(), // Use timestamp as ID
+                    "title" to file.name,
+                    "filePath" to file.absolutePath,
+                    "fileSize" to sizeFormatted,
+                    "lastModified" to file.lastModified(),
+                    "date" to java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(file.lastModified())),
+                    "duration" to audioDuration,
+                    "format" to audioFormat
+                )
+                
+                audiosList.add(audioMap)
+            }
+        }
+        
+        Log.d(TAG, "Found ${audiosList.size} audio files in directory: $directoryPath")
+        return audiosList
+    }
+    
+    private fun getAudioDuration(audioPath: String): String {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(audioPath)
+            
+            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            retriever.release()
+            
+            // Convert milliseconds to MM:SS or HH:MM:SS format
+            val totalSeconds = durationMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            val seconds = totalSeconds % 60
+            
+            if (hours > 0) {
+                String.format("%02d:%02d:%02d", hours, minutes, seconds)
+            } else {
+                String.format("%02d:%02d", minutes, seconds)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting audio duration for: $audioPath", e)
+            "00:00" // Default duration on error
+        }
+    }
+    
+    @ReactMethod
+    fun checkVideoHasAudio(filePath: String, promise: Promise) {
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(filePath)
+            
+            val hasAudio = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO)
+            val numTracks = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS)?.toIntOrNull() ?: 0
+            
+            retriever.release()
+            
+            val result = WritableNativeMap().apply {
+                putBoolean("hasAudio", hasAudio == "yes")
+                putInt("numTracks", numTracks)
+            }
+            
+            Log.d(TAG, "Video audio check for $filePath: hasAudio=$hasAudio, numTracks=$numTracks")
+            promise.resolve(result)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to check video audio", e)
+            promise.reject("AUDIO_CHECK_ERROR", "Failed to check video audio: ${e.message}")
+        }
+    }
+    
     @ReactMethod
     fun deleteVideo(filePath: String, promise: Promise) {
         try {
@@ -360,6 +518,25 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete video", e)
             promise.reject("DELETE_ERROR", "Failed to delete video: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun deleteAudio(filePath: String, promise: Promise) {
+        try {
+            val file = java.io.File(filePath)
+            if (file.exists() && file.delete()) {
+                Log.d(TAG, "Audio deleted successfully: $filePath")
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Audio deleted successfully")
+                })
+            } else {
+                promise.reject("DELETE_ERROR", "Failed to delete audio file")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete audio", e)
+            promise.reject("DELETE_ERROR", "Failed to delete audio: ${e.message}")
         }
     }
     
@@ -511,6 +688,24 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     @ReactMethod
+    fun checkRecordingPermissions(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val cameraGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            val audioGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            
+            promise.resolve(WritableNativeMap().apply {
+                putBoolean("cameraGranted", cameraGranted)
+                putBoolean("audioGranted", audioGranted)
+                putBoolean("allGranted", cameraGranted && audioGranted)
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to check recording permissions", e)
+            promise.reject("PERMISSION_ERROR", "Failed to check recording permissions: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
     fun checkOverlayPermission(promise: Promise) {
         try {
             val hasPermission = OverlayPermissionHelper.canDrawOverlays(reactApplicationContext)
@@ -534,6 +729,19 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Failed to request overlay permission", e)
             promise.reject("PERMISSION_ERROR", "Failed to request overlay permission: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun createDirectory(directoryPath: String, promise: Promise) {
+        try {
+            val directory = File(directoryPath)
+            val created = directory.mkdirs()
+            Log.d(TAG, "Create directory: $directoryPath, Success: $created")
+            promise.resolve(created)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create directory: $directoryPath", e)
+            promise.reject("CREATE_DIRECTORY_ERROR", "Failed to create directory: ${e.message}")
         }
     }
     

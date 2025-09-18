@@ -235,9 +235,21 @@ class VideoRecordingService : Service() {
     }
     
     private fun setupMediaRecorder() {
-        mediaRecorder = MediaRecorder().apply {
+        mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(this)
+        } else {
+            @Suppress("DEPRECATION")
+            MediaRecorder()
+        }.apply {
+            // Set audio source first
+            setAudioSource(MediaRecorder.AudioSource.MIC)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            
+            // Set audio encoding
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setAudioSamplingRate(44100)
+            setAudioEncodingBitRate(128000)
             
             // Set quality based on settings
             val quality = recordingSettings["quality"] as String

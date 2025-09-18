@@ -17,7 +17,7 @@ const VideoActionModal = ({ visible, onClose, video, onAction }) => {
         { id: 'rename', icon: '✏️', title: 'Rename', color: COLORS.TERTIARY },
         { id: 'share', icon: '🔗', title: 'Share', color: COLORS.TERTIARY },
         { id: 'compress', icon: '🗜️', title: 'Compress', color: COLORS.TERTIARY },
-        { id: 'video_to_mp3', icon: '🎵', title: 'Video to MP3', color: COLORS.TERTIARY },
+        { id: 'video_to_mp3', icon: '🎵', title: 'Video to Audio', color: COLORS.TERTIARY },
         { id: 'trim', icon: '✂️', title: 'Trim', color: COLORS.TERTIARY },
         { id: 'delete', icon: '🗑️', title: 'Delete', color: COLORS.ERROR },
     ];

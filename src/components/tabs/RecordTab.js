@@ -207,6 +207,37 @@ const RecordTab = () => {
             try {
                 console.log('▶️ Starting recording with settings:', recordingSettings);
                 
+                // Check recording permissions first
+                if (VideoRecordingModule) {
+                    try {
+                        const permissionCheck = await VideoRecordingModule.checkRecordingPermissions();
+                        console.log('🔍 Recording permissions check:', permissionCheck);
+                        
+                        if (!permissionCheck.allGranted) {
+                            let missingPermissions = [];
+                            if (!permissionCheck.cameraGranted) missingPermissions.push('Camera');
+                            if (!permissionCheck.audioGranted) missingPermissions.push('Microphone');
+                            
+                            Alert.alert(
+                                'Permissions Required',
+                                `To record video with audio, we need ${missingPermissions.join(' and ')} permission(s). Please grant these permissions in Settings.`,
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { 
+                                        text: 'Open Settings', 
+                                        onPress: () => {
+                                            Alert.alert('Permissions', 'Please go to Settings > Apps > BgRecorder > Permissions and enable Camera and Microphone permissions, then try recording again.');
+                                        }
+                                    }
+                                ]
+                            );
+                            return;
+                        }
+                    } catch (permissionError) {
+                        console.error('❌ Failed to check recording permissions:', permissionError);
+                    }
+                }
+                
                 // Check overlay permission if preview is enabled
                 if (recordingSettings.preview) {
                     try {
@@ -256,7 +287,11 @@ const RecordTab = () => {
                 }
             } catch (error) {
                 console.error('❌ Failed to start recording:', error);
-                Alert.alert('Error', `Failed to start recording: ${error.message}`);
+                if (error.message.includes('PERMISSION_ERROR')) {
+                    Alert.alert('Permission Error', 'Please grant Camera and Microphone permissions to record video with audio.');
+                } else {
+                    Alert.alert('Error', `Failed to start recording: ${error.message}`);
+                }
             }
         }
     };
