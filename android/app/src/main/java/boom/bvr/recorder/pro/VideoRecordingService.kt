@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.hardware.camera2.*
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
 import android.media.MediaRecorder
 import android.os.*
 import android.util.Log
@@ -15,6 +17,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -258,7 +261,7 @@ class VideoRecordingService : Service() {
             val quality = recordingSettings["quality"] as String
             when (quality) {
                 "SD" -> {
-                    setVideoSize(854, 480)
+                    setVideoSize(1280, 720)
                     setVideoEncodingBitRate(4000000)
                 }
                 "HD" -> {
@@ -361,29 +364,61 @@ class VideoRecordingService : Service() {
                 previewSurface?.let { add(it) }
             }
             
-            cameraDevice?.createCaptureSession(
-                surfaces,
-                object : CameraCaptureSession.StateCallback() {
-                    override fun onConfigured(session: CameraCaptureSession) {
-                        try {
-                            captureSession = session
-                            session.setRepeatingRequest(
-                                captureRequestBuilder!!.build(),
-                                null,
-                                null
-                            )
-                            Log.d(TAG, "OVERLAY_DEBUG: Camera capture session started with ${surfaces.size} surfaces")
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to start capture session", e)
+            // Use new SessionConfiguration API (API 28+) or fallback to deprecated method
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val outputConfigurations = surfaces.map { OutputConfiguration(it) }
+                val sessionConfiguration = SessionConfiguration(
+                    SessionConfiguration.SESSION_REGULAR,
+                    outputConfigurations,
+                    ContextCompat.getMainExecutor(this@VideoRecordingService),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            try {
+                                captureSession = session
+                                session.setRepeatingRequest(
+                                    captureRequestBuilder!!.build(),
+                                    null,
+                                    null
+                                )
+                                Log.d(TAG, "OVERLAY_DEBUG: Camera capture session started with ${surfaces.size} surfaces")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to start capture session", e)
+                            }
+                        }
+                        
+                        override fun onConfigureFailed(session: CameraCaptureSession) {
+                            Log.e(TAG, "Capture session configuration failed")
                         }
                     }
-                    
-                    override fun onConfigureFailed(session: CameraCaptureSession) {
-                        Log.e(TAG, "Capture session configuration failed")
-                    }
-                },
-                null
-            )
+                )
+                cameraDevice?.createCaptureSession(sessionConfiguration)
+            } else {
+                // Fallback for older Android versions
+                @Suppress("DEPRECATION")
+                cameraDevice?.createCaptureSession(
+                    surfaces,
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            try {
+                                captureSession = session
+                                session.setRepeatingRequest(
+                                    captureRequestBuilder!!.build(),
+                                    null,
+                                    null
+                                )
+                                Log.d(TAG, "OVERLAY_DEBUG: Camera capture session started with ${surfaces.size} surfaces")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to start capture session", e)
+                            }
+                        }
+                        
+                        override fun onConfigureFailed(session: CameraCaptureSession) {
+                            Log.e(TAG, "Capture session configuration failed")
+                        }
+                    },
+                    null
+                )
+            }
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start camera recording", e)
