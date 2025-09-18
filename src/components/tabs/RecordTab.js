@@ -263,14 +263,20 @@ const RecordTab = () => {
                     const result = await VideoRecordingModule.startRecording(recordingSettings);
                     console.log('✅ Recording start result:', result);
                     
+                    // Set recording state immediately after successful start
+                    if (result.success) {
+                        setIsRecording(true);
+                        setIsServiceRecording(true);
+                    }
+                    
                     // Show overlay if preview is enabled
-                    if (recordingSettings.preview) {
+                    if (recordingSettings.preview && result.success) {
                         setTimeout(async () => {
                             try {
                                 await VideoRecordingModule.showRecordingOverlay();
                                 console.log('✅ Recording overlay shown');
                             } catch (error) {
-                                console.error('❌ Failed to show overlay:', error);
+                                console.log('❌ Failed to show overlay:', error);
                             }
                         }, 500);
                     }

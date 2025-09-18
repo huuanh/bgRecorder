@@ -302,7 +302,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 // Get thumbnail from cache or generate new one (only if requested)
                 val thumbnailBase64 = if (includeThumbnails) {
                     thumbnailCache[cacheKey] ?: generateVideoThumbnail(file.absolutePath).also {
-                        thumbnailCache[cacheKey] = it
+                        if (it != null) {
+                            thumbnailCache[cacheKey] = it
+                        }
                     }
                 } else null
                 
@@ -341,24 +343,56 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     
     private fun generateVideoThumbnail(videoPath: String): String? {
         return try {
-            val bitmap = ThumbnailUtils.createVideoThumbnail(
-                videoPath, 
-                MediaStore.Images.Thumbnails.MINI_KIND
-            )
-            
-            if (bitmap != null) {
-                // Convert bitmap to base64 string
-                val byteArrayOutputStream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
-                val byteArray = byteArrayOutputStream.toByteArray()
-                val base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
+            // First try using MediaMetadataRetriever which is more reliable
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(videoPath)
                 
-                bitmap.recycle() // Free memory
-                "data:image/jpeg;base64,$base64String"
-            } else {
-                Log.w(TAG, "Failed to generate thumbnail for: $videoPath")
-                null
+                // Get frame at 1 second or at the beginning if video is shorter
+                val bitmap = retriever.getFrameAtTime(1000000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    ?: retriever.getFrameAtTime(0L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                
+                if (bitmap != null) {
+                    // Convert bitmap to base64 string
+                    val byteArrayOutputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+                    val byteArray = byteArrayOutputStream.toByteArray()
+                    val base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                    
+                    bitmap.recycle() // Free memory
+                    return "data:image/jpeg;base64,$base64String"
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "MediaMetadataRetriever failed for: $videoPath, trying ThumbnailUtils", e)
+                
+                // Fallback to ThumbnailUtils with additional safety checks
+                val file = java.io.File(videoPath)
+                if (file.exists() && file.length() > 0) {
+                    val bitmap = ThumbnailUtils.createVideoThumbnail(
+                        videoPath, 
+                        MediaStore.Images.Thumbnails.MINI_KIND
+                    )
+                    
+                    if (bitmap != null) {
+                        val byteArrayOutputStream = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+                        val byteArray = byteArrayOutputStream.toByteArray()
+                        val base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                        
+                        bitmap.recycle() // Free memory
+                        return "data:image/jpeg;base64,$base64String"
+                    }
+                }
+            } finally {
+                try {
+                    retriever.release()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error releasing MediaMetadataRetriever", e)
+                }
             }
+            
+            Log.w(TAG, "Failed to generate thumbnail for: $videoPath")
+            null
         } catch (e: Exception) {
             Log.e(TAG, "Error generating thumbnail for: $videoPath", e)
             null
@@ -683,9 +717,23 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 return
             }
             
+            // Check if file is not empty and give it time to finish writing if needed
+            if (file.length() == 0L) {
+                promise.reject("FILE_EMPTY", "Video file is empty: $filePath")
+                return
+            }
+            
+            // Add a small delay if file was just created (within last 2 seconds)
+            val timeSinceCreation = System.currentTimeMillis() - file.lastModified()
+            if (timeSinceCreation < 2000) {
+                Thread.sleep(500) // Wait 500ms for file to be fully written
+            }
+            
             val cacheKey = "${file.absolutePath}_${file.lastModified()}"
             val thumbnail = thumbnailCache[cacheKey] ?: generateVideoThumbnail(file.absolutePath).also {
-                thumbnailCache[cacheKey] = it
+                if (it != null) {
+                    thumbnailCache[cacheKey] = it
+                }
             }
             
             promise.resolve(thumbnail ?: "")
@@ -698,7 +746,30 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     @ReactMethod
     fun showRecordingOverlay(promise: Promise) {
         try {
-            val success = recordingService?.getOverlayManager()?.showOverlay() ?: false
+            Log.d(TAG, "showRecordingOverlay called")
+            
+            val overlayManager = recordingService?.getOverlayManager()
+            if (overlayManager == null) {
+                Log.e(TAG, "OverlayManager is null")
+                promise.reject("OVERLAY_ERROR", "Recording service not available")
+                return
+            }
+            
+            val success = overlayManager.showOverlay(
+                cameraDevice = null,
+                onStopRecording = {
+                    Log.d(TAG, "Stop recording callback triggered from overlay")
+                    // Send stop recording intent to service
+                    val intent = Intent(reactApplicationContext, VideoRecordingService::class.java).apply {
+                        action = "stop_recording"
+                    }
+                    reactApplicationContext.startService(intent)
+                },
+                service = recordingService
+            )
+            
+            Log.d(TAG, "showOverlay result: $success")
+            
             if (success) {
                 promise.resolve(WritableNativeMap().apply {
                     putBoolean("success", true)
