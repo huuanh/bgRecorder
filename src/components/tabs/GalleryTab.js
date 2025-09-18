@@ -295,11 +295,26 @@ const GalleryTab = () => {
 
         switch (action) {
             case 'play':
-                // Open audio file with system player
-                handleShareAudio(audio.id);
+                // Play audio with VideoPlayer
+                if (audio.filePath) {
+                    setSelectedVideo(audio);
+                    setShowVideoPlayer(true);
+                } else {
+                    Alert.alert('Error', 'Audio file path not found. The audio file might have been deleted.');
+                }
+                break;
+            case 'rename':
+                setShowActionModal(false);
+                setTimeout(() => {
+                    setRenameModalVideo(audio);
+                    setShowRenameModal(true);
+                }, 300);
                 break;
             case 'share':
-                handleShareAudio(audio.id);
+                setShowActionModal(false);
+                setTimeout(() => {
+                    handleShareAudio(audio.id);
+                }, 300);
                 break;
             case 'delete':
                 Alert.alert(
@@ -391,11 +406,17 @@ const GalleryTab = () => {
         );
     };
 
-    const handleRename = async (videoId, newName) => {
+    const handleRename = async (itemId, newName) => {
         try {
-            const video = videos.find(v => v.id === videoId);
-            if (!video || !video.filePath) {
-                Alert.alert('Error', 'Video file not found');
+            // Check if it's audio or video
+            const video = videos.find(v => v.id === itemId);
+            const audio = audioFiles.find(a => a.id === itemId);
+            
+            const item = video || audio;
+            const isAudio = !!audio;
+            
+            if (!item || !item.filePath) {
+                Alert.alert('Error', `${isAudio ? 'Audio' : 'Video'} file not found`);
                 return;
             }
 
@@ -405,18 +426,27 @@ const GalleryTab = () => {
             }
 
             // Add file extension to new name
-            const fileExtension = video.title.split('.').pop();
+            const fileExtension = item.title.split('.').pop();
             const newFileName = `${newName}.${fileExtension}`;
 
-            await VideoRecordingModule.renameVideo(video.filePath, newFileName);
-            
-            // Refresh the video list after rename
-            await loadRecordedVideosQuick();
-            
-            Alert.alert('Success', `Video renamed to: ${newFileName}`);
+            if (isAudio) {
+                await VideoRecordingModule.renameAudio(item.filePath, newFileName);
+                
+                // Refresh the audio list after rename
+                await loadAudioFiles();
+                
+                Alert.alert('Success', `Audio renamed to: ${newFileName}`);
+            } else {
+                await VideoRecordingModule.renameVideo(item.filePath, newFileName);
+                
+                // Refresh the video list after rename
+                await loadRecordedVideosQuick();
+                
+                Alert.alert('Success', `Video renamed to: ${newFileName}`);
+            }
         } catch (error) {
-            console.error('Failed to rename video:', error);
-            Alert.alert('Error', 'Failed to rename video: ' + error.message);
+            console.error('Failed to rename file:', error);
+            Alert.alert('Error', 'Failed to rename file: ' + error.message);
         }
     };
 
@@ -562,7 +592,12 @@ const GalleryTab = () => {
             style={styles.videoItem}
             onPress={() => {
                 // Play audio on tap
-                handleShareAudio(audio.id);
+                if (audio.filePath) {
+                    setSelectedVideo(audio);
+                    setShowVideoPlayer(true);
+                } else {
+                    Alert.alert('Error', 'Audio file not found');
+                }
             }}
         >
             <View style={styles.audioThumbnail}>

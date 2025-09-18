@@ -118,7 +118,7 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
                     {onClose && (
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <Image
-                                source={require('../../assets/home/ic/ic_setting.png')}
+                                source={require('../../assets/home/ic/ic_back.png')}
                                 style={styles.closeIcon}
                             />
                         </TouchableOpacity>

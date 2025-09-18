@@ -13,7 +13,8 @@ import { COLORS } from '../constants';
 const { width, height } = Dimensions.get('window');
 
 const VideoActionModal = ({ visible, onClose, video, onAction }) => {
-    const menuItems = [
+    // Define different menu items for video and audio
+    const videoMenuItems = [
         { id: 'rename', icon: '✏️', title: 'Rename', color: COLORS.TERTIARY },
         { id: 'share', icon: '🔗', title: 'Share', color: COLORS.TERTIARY },
         { id: 'compress', icon: '🗜️', title: 'Compress', color: COLORS.TERTIARY },
@@ -21,6 +22,16 @@ const VideoActionModal = ({ visible, onClose, video, onAction }) => {
         { id: 'trim', icon: '✂️', title: 'Trim', color: COLORS.TERTIARY },
         { id: 'delete', icon: '🗑️', title: 'Delete', color: COLORS.ERROR },
     ];
+
+    const audioMenuItems = [
+        { id: 'rename', icon: '✏️', title: 'Rename', color: COLORS.TERTIARY },
+        { id: 'share', icon: '🔗', title: 'Share', color: COLORS.TERTIARY },
+        { id: 'delete', icon: '🗑️', title: 'Delete', color: COLORS.ERROR },
+        { id: 'info', icon: 'ℹ️', title: 'Info', color: COLORS.TERTIARY },
+    ];
+
+    // Determine which menu items to show based on file type
+    const menuItems = video?.isAudio ? audioMenuItems : videoMenuItems;
 
     const handleItemPress = (actionId) => {
         onAction(actionId);

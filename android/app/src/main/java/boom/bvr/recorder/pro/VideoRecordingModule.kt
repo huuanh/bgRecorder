@@ -586,6 +586,46 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     @ReactMethod
+    fun renameAudio(filePath: String, newFileName: String, promise: Promise) {
+        try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Audio file not found: $filePath")
+                return
+            }
+            
+            // Create new file path with the new name
+            val parentDir = file.parentFile
+            val newFile = File(parentDir, newFileName)
+            
+            // Check if target filename already exists
+            if (newFile.exists()) {
+                promise.reject("FILE_EXISTS", "A file with the name '$newFileName' already exists")
+                return
+            }
+            
+            // Perform the rename
+            val success = file.renameTo(newFile)
+            
+            if (success) {
+                Log.d(TAG, "Audio renamed successfully from ${file.name} to ${newFile.name}")
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Audio renamed successfully")
+                    putString("oldPath", filePath)
+                    putString("newPath", newFile.absolutePath)
+                    putString("newFileName", newFileName)
+                })
+            } else {
+                promise.reject("RENAME_FAILED", "Failed to rename audio file")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to rename audio", e)
+            promise.reject("RENAME_ERROR", "Failed to rename audio: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
     fun shareVideo(filePath: String, shareType: String, promise: Promise) {
         try {
             val file = File(filePath)
