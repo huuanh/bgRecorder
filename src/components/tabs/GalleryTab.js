@@ -8,12 +8,12 @@ import {
     Dimensions,
     Image,
     Alert,
-    Share,
 } from 'react-native';
 import VideoPlayer from '../VideoPlayer';
 import VideoThumbnail from '../VideoThumbnail';
 import VideoActionModal from '../VideoActionModal';
 import RenameModal from '../RenameModal';
+import CompressModal from '../CompressModal';
 import LazyLoadScrollView from '../LazyLoadScrollView';
 import { NativeAdComponent } from '../NativeAdComponent';
 import { COLORS } from '../../constants';
@@ -34,6 +34,8 @@ const GalleryTab = () => {
     const [actionModalVideo, setActionModalVideo] = useState(null);
     const [showRenameModal, setShowRenameModal] = useState(false);
     const [renameModalVideo, setRenameModalVideo] = useState(null);
+    const [showCompressModal, setShowCompressModal] = useState(false);
+    const [compressModalVideo, setCompressModalVideo] = useState(null);
 
     const [audioFiles] = useState([
         // Placeholder for audio files - to be implemented later
@@ -76,8 +78,7 @@ const GalleryTab = () => {
                     size: video.fileSize,
                     date: video.date,
                     filePath: video.filePath,
-                    quality: 'HD 720p',
-                    camera: 'Back',
+                    ratio: video.width && video.height ? `${video.width}x${video.height}` : '720x1280',
                     thumbnail: null, // No thumbnail initially - will be loaded by VideoThumbnail component
                     lastModified: video.lastModified
                 }));
@@ -124,8 +125,7 @@ const GalleryTab = () => {
                     size: video.fileSize,
                     date: video.date,
                     filePath: video.filePath,
-                    quality: 'HD 720p',
-                    camera: 'Back',
+                    ratio: video.width && video.height ? `${video.width}x${video.height}` : '720x1280',
                     thumbnail: quick ? null : video.thumbnail, // Only include thumbnail if not quick
                     lastModified: video.lastModified
                 }));
@@ -187,8 +187,11 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'compress':
-                // TODO: Implement compress functionality
-                Alert.alert('Compress Video', `Compress feature for: ${video.title}\nComing soon!`);
+                setShowActionModal(false);
+                setTimeout(() => {
+                    setCompressModalVideo(video);
+                    setShowCompressModal(true);
+                }, 300);
                 break;
             case 'video_to_mp3':
                 // TODO: Implement video to MP3 conversion
@@ -250,7 +253,7 @@ const GalleryTab = () => {
     const showVideoInfo = (video) => {
         Alert.alert(
             'Video Information',
-            `📹 Title: ${video.title}\n⏱️ Duration: ${video.duration}\n💾 File Size: ${video.size}\n🎬 Quality: ${video.quality}\n📷 Camera: ${video.camera} camera\n📅 Date: ${video.date}\n📂 Path: ${video.filePath}`
+            `📹 Title: ${video.title}\n⏱️ Duration: ${video.duration}\n💾 File Size: ${video.size}\n📐 Ratio: ${video.ratio}\n📅 Date: ${video.date}\n📂 Path: ${video.filePath}`
         );
     };
 
@@ -296,22 +299,31 @@ const GalleryTab = () => {
                 return;
             }
 
-            // Use React Native's Share API with file URI
-            const result = await Share.share({
-                title: 'Share Video',
-                message: `Check out this video: ${video.title}`,
-                url: `file://${video.filePath}`,
-            });
-
-            if (result.action === Share.sharedAction) {
-                console.log('Video shared successfully');
-            } else if (result.action === Share.dismissedAction) {
-                console.log('Share dialog dismissed');
-            }
+            // Use native module to share video file
+            await VideoRecordingModule.shareVideo(video.filePath, 'share_general');
             
         } catch (error) {
             console.error('Failed to share video:', error);
-            Alert.alert('Share Error', 'Failed to share video: ' + error.message);
+            if (error.message.includes('NO_APP_AVAILABLE')) {
+                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+            } else {
+                Alert.alert('Share Error', 'Failed to share video: ' + error.message);
+            }
+        }
+    };
+
+    const handleCompress = async (compressedVideoPath) => {
+        try {
+            // Refresh video list to include the new compressed video
+            await loadRecordedVideosQuick();
+            
+            // Alert.alert(
+            //     'Success', 
+            //     'Video compressed successfully! You can find it in your video gallery.',
+            //     [{ text: 'OK' }]
+            // );
+        } catch (error) {
+            console.error('Failed to refresh video list after compression:', error);
         }
     };
 
@@ -375,15 +387,9 @@ const GalleryTab = () => {
                 <Text style={styles.videoTitle} numberOfLines={1}>
                     {video.title}
                 </Text>
-                <View style={styles.videoMetaRow}>
-                    <View style={styles.sizeContainer}>
-                        <Text style={styles.sizeText}>{video.size}</Text>
-                    </View>
-                    <Text style={styles.videoMeta}>
-                        {video.quality} • {video.camera} camera
-                    </Text>
-                </View>
-                <Text style={styles.videoDate}>{video.date}</Text>
+                <Text style={styles.sizeText}>Time: {video.date}</Text>
+                <Text style={styles.sizeText}>Ratio: {video.ratio}</Text>
+                <Text style={styles.sizeText}>Size: {video.size}</Text>
             </View>
             <TouchableOpacity 
                 style={styles.videoActions}
@@ -486,6 +492,16 @@ const GalleryTab = () => {
                 }}
                 onRename={handleRename}
             />
+            
+            <CompressModal
+                visible={showCompressModal}
+                video={compressModalVideo}
+                onClose={() => {
+                    setShowCompressModal(false);
+                    setCompressModalVideo(null);
+                }}
+                onCompress={handleCompress}
+            />
         </View>
     );
 };
@@ -580,10 +596,11 @@ const styles = StyleSheet.create({
     },
     videoItem: {
         flexDirection: 'row',
+        justifyContent: "space-between",
         alignItems: 'center',
         // backgroundColor: '#FFFFFF',
         // borderRadius: 12,
-        padding: 8,
+        paddingVertical: 3,
         marginBottom: 0,
         // elevation: 2,
         // shadowColor: '#000',
@@ -627,17 +644,17 @@ const styles = StyleSheet.create({
     },
     videoInfo: {
         flex: 1,
-        marginRight: 12,
+        marginLeft: 10,
     },
     videoTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#1F2937',
+        color: COLORS.TERTIARY,
         marginBottom: 4,
     },
     videoMeta: {
         fontSize: 12,
-        color: '#6B7280',
+        color: COLORS.TERTIARY,
         marginBottom: 2,
     },
     videoMetaRow: {
@@ -664,7 +681,10 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
     },
     videoActions: {
-        padding: 8,
+        padding: 12,
+        width: 30,
+        height: 40,
+        right: 0,
     },
     actionIcon: {
         // width: 16,

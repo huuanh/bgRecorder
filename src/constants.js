@@ -6,4 +6,5 @@ export const COLORS = {
   TERTIARY: '#1A2B6D',
   WHITE: '#ffffffff',
   ERROR: '#E74C3C',
+  ACTIVE: '#e04f1d',
 };

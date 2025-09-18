@@ -190,6 +190,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                             putString("date", video["date"] as String)
                             putString("thumbnail", video["thumbnail"] as? String ?: "")
                             putString("duration", video["duration"] as? String ?: "00:00")
+                            putInt("width", video["width"] as Int)
+                            putInt("height", video["height"] as Int)
                         })
                     }
                 })
@@ -246,6 +248,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                     durationCache[cacheKey] = it
                 }
                 
+                // Get video dimensions
+                val videoDimensions = getVideoDimensions(file.absolutePath)
+                
                 val videoMap = mutableMapOf<String, Any>(
                     "id" to file.lastModified(),
                     "title" to file.name,
@@ -253,7 +258,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                     "fileSize" to sizeFormatted,
                     "lastModified" to file.lastModified(),
                     "date" to java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(file.lastModified())),
-                    "duration" to videoDuration
+                    "duration" to videoDuration,
+                    "width" to videoDimensions.first,
+                    "height" to videoDimensions.second
                 )
                 
                 // Add thumbnail if available
@@ -317,6 +324,23 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Error getting video duration for: $videoPath", e)
             "00:00" // Default duration on error
+        }
+    }
+    
+    private fun getVideoDimensions(videoPath: String): Pair<Int, Int> {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(videoPath)
+            
+            val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 720
+            val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 1280
+            
+            retriever.release()
+            
+            Pair(width, height)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting video dimensions for: $videoPath", e)
+            Pair(720, 1280) // Default dimensions on error
         }
     }
     

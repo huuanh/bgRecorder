@@ -239,15 +239,6 @@ const RecordTab = () => {
                     const result = await VideoRecordingModule.startRecording(recordingSettings);
                     console.log('✅ Recording start result:', result);
                     
-                    // Show background recording info
-                    Alert.alert(
-                        'Recording Started!',
-                        recordingSettings.preview 
-                            ? 'Video is now recording with preview overlay. You can minimize the app or use other apps while recording continues.'
-                            : 'Video is now recording in the background. You can minimize the app or use other apps while recording continues.',
-                        [{ text: 'OK' }]
-                    );
-                    
                     // Show overlay if preview is enabled
                     if (recordingSettings.preview) {
                         setTimeout(async () => {
