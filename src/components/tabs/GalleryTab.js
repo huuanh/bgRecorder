@@ -15,6 +15,7 @@ import VideoActionModal from '../VideoActionModal';
 import RenameModal from '../RenameModal';
 import CompressModal from '../CompressModal';
 import Mp3ConvertModal from '../Mp3ConvertModal';
+import TrimVideoModal from '../TrimVideoModal';
 import LazyLoadScrollView from '../LazyLoadScrollView';
 import { NativeAdComponent } from '../NativeAdComponent';
 import { COLORS } from '../../constants';
@@ -40,6 +41,8 @@ const GalleryTab = () => {
     const [compressModalVideo, setCompressModalVideo] = useState(null);
     const [showMp3ConvertModal, setShowMp3ConvertModal] = useState(false);
     const [mp3ConvertModalVideo, setMp3ConvertModalVideo] = useState(null);
+    const [showTrimModal, setShowTrimModal] = useState(false);
+    const [trimModalVideo, setTrimModalVideo] = useState(null);
 
     useEffect(() => {
         // Load videos and audio files quickly
@@ -241,8 +244,11 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'trim':
-                // TODO: Implement trim functionality
-                Alert.alert('Trim Video', `Trim feature for: ${video.title}\nComing soon!`);
+                setShowActionModal(false);
+                setTimeout(() => {
+                    setTrimModalVideo(video);
+                    setShowTrimModal(true);
+                }, 300);
                 break;
             case 'delete':
                 Alert.alert(
@@ -507,6 +513,21 @@ const GalleryTab = () => {
         }
     };
 
+    const handleTrimExport = async (trimData) => {
+        try {
+            console.log('Trim export completed:', trimData);
+            
+            // Refresh video list to show the new trimmed video
+            await loadRecordedVideosQuick();
+            
+            console.log('Video list refreshed after trim');
+            
+        } catch (error) {
+            console.error('Failed to refresh video list after trim:', error);
+            throw error; // Re-throw to be handled by TrimVideoModal
+        }
+    };
+
     const renderTabBar = () => (
         <View style={styles.tabBar}>
             <TouchableOpacity 
@@ -747,6 +768,16 @@ const GalleryTab = () => {
                     setMp3ConvertModalVideo(null);
                 }}
                 onConvert={handleMp3Convert}
+            />
+            
+            <TrimVideoModal
+                visible={showTrimModal}
+                video={trimModalVideo}
+                onClose={() => {
+                    setShowTrimModal(false);
+                    setTrimModalVideo(null);
+                }}
+                onExport={handleTrimExport}
             />
         </View>
     );

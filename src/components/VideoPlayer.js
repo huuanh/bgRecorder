@@ -183,7 +183,7 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
                                 source={
                                     paused
                                         ? require('../../assets/home/ic/ic_play.png')
-                                        : require('../../assets/home/ic/ic_record.png')
+                                        : require('../../assets/home/ic/ic_pause.png')
                                 }
                                 style={styles.playIcon}
                             />
@@ -418,8 +418,8 @@ const styles = StyleSheet.create({
     },
     playIcon: {
         width: 20,
-        height: 20,
-        tintColor: '#FFFFFF',
+        height: 25,
+        // tintColor: '#FFFFFF',
         resizeMode: 'contain',
     },
     loadingOverlay: {
