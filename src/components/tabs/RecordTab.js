@@ -16,6 +16,7 @@ import { COLORS } from '../../constants';
 import { NativeAdComponent } from '../NativeAdComponent';
 import { ADS_UNIT } from '../../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactContextManager from '../../utils/ReactContextManager';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
@@ -34,16 +35,31 @@ const RecordTab = () => {
     const [isServiceRecording, setIsServiceRecording] = useState(false);
 
     useEffect(() => {
-        // Check if service is already recording when component mounts
-        checkServiceStatus();
+        // Debug log to check module availability
+        console.log('🔍 VideoRecordingModule availability:', VideoRecordingModule ? 'Available' : 'Not Available');
+        
+        // Store timer ref outside of callback
+        let initTimer = null;
+        
+        // Wait for React context to be ready before doing anything
+        ReactContextManager.onReady(() => {
+            console.log('🔧 RecordTab: React context ready, initializing...');
+            
+            // Add a small delay to ensure React context is fully initialized
+            initTimer = setTimeout(() => {
+                // Check if service is already recording when component mounts
+                checkServiceStatus();
+            }, 500);
+        });
         
         // Listen for recording events from native service
         const recordingStartedListener = DeviceEventEmitter.addListener(
             'onRecordingStarted',
             () => {
-                console.log('📹 Recording started from service');
+                console.log('📹 Recording started event from service');
                 setIsRecording(true);
                 setIsServiceRecording(true);
+                // Don't reset time here, let the timer handle it
             }
         );
 
@@ -51,6 +67,8 @@ const RecordTab = () => {
             'onRecordingStopped',
             (data) => {
                 console.log('⏹️ Recording stopped from service:', data);
+                
+                // Immediately update all recording states
                 setIsRecording(false);
                 setIsServiceRecording(false);
                 setRecordingTime(0);
@@ -88,6 +106,11 @@ const RecordTab = () => {
             recordingStartedListener.remove();
             recordingStoppedListener.remove();
             appStateSubscription?.remove();
+            
+            // Clear any pending timers
+            if (initTimer) {
+                clearTimeout(initTimer);
+            }
         };
     }, [isServiceRecording]);
 
@@ -99,11 +122,34 @@ const RecordTab = () => {
                 if (VideoRecordingModule) {
                     VideoRecordingModule.getRecordingStatus()
                         .then((status) => {
-                            if (status.isRecording) {
+                            console.log('⏱️ Timer check - Recording status:', status);
+                            if (status && status.isRecording) {
                                 setRecordingTime(Math.floor(status.duration / 1000));
+                                // Ensure UI state matches service state
+                                if (!isRecording) {
+                                    console.log('🔄 Timer: Service recording but UI not, fixing...');
+                                    setIsRecording(true);
+                                    setIsServiceRecording(true);
+                                }
+                            } else {
+                                // Only reset if we get a clear "not recording" status
+                                if (status && status.isRecording === false) {
+                                    console.log('📱 Timer: Service stopped recording, syncing UI...');
+                                    setIsRecording(false);
+                                    setIsServiceRecording(false);
+                                    setRecordingTime(0);
+                                }
                             }
                         })
-                        .catch(console.error);
+                        .catch((error) => {
+                            console.error('❌ Timer: Failed to get recording status:', error);
+                            // Check if it's a React context error
+                            if (error.message?.includes('ReactContext') || error.message?.includes('JS module')) {
+                                console.log('⚠️ Timer: React context issue, skipping this check');
+                            } else {
+                                console.log('⚠️ Timer: Other error, continuing...');
+                            }
+                        });
                 } else {
                     setRecordingTime(prev => prev + 1);
                 }
@@ -121,21 +167,57 @@ const RecordTab = () => {
 
     const checkServiceStatus = async () => {
         try {
-            if (VideoRecordingModule) {
-                const status = await VideoRecordingModule.isServiceRunning();
-                console.log('🔍 Service status:', status);
-                
-                if (status.isRunning && status.isRecording) {
+            // Add safety check to prevent calling native methods too early
+            if (!VideoRecordingModule) {
+                console.log('⚠️ VideoRecordingModule not available for status check');
+                return;
+            }
+
+            // Add a small delay to ensure React context is ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            console.log('🔍 Checking service status...');
+            const status = await VideoRecordingModule.isServiceRunning();
+            console.log('🔍 Service status result:', status);
+            
+            if (status && status.isRunning && status.isRecording) {
+                console.log('📹 Service is recording, syncing UI state');
+                if (!isRecording) {
                     setIsRecording(true);
                     setIsServiceRecording(true);
-                    
-                    // Get current recording duration
-                    const recordingStatus = await VideoRecordingModule.getRecordingStatus();
-                    setRecordingTime(Math.floor(recordingStatus.duration / 1000));
                 }
+                
+                // Get current recording duration
+                try {
+                    const recordingStatus = await VideoRecordingModule.getRecordingStatus();
+                    if (recordingStatus && recordingStatus.duration) {
+                        setRecordingTime(Math.floor(recordingStatus.duration / 1000));
+                    }
+                } catch (statusError) {
+                    console.log('⚠️ Could not get recording duration:', statusError);
+                }
+            } else if (status && status.isRunning === false) {
+                // Only reset if service is explicitly not running
+                console.log('📱 Service is explicitly not running, ensuring UI is in sync');
+                setIsRecording(false);
+                setIsServiceRecording(false);
+                setRecordingTime(0);
+            } else {
+                // If status is unclear, don't change current state
+                console.log('⚠️ Service status unclear, keeping current UI state');
             }
         } catch (error) {
             console.error('❌ Failed to check service status:', error);
+            // Check if it's a React context error
+            if (error.message?.includes('ReactContext') || error.message?.includes('JS module')) {
+                console.log('⚠️ React context not ready, will retry later');
+                // Retry after a delay
+                setTimeout(() => {
+                    checkServiceStatus();
+                }, 1000);
+            } else {
+                console.log('⚠️ Status check failed, keeping current state');
+            }
         }
     };
 
@@ -175,6 +257,17 @@ const RecordTab = () => {
         }
     };
 
+    const showRecordingOverlayDuringRecording = async () => {
+        try {
+            if (VideoRecordingModule && isRecording) {
+                await VideoRecordingModule.showRecordingOverlayDuringRecording();
+                console.log('✅ Recording overlay shown during recording');
+            }
+        } catch (error) {
+            console.error('❌ Failed to show overlay during recording:', error);
+        }
+    };
+
     const handleRecordPress = async () => {
         if (isRecording) {
             // Stop recording
@@ -187,12 +280,23 @@ const RecordTab = () => {
                 if (VideoRecordingModule) {
                     await VideoRecordingModule.stopRecording();
                     console.log('✅ Recording stop request sent');
+                    
+                    // Immediately update UI state to show stop button as pressed
+                    setIsRecording(false);
+                    setIsServiceRecording(false);
+                    setRecordingTime(0);
                 } else {
                     console.log('⚠️ VideoRecordingModule not available');
                     setIsRecording(false);
+                    setIsServiceRecording(false);
+                    setRecordingTime(0);
                 }
             } catch (error) {
                 console.error('❌ Failed to stop recording:', error);
+                // Even if there's an error, reset the UI state
+                setIsRecording(false);
+                setIsServiceRecording(false);
+                setRecordingTime(0);
                 Alert.alert('Error', 'Failed to stop recording');
             }
         } else {
@@ -260,17 +364,34 @@ const RecordTab = () => {
                 }
                 
                 if (VideoRecordingModule) {
+                    // Immediately set recording state to show UI feedback
+                    setIsRecording(true);
+                    setIsServiceRecording(true);
+                    
                     const result = await VideoRecordingModule.startRecording(recordingSettings);
                     console.log('✅ Recording start result:', result);
                     
-                    // Set recording state immediately after successful start
-                    if (result.success) {
-                        setIsRecording(true);
-                        setIsServiceRecording(true);
+                    // Check if recording actually started successfully
+                    if (result && result.success !== false) {
+                        // Recording started successfully, keep the state as is
+                        console.log('📹 Recording started successfully');
+                        
+                        // Give service some time to fully start before checking status
+                        setTimeout(() => {
+                            console.log('🔄 Delayed status check after start...');
+                            checkServiceStatus();
+                        }, 2000);
+                    } else {
+                        // Recording failed, reset the state
+                        console.log('❌ Recording failed to start, resetting state');
+                        setIsRecording(false);
+                        setIsServiceRecording(false);
+                        Alert.alert('Recording Failed', 'Unable to start recording. Please try again.');
+                        return;
                     }
                     
                     // Show overlay if preview is enabled
-                    if (recordingSettings.preview && result.success) {
+                    if (recordingSettings.preview) {
                         setTimeout(async () => {
                             try {
                                 await VideoRecordingModule.showRecordingOverlay();
@@ -283,10 +404,20 @@ const RecordTab = () => {
                 } else {
                     console.log('⚠️ VideoRecordingModule not available, using fallback');
                     setIsRecording(true);
+                    setIsServiceRecording(true);
                 }
             } catch (error) {
                 console.error('❌ Failed to start recording:', error);
-                if (error.message.includes('PERMISSION_ERROR')) {
+                
+                // Reset recording state on error
+                setIsRecording(false);
+                setIsServiceRecording(false);
+                setRecordingTime(0);
+                
+                // Handle specific error types
+                if (error.message?.includes('ReactContext') || error.message?.includes('JS module')) {
+                    Alert.alert('Initialization Error', 'App is still starting up. Please wait a moment and try again.');
+                } else if (error.message.includes('PERMISSION_ERROR')) {
                     Alert.alert('Permission Error', 'Please grant Camera and Microphone permissions to record video with audio.');
                 } else {
                     Alert.alert('Error', `Failed to start recording: ${error.message}`);

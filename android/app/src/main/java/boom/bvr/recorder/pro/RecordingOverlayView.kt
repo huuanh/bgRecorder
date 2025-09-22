@@ -59,10 +59,14 @@ class RecordingOverlayView @JvmOverloads constructor(
         setBackgroundColor(Color.TRANSPARENT)
 
         // Create main container with rounded corners
+        // Adjust size for proper camera aspect ratio (9:16 for portrait)
+        val containerWidth = (160 * context.resources.displayMetrics.density).toInt()
+        val containerHeight = (240 * context.resources.displayMetrics.density).toInt()
+        
         val containerView = FrameLayout(context).apply {
             layoutParams = FrameLayout.LayoutParams(
-                (200 * context.resources.displayMetrics.density).toInt(),
-                (280 * context.resources.displayMetrics.density).toInt()
+                containerWidth,
+                containerHeight
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 marginStart = (16 * context.resources.displayMetrics.density).toInt()
@@ -72,11 +76,12 @@ class RecordingOverlayView @JvmOverloads constructor(
             elevation = 8f
         }
 
-        // Create TextureView for camera preview
+        // Create TextureView for camera preview with proper aspect ratio
+        val previewHeight = (180 * context.resources.displayMetrics.density).toInt() // 9:16 ratio
         textureView = TextureView(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                (200 * context.resources.displayMetrics.density).toInt()
+                previewHeight
             )
         }
         containerView.addView(textureView)
@@ -301,6 +306,8 @@ class RecordingOverlayView @JvmOverloads constructor(
         Log.d(TAG, "Camera device set: ${camera != null}")
     }
     
+    fun getTextureView(): TextureView? = textureView
+    
     fun setService(videoService: VideoRecordingService?) {
         service = videoService
         Log.d(TAG, "OVERLAY_DEBUG: Service set for overlay: ${service != null}")
@@ -329,6 +336,8 @@ class RecordingOverlayView @JvmOverloads constructor(
 
                     override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
                         Log.d(TAG, "OVERLAY_DEBUG: SurfaceTexture size changed: ${width}x${height}")
+                        // Reapply transform when size changes to maintain proper aspect ratio
+                        setupTextureViewTransform()
                     }
                     
                     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
@@ -397,20 +406,38 @@ class RecordingOverlayView @JvmOverloads constructor(
                 return
             }
             
-            // For portrait recording with portrait dimensions, minimal transform needed
             val matrix = Matrix()
             val centerX = viewWidth / 2f
             val centerY = viewHeight / 2f
             
-            // Only apply mirror effect for front camera
+            // Camera preview is typically 16:9 or 4:3, we need to fit it properly in our view
+            // Most cameras provide 16:9 ratio (1920x1080 or similar)
+            val cameraAspectRatio = 16f / 9f // Standard camera ratio
+            val viewAspectRatio = viewWidth.toFloat() / viewHeight.toFloat()
+            
+            var scaleX = 1f
+            var scaleY = 1f
+            
+            if (viewAspectRatio > cameraAspectRatio) {
+                // View is wider than camera, fit to height and crop sides
+                scaleX = viewAspectRatio / cameraAspectRatio
+            } else {
+                // View is taller than camera, fit to width and crop top/bottom
+                scaleY = cameraAspectRatio / viewAspectRatio
+            }
+            
+            // Apply scaling to fit camera preview properly
+            matrix.postScale(scaleX, scaleY, centerX, centerY)
+            
+            // Check if front camera and apply mirror effect
             val cameraIsBack = recordingSettings?.get("camera") != "Front"
             if (!cameraIsBack) {
-                // Front camera: mirror horizontally for selfie effect
+                // Front camera: mirror horizontally for natural selfie effect
                 matrix.postScale(-1f, 1f, centerX, centerY)
             }
             
             textureView.setTransform(matrix)
-            Log.d(TAG, "OVERLAY_DEBUG: TextureView transform applied for ${if (cameraIsBack) "back" else "front"} camera")
+            Log.d(TAG, "OVERLAY_DEBUG: TextureView transform applied - scaleX: $scaleX, scaleY: $scaleY, camera: ${if (cameraIsBack) "back" else "front"}")
         }
     }
     
@@ -434,9 +461,9 @@ class RecordingOverlayView @JvmOverloads constructor(
             val screenWidth = displayMetrics.widthPixels
             val screenHeight = displayMetrics.heightPixels
             
-            // Get overlay dimensions
-            val overlayWidth = (200 * displayMetrics.density).toInt()
-            val overlayHeight = (280 * displayMetrics.density).toInt()
+            // Get overlay dimensions (updated to match new container size)
+            val overlayWidth = (160 * displayMetrics.density).toInt()
+            val overlayHeight = (240 * displayMetrics.density).toInt()
             
             // Constrain to screen boundaries
             params.x = params.x.coerceIn(0, screenWidth - overlayWidth)
@@ -456,7 +483,8 @@ class RecordingOverlayView @JvmOverloads constructor(
             val screenWidth = displayMetrics.widthPixels
             val screenHeight = displayMetrics.heightPixels
             
-            val overlayWidth = (200 * displayMetrics.density).toInt()
+            // Updated overlay width to match new container size
+            val overlayWidth = (160 * displayMetrics.density).toInt()
             val centerX = params.x + overlayWidth / 2
             
             // Snap to left or right edge based on which is closer

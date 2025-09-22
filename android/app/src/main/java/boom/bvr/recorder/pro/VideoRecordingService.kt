@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.hardware.camera2.*
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
+import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.os.*
 import android.util.Log
@@ -259,27 +260,28 @@ class VideoRecordingService : Service() {
             
             // Set quality based on settings (Portrait orientation)
             val quality = recordingSettings["quality"] as String
+//            val profile = CamcorderProfile.get(CamcorderProfile.QUALITY_480P)
             when (quality) {
                 "SD" -> {
-                    setVideoSize(1280, 720)
-                    setVideoEncodingBitRate(4000000)
+                    setVideoSize(640, 360) // QCIF  (4:3) 352*288
+                    setVideoEncodingBitRate(256000)
                 }
                 "HD" -> {
-                    setVideoSize(1280, 720)
-                    setVideoEncodingBitRate(8000000)
+                    setVideoSize(720, 480) // nHD   (16:9) 640*360
+                    setVideoEncodingBitRate(256000)
                 }
                 "Full HD" -> {
-                    setVideoSize(1920, 1080)
-                    setVideoEncodingBitRate(12000000)
+                    setVideoSize(1280, 720) // 3:2   720*480
+                    setVideoEncodingBitRate(512000)
                 }
                 else -> {
-                    setVideoSize(1280, 720)
-                    setVideoEncodingBitRate(8000000)
+                    setVideoSize(352, 288)
+                    setVideoEncodingBitRate(10000)
                 }
             }
-            
-            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            setVideoFrameRate(30)
+
+            setVideoEncoder(MediaRecorder.VideoEncoder.HEVC)
+            setVideoFrameRate(24)
             
             // Set orientation for portrait recording
             val isFrontCamera = recordingSettings["camera"] == "Front"
@@ -291,8 +293,8 @@ class VideoRecordingService : Service() {
             
             // Set audio encoding
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioSamplingRate(44100)
-            setAudioEncodingBitRate(128000)
+            setAudioSamplingRate(16000)
+            setAudioEncodingBitRate(64000)
             
             prepare()
             recordingSurface = surface
@@ -425,6 +427,76 @@ class VideoRecordingService : Service() {
         }
     }
     
+    private fun startCameraRecordingWithoutPreview() {
+        try {
+            Log.d(TAG, "OVERLAY_DEBUG: Starting camera recording without preview")
+            val captureRequestBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
+            captureRequestBuilder?.addTarget(recordingSurface!!)
+            
+            // Chỉ sử dụng recording surface, không có preview
+            val surfaces = listOf(recordingSurface!!)
+            
+            // Use new SessionConfiguration API (API 28+) or fallback to deprecated method
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val outputConfigurations = surfaces.map { OutputConfiguration(it) }
+                val sessionConfiguration = SessionConfiguration(
+                    SessionConfiguration.SESSION_REGULAR,
+                    outputConfigurations,
+                    ContextCompat.getMainExecutor(this@VideoRecordingService),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            try {
+                                captureSession = session
+                                session.setRepeatingRequest(
+                                    captureRequestBuilder!!.build(),
+                                    null,
+                                    null
+                                )
+                                Log.d(TAG, "OVERLAY_DEBUG: Recording-only capture session started successfully")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to start recording-only capture session", e)
+                            }
+                        }
+                        
+                        override fun onConfigureFailed(session: CameraCaptureSession) {
+                            Log.e(TAG, "Recording-only capture session configuration failed")
+                        }
+                    }
+                )
+                cameraDevice?.createCaptureSession(sessionConfiguration)
+            } else {
+                // Fallback for older Android versions
+                @Suppress("DEPRECATION")
+                cameraDevice?.createCaptureSession(
+                    surfaces,
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            try {
+                                captureSession = session
+                                session.setRepeatingRequest(
+                                    captureRequestBuilder!!.build(),
+                                    null,
+                                    null
+                                )
+                                Log.d(TAG, "OVERLAY_DEBUG: Recording-only capture session started (legacy)")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to start recording-only capture session (legacy)", e)
+                            }
+                        }
+                        
+                        override fun onConfigureFailed(session: CameraCaptureSession) {
+                            Log.e(TAG, "Recording-only capture session configuration failed (legacy)")
+                        }
+                    },
+                    null
+                )
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start camera recording without preview", e)
+        }
+    }
+    
     private fun setupAutoStop(duration: Long) {
         autoStopRunnable = Runnable {
             Log.d(TAG, "Auto-stopping recording after ${duration}ms")
@@ -504,27 +576,46 @@ class VideoRecordingService : Service() {
     
     fun getOverlayManager(): OverlayManager? = overlayManager
     
+    fun getCameraDevice(): CameraDevice? = cameraDevice
+    
     fun setPreviewSurface(surface: Surface?) {
         previewSurface = surface
         Log.d(TAG, "OVERLAY_DEBUG: Preview surface set: ${surface != null}")
         Log.d(TAG, "OVERLAY_DEBUG: Current state - isRecording: $isRecording, cameraDevice: ${cameraDevice != null}, captureSession: ${captureSession != null}")
         
-        // If recording is active and camera device exists, restart capture session
-        if (isRecording && cameraDevice != null && captureSession != null) {
-            Log.d(TAG, "OVERLAY_DEBUG: Restarting capture session with preview surface")
-            try {
-                // Close current session first
-                captureSession?.close()
-                captureSession = null
-                
-                // Small delay to ensure session is closed, then start new session
-                handler.postDelayed({
-                    Log.d(TAG, "OVERLAY_DEBUG: Starting new capture session after delay")
-                    startCameraRecording()
-                }, 100)
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "OVERLAY_DEBUG: Failed to restart capture session with preview", e)
+        // If recording is active and camera device exists
+        if (isRecording && cameraDevice != null) {
+            if (surface != null) {
+                // Surface được set lại (show overlay) - restart capture session với preview
+                Log.d(TAG, "OVERLAY_DEBUG: Restarting capture session with preview surface")
+                try {
+                    captureSession?.close()
+                    captureSession = null
+                    
+                    handler.postDelayed({
+                        Log.d(TAG, "OVERLAY_DEBUG: Starting new capture session with preview")
+                        startCameraRecording()
+                    }, 100)
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "OVERLAY_DEBUG: Failed to restart capture session with preview", e)
+                }
+            } else {
+                // Surface = null (hide overlay) - chỉ ghi video, không có preview
+                Log.d(TAG, "OVERLAY_DEBUG: Preview surface removed, continuing recording without preview")
+                try {
+                    // Restart capture session chỉ với recording surface (không có preview)
+                    captureSession?.close()
+                    captureSession = null
+                    
+                    handler.postDelayed({
+                        Log.d(TAG, "OVERLAY_DEBUG: Starting recording-only capture session")
+                        startCameraRecordingWithoutPreview()
+                    }, 100)
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "OVERLAY_DEBUG: Failed to restart recording-only session", e)
+                }
             }
         } else {
             Log.d(TAG, "OVERLAY_DEBUG: Not restarting capture session - conditions not met")
@@ -535,6 +626,15 @@ class VideoRecordingService : Service() {
         if (isRecording) System.currentTimeMillis() - startTime else 0L
     
     fun getRecordingSettings(): Map<String, Any> = recordingSettings.toMap()
+    
+    fun showOverlayDuringRecording(): Boolean {
+        return if (isRecording && overlayManager != null) {
+            overlayManager!!.showOverlayDuringRecording()
+        } else {
+            Log.w(TAG, "Cannot show overlay - not recording or overlay manager not available")
+            false
+        }
+    }
     
     fun getRecordedVideosDirectory(): String {
         val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")

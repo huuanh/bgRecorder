@@ -799,6 +799,29 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     @ReactMethod
+    fun showRecordingOverlayDuringRecording(promise: Promise) {
+        try {
+            if (!serviceBound || recordingService == null) {
+                promise.reject("SERVICE_NOT_AVAILABLE", "Recording service not available")
+                return
+            }
+            
+            val success = recordingService!!.showOverlayDuringRecording()
+            if (success) {
+                promise.resolve(WritableNativeMap().apply {
+                    putBoolean("success", true)
+                    putString("message", "Overlay shown during recording")
+                })
+            } else {
+                promise.reject("OVERLAY_FAILED", "Failed to show overlay during recording")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show overlay during recording", e)
+            promise.reject("OVERLAY_ERROR", "Failed to show overlay during recording: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
     fun checkRecordingPermissions(promise: Promise) {
         try {
             val context = reactApplicationContext

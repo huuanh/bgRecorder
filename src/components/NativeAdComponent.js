@@ -309,8 +309,8 @@ const styles = StyleSheet.create({
     },
     nativeAdCTA: {
         backgroundColor: COLORS.TERTIARY,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
+        // paddingVertical: 12,
+        // paddingHorizontal: 20,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
@@ -328,6 +328,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textTransform: 'uppercase',
         letterSpacing: 0.3,
+        width: "100%",
+        paddingVertical: 12,
+        textAlign: 'center',
+        // backgroundColor: 'red'
     },
     loadingText: {
         color: COLORS.TERTIARY,

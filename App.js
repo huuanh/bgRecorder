@@ -1,4 +1,4 @@
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme, View, AppState } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import LoadingScreen from './src/components/LoadingScreen';
@@ -6,19 +6,36 @@ import OnBoardScreen from './src/components/OnBoardScreen';
 import PermissionScreen from './src/components/PermissionScreen';
 import HomeScreen from './src/components/HomeScreen';
 import { COLORS } from './src/constants';
+import ReactContextManager from './src/utils/ReactContextManager';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const [showOnBoard, setShowOnBoard] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
+  const [appReady, setAppReady] = useState(false);
   const isDarkMode = useColorScheme() === 'light';
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-      setShowOnBoard(true);
-    }, 2000); // 2s loading
-    return () => clearTimeout(timer);
+    // Simplified initialization using ReactContextManager
+    console.log('🚀 App initialization started...');
+    
+    ReactContextManager.onReady(() => {
+      console.log('✅ App: React context ready, starting UI flow...');
+      setAppReady(true);
+      
+      // Start the normal flow after app is ready
+      const timer = setTimeout(() => {
+        setLoading(false);
+        setShowOnBoard(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      ReactContextManager.cleanup();
+    };
   }, []);
 
   const handleOnBoardNext = () => {
@@ -67,8 +84,15 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      {loading ? (
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={COLORS.BACKGROUND}
+      />
+      {!appReady ? (
+        <View style={styles.container}>
+          <LoadingScreen />
+        </View>
+      ) : loading ? (
         <LoadingScreen />
       ) : showOnBoard ? (
         <OnBoardScreen onNext={handleOnBoardNext} />
@@ -100,6 +124,7 @@ function AppContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
   },
   loadingContainer: {
     flex: 1,
