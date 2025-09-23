@@ -9,7 +9,7 @@ import {
 import { COLORS } from '../constants';
 import RecordTab from './tabs/RecordTab';
 import GalleryTab from './tabs/GalleryTab';
-import HistoryTab from './tabs/HistoryTab';
+import EditTab from './tabs/EditTab';
 import SettingsTab from './tabs/SettingsTab';
 
 const HomeScreen = () => {
@@ -21,8 +21,8 @@ const HomeScreen = () => {
                 return <RecordTab />;
             case 'gallery':
                 return <GalleryTab />;
-            case 'history':
-                return <HistoryTab />;
+            case 'edit':
+                return <EditTab />;
             case 'settings':
                 return <SettingsTab />;
             default:
@@ -85,20 +85,20 @@ const HomeScreen = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                    style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-                    onPress={() => setActiveTab('history')}
+                    style={[styles.tab, activeTab === 'edit' && styles.activeTab]}
+                    onPress={() => setActiveTab('edit')}
                 >
                     <View style={styles.tabIcon}>
                         <Image 
                             source={require('../../assets/home/ic/ic-music.png')} 
                             style={[
                                 styles.tabIconImage,
-                                { tintColor: activeTab === 'history' ? '#1E3A8A' : '#9CA3AF' }
+                                { tintColor: activeTab === 'edit' ? '#1E3A8A' : '#9CA3AF' }
                             ]} 
                         />
                     </View>
-                    <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
-                        History
+                    <Text style={[styles.tabText, activeTab === 'edit' && styles.activeTabText]}>
+                        edit
                     </Text>
                 </TouchableOpacity>
 
