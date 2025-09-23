@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
     View,
     Text,
@@ -51,13 +51,27 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     // Reset state when modal becomes visible
     useEffect(() => {
         if (visible) {
+            // Reset all states to initial values
+            setPaused(true); // Start with video paused
+            setCurrentTime(0);
+            setStartTime(0);
+            setEndTime(0);
+            setTrimStartTime(0);
+            setTrimEndTime(duration || 0);
             setIsExporting(false);
             setExportProgress(0);
             setLoadingMessage('');
             setShowSuccessModal(false);
             setTrimmedVideoPath('');
+            setThumbnails([]);
+            setIsGeneratingThumbnails(false);
+            
+            // Seek to beginning if video ref is available
+            if (videoRef.current) {
+                videoRef.current.seek(0);
+            }
         }
-    }, [visible]);
+    }, [visible, duration]);
 
     // Cleanup temporary frames when modal closes
     useEffect(() => {
@@ -92,8 +106,8 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
             // - fps=20/${duration}: Extract exactly 20 frames evenly distributed
             // - -an: Remove audio (not needed for thumbnails)
             // - -preset ultrafast: Fastest encoding preset
-            const fps = 19 / duration;
-            const cmd = `-i "${videoPath}" -vf "scale=120:-1,fps=${fps}" -q:v 12 "${outputDir}/frame_%04d.jpg"`;
+            const fps = 10 / duration;
+            const cmd = `-hwaccel auto -threads 4 -i "${videoPath}" -vf "scale=120:-1,fps=${fps}" -c:v mjpeg -q:v 12 "${outputDir}/frame_%04d.jpg"`;
             console.log('Optimized FFmpeg command:', cmd);
 
             const session = await FFmpegKit.execute(cmd);
@@ -183,11 +197,33 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
         }
     };
 
-    const formatTime = (seconds) => {
+    const formatTime = useCallback((seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
+    }, []);
+
+    // Memoize timeline calculations for better performance
+    const timelineData = useMemo(() => {
+        if (!duration || duration <= 0) return { timeLabels: [], trimPositions: {} };
+        
+        const timeLabels = [
+            formatTime(0),
+            formatTime(duration / 4),
+            formatTime(duration / 2),
+            formatTime(3 * duration / 4),
+            formatTime(duration)
+        ];
+        
+        const trimPositions = {
+            currentPercent: (currentTime / duration) * 100,
+            startPercent: (trimStartTime / duration) * 100,
+            endPercent: (trimEndTime / duration) * 100,
+            selectionWidth: ((trimEndTime - trimStartTime) / duration) * 100
+        };
+        
+        return { timeLabels, trimPositions };
+    }, [duration, currentTime, trimStartTime, trimEndTime, formatTime]);
 
     const onLoad = (data) => {
         setDuration(data.duration);
@@ -218,46 +254,40 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
         setPaused(!paused);
     };
 
-    // Create pan responder for trim handles
-    const createTrimHandlePanResponder = (isStart) => {
+    // Create optimized pan responder for trim handles
+    const createTrimHandlePanResponder = useCallback((isStart) => {
         return PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: () => {
-                // Pause video when starting to drag
                 setPaused(true);
             },
             onPanResponderMove: (evt, gestureState) => {
-                // Get the scroll view width from the timeline wrapper
-                const timelineWidth = width - 40; // Account for margins (20px each side)
-                const scrollViewWidth = timelineWidth;
-                
-                // Calculate position relative to the scroll view
-                const layoutX = evt.nativeEvent.pageX - 20; // Account for left margin
-                const normalizedX = Math.max(0, Math.min(scrollViewWidth, layoutX));
-                const newTime = (normalizedX / scrollViewWidth) * duration;
+                const timelineWidth = width - 72; // Account for container padding
+                const layoutX = Math.max(0, gestureState.moveX - 56); // Account for offset
+                const normalizedX = Math.max(0, Math.min(timelineWidth, layoutX));
+                const newTime = (normalizedX / timelineWidth) * duration;
 
                 if (isStart) {
-                    if (newTime < trimEndTime - 1) { // Minimum 1 second difference
+                    if (newTime < trimEndTime - 1) {
                         setTrimStartTime(newTime);
                         seekToTime(newTime);
                     }
                 } else {
-                    if (newTime > trimStartTime + 1) { // Minimum 1 second difference
+                    if (newTime > trimStartTime + 1) {
                         setTrimEndTime(newTime);
                         seekToTime(newTime);
                     }
                 }
             },
             onPanResponderRelease: () => {
-                // Optional: resume video after dragging
-                // setPaused(false);
+                // Optional smooth seek to final position
             },
         });
-    };
+    }, [duration, trimStartTime, trimEndTime, seekToTime]);
 
-    const startTrimPanResponder = createTrimHandlePanResponder(true);
-    const endTrimPanResponder = createTrimHandlePanResponder(false);
+    const startTrimPanResponder = useMemo(() => createTrimHandlePanResponder(true), [createTrimHandlePanResponder]);
+    const endTrimPanResponder = useMemo(() => createTrimHandlePanResponder(false), [createTrimHandlePanResponder]);
 
     const handleExport = async () => {
         console.log('Exporting video with trim range:', trimStartTime, trimEndTime);    
@@ -488,23 +518,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                         progressUpdateInterval={100}
                     />
 
-                    {/* Play/Pause Overlay */}
-                    <TouchableOpacity
-                        style={styles.playOverlay}
-                        onPress={handlePlayPause}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.playButton}>
-                            <Image
-                                source={
-                                    paused
-                                        ? require('../../assets/home/ic/ic_play.png')
-                                        : require('../../assets/home/ic/ic_pause.png')
-                                }
-                                style={styles.playIcon}
-                            />
-                        </View>
-                    </TouchableOpacity>
+                    
 
                     {/* Video Info */}
                     <View style={styles.videoInfo}>
@@ -517,7 +531,27 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 
                 {/* Timeline */}
                 <View style={styles.timelineContainer}>
-                    <Text style={styles.timelineTitle}>Timeline</Text>
+                    {/* Timeline Header Row */}
+                    <View style={styles.timelineHeader}>
+                        {/* Play/Pause Button */}
+                        <TouchableOpacity
+                            style={styles.playOverlay}
+                            onPress={handlePlayPause}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.playButton}>
+                                <Image
+                                    source={
+                                        paused
+                                            ? require('../../assets/home/ic/ic_play.png')
+                                            : require('../../assets/home/ic/ic_pause.png')
+                                    }
+                                    style={styles.playIcon}
+                                />
+                            </View>
+                        </TouchableOpacity>
+                        <Text style={styles.timelineTitle}>Timeline</Text>
+                    </View>
 
                     {/* Thumbnail Timeline */}
                     <View style={styles.thumbnailTimeline}>
@@ -528,61 +562,83 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                             </View>
                         ) : (
                             <View style={styles.timelineWrapper}>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    style={styles.thumbnailScroll}
-                                >
-                                    {thumbnails.map((thumbnail, index) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={styles.thumbnailItem}
-                                            onPress={() => seekToTime(thumbnail.time)}
-                                        >
-                                            <View style={styles.thumbnailPlaceholder}>
-                                                {thumbnail.uri ? (
-                                                    <Image
-                                                        source={{ uri: thumbnail.uri }}
-                                                        style={styles.thumbnailImage}
-                                                        onError={() => {
-                                                            console.log('Failed to load thumbnail:', thumbnail.uri);
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <View style={styles.placeholderFrame}>
-                                                        <Text style={styles.placeholderText}>
-                                                            {formatTime(thumbnail.time)}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                        </TouchableOpacity>
+                                {/* Time Labels Row */}
+                                <View style={styles.timeLabelsContainer}>
+                                    {timelineData.timeLabels.map((label, index) => (
+                                        <Text key={index} style={styles.timeLabel}>{label}</Text>
                                     ))}
-                                    {/* Progress Bar Overlay */}
-                                    <View style={styles.progressBarOverlay} pointerEvents="box-none">
-                                        {/* Progress Line */}
-                                        <View style={styles.progressLine} />
-
-                                        {/* Current Time Indicator */}
-                                        <View
-                                            style={[
-                                                styles.currentTimeIndicator,
-                                                {
-                                                    left: `${(currentTime / duration) * 100}%`
-                                                }
-                                            ]}
-                                        />
-
-                                        {/* Trim Selection Overlay */}
+                                </View>
+                                
+                                {/* Thumbnail Track Container */}
+                                <View style={styles.thumbnailTrackContainer}>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        style={styles.thumbnailScroll}
+                                        contentContainerStyle={styles.thumbnailScrollContent}
+                                        decelerationRate="fast"
+                                        snapToInterval={width / 10}
+                                        snapToAlignment="start"
+                                    >
+                                        {/* Thumbnail Items */}
+                                        <View style={styles.thumbnailsRow}>
+                                            {thumbnails.map((thumbnail, index) => (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={styles.thumbnailItem}
+                                                    onPress={() => seekToTime(thumbnail.time)}
+                                                    activeOpacity={0.8}
+                                                >
+                                                    <View style={styles.thumbnailPlaceholder}>
+                                                        {thumbnail.uri ? (
+                                                            <Image
+                                                                source={{ uri: thumbnail.uri }}
+                                                                style={styles.thumbnailImage}
+                                                                resizeMode="cover"
+                                                                onError={() => {
+                                                                    console.log('Failed to load thumbnail:', thumbnail.uri);
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <View style={styles.placeholderFrame}>
+                                                                <Text style={styles.placeholderText}>
+                                                                    {formatTime(thumbnail.time)}
+                                                                </Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </ScrollView>
+                                    
+                                    {/* Controls Overlay */}
+                                    <View style={styles.controlsOverlay} pointerEvents="box-none">
+                                        {/* Background Track */}
+                                        <View style={styles.trackBackground} />
+                                        
+                                        {/* Trim Selection Area */}
                                         <View
                                             style={[
                                                 styles.trimSelection,
                                                 {
-                                                    left: `${(trimStartTime / duration) * 100}%`,
-                                                    width: `${((trimEndTime - trimStartTime) / duration) * 100}%`
+                                                    left: `${timelineData.trimPositions.startPercent}%`,
+                                                    width: `${timelineData.trimPositions.selectionWidth}%`
                                                 }
                                             ]}
                                         />
+                                        
+                                        {/* Current Time Progress */}
+                                        <View
+                                            style={[
+                                                styles.currentTimeIndicator,
+                                                {
+                                                    left: `${timelineData.trimPositions.currentPercent}%`
+                                                }
+                                            ]}
+                                        >
+                                            <View style={styles.currentTimeHandle} />
+                                        </View>
 
                                         {/* Start Trim Handle */}
                                         <View
@@ -590,15 +646,14 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                                 styles.trimHandle,
                                                 styles.startHandle,
                                                 { 
-                                                    left: `${(trimStartTime / duration) * 100}%`
+                                                    left: `${timelineData.trimPositions.startPercent}%`
                                                 }
                                             ]}
                                             {...startTrimPanResponder.panHandlers}
                                         >
-                                            <Image
-                                                source={require('../../assets/home/ic/trim_start.png')}
-                                                style={styles.handleIcon}
-                                            />
+                                            <View style={styles.handleBackground}>
+                                                <View style={styles.handleGrip} />
+                                            </View>
                                             {/* Start Time Label */}
                                             <View style={styles.handleTimeLabel}>
                                                 <Text style={styles.handleTimeText}>
@@ -613,15 +668,14 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                                 styles.trimHandle,
                                                 styles.endHandle,
                                                 { 
-                                                    left: `${(trimEndTime / duration) * 100}%`
+                                                    left: `${timelineData.trimPositions.endPercent}%`
                                                 }
                                             ]}
                                             {...endTrimPanResponder.panHandlers}
                                         >
-                                            <Image
-                                                source={require('../../assets/home/ic/trim_end.png')}
-                                                style={styles.handleIcon}
-                                            />
+                                            <View style={styles.handleBackground}>
+                                                <View style={styles.handleGrip} />
+                                            </View>
                                             {/* End Time Label */}
                                             <View style={styles.handleTimeLabel}>
                                                 <Text style={styles.handleTimeText}>
@@ -630,7 +684,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                             </View>
                                         </View>
                                     </View>
-                                </ScrollView>
+                                </View>
                             </View>
                         )}
                     </View>
@@ -748,7 +802,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FA',
+        backgroundColor: COLORS.BACKGROUND,
     },
     header: {
         flexDirection: 'row',
@@ -791,27 +845,28 @@ const styles = StyleSheet.create({
         height: width * 0.6, // 16:9 aspect ratio
     },
     playOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 5,
     },
     playButton: {
-        width: 60,
-        height: 60,
-        // borderRadius: 30,
-        // backgroundColor: 'rgba(0,0,0,0.7)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#1E3A8A',
         justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     playIcon: {
-        width: 20,
-        height: 25,
+        width: 16,
+        height: 16,
         resizeMode: 'contain',
-        // tintColor: '#FFFFFF',
+        tintColor: '#FFFFFF',
     },
     videoInfo: {
         position: 'absolute',
@@ -832,34 +887,100 @@ const styles = StyleSheet.create({
     },
     timelineContainer: {
         padding: 20,
-        backgroundColor: '#FFFFFF',
+        // backgroundColor: '#FFFFFF',
+    },
+    timelineHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
     },
     timelineTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1F2937',
-        marginBottom: 15,
+        color: COLORS.TERTIARY,
+        flex: 1,
     },
     thumbnailTimeline: {
         marginBottom: 20,
-        overflow: 'visible', // Allow time labels to show outside bounds
+        backgroundColor: '#F8F9FA',
+        borderRadius: 12,
+        padding: 8,
+        paddingBottom: 25, // Add extra space for time labels
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     timelineWrapper: {
-        height: 65,
+        overflow: 'visible',
+        width: '100%',
+    },
+    timeLabelsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
+    timeLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        fontWeight: '500',
+        textAlign: 'center',
+        minWidth: 30,
+    },
+    thumbnailTrackContainer: {
+        height: 60,
         position: 'relative',
-        overflow: 'visible', // Allow time labels to show above
-        paddingTop: 30, // Add space for time labels
-        marginTop: -30, // Compensate for padding
+        // backgroundColor: '#ff0000ff',
+        borderRadius: 8,
+        overflow: 'visible',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        width: '100%',
+        // marginTop: 25, // Add space for time labels above
+    },
+    thumbnailScrollContent: {
+        alignItems: 'center',
+        // paddingHorizontal: 2,
+        width: '100%',
+    },
+    thumbnailsRow: {
+        flexDirection: 'row',
+        height: '100%',
+        width: '100%',
+        alignItems: 'center',
+        // backgroundColor: '#ffffff00',
+    },
+    controlsOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'box-none',
+        overflow: 'visible',
+    },
+    trackBackground: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
     },
     progressBarOverlay: {
         height: '100%',
         position: 'absolute',
-        // top: 30, // Offset for time label space
         left: 0,
         right: 0,
         bottom: 0,
-        pointerEvents: 'box-none', // Allow touches to pass through to children
-        overflow: 'visible', // Allow time labels to show
+        pointerEvents: 'box-none',
+        overflow: 'visible',
     },
     loadingContainer: {
         flexDirection: 'row',
@@ -872,23 +993,28 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
     thumbnailScroll: {
-        height: 80,
+        flex: 1,
+        width: '100%',
     },
     thumbnailItem: {
-        marginRight: -2,
+        // marginRight: 1,
         alignItems: 'center',
+        justifyContent: 'center',
+        width: '10%',
     },
     thumbnailPlaceholder: {
-        width: 20,
-        height: 35,
-        // borderRadius: 8,
+        width: '100%',
+        height: 44,
         backgroundColor: '#F3F4F6',
         overflow: 'hidden',
-        marginBottom: 4,
+        borderRadius: 4,
+        // borderWidth: 0.5,
+        // borderColor: '#E5E7EB',
     },
     thumbnailImage: {
         width: '100%',
         height: '100%',
+        borderRadius: 4,
     },
     placeholderFrame: {
         width: '100%',
@@ -896,95 +1022,108 @@ const styles = StyleSheet.create({
         backgroundColor: '#E5E7EB',
         justifyContent: 'center',
         alignItems: 'center',
+        borderRadius: 4,
     },
     placeholderText: {
-        fontSize: 8,
+        fontSize: 7,
         color: '#9CA3AF',
         fontWeight: '500',
         textAlign: 'center',
     },
-    thumbnailTime: {
-        fontSize: 10,
-        color: '#6B7280',
-    },
-    progressLine: {
-        position: 'absolute',
-        top: 0, // Position over thumbnails
-        left: 0,
-        right: 0,
-        height: "100%",
-        backgroundColor: COLORS.BACKGROUND,
-        borderRadius: 2,
-        opacity: 0.3,
-    },
     currentTimeIndicator: {
         position: 'absolute',
-        // top: 20,
-        width: 2,
-        height: "100%",
+        width: 3,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 15,
+        marginLeft: -1.5,
+    },
+    currentTimeHandle: {
+        width: 3,
+        height: '100%',
         backgroundColor: '#EF4444',
-        borderRadius: 1,
-        zIndex: 5,
-        // shadowColor: '#000',
-        // shadowOffset: { width: 0, height: 1 },
-        // shadowOpacity: 0.3,
-        // shadowRadius: 2,
-        // elevation: 3,
+        borderRadius: 1.5,
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 4,
+        elevation: 8,
     },
     trimSelection: {
         position: 'absolute',
         height: '100%',
-        backgroundColor: COLORS.ACTIVE, // Green color for selected area
-        borderRadius: 2,
-        zIndex: 3,
-        opacity: 0.3,
+        backgroundColor: '#10B981',
+        opacity: 0.25,
+        zIndex: 5,
+        borderRadius: 4,
     },
     trimHandle: {
         position: 'absolute',
-        // top: -30, // Move up to account for label space
-        width: 20,
-        height: "100%",
+        width: 24,
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10, // Higher z-index to show above other elements
-        opacity: 0.8,
-        overflow: 'visible', // Allow time labels to show
+        zIndex: 20,
+        overflow: 'visible',
     },
     startHandle: {
-        marginLeft: -1, // Center the handle on the position
+        marginLeft: -12,
     },
     endHandle: {
-        marginLeft: -19, // Center the handle on the position
+        marginLeft: -12,
     },
-    handleIcon: {
+    handleBackground: {
         width: 20,
-        height: "100%",
-        resizeMode: 'contain',
+        height: '90%',
+        backgroundColor: '#10B981',
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 6,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    handleGrip: {
+        width: 3,
+        height: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 1.5,
+        opacity: 0.9,
     },
     handleTimeLabel: {
         position: 'absolute',
-        top: -5, // Position right above the handle
-        left: -10,
-        right: -10,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderRadius: 4,
-        paddingHorizontal: 4,
-        paddingVertical: 2,
+        bottom: -20,
+        left: -16,
+        right: -16,
+        backgroundColor: '#1F2937',
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: 40,
-        zIndex: 15, // Very high z-index to ensure visibility
+        minWidth: 48,
+        zIndex: 25,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
-        shadowRadius: 3,
-        elevation: 5, // For Android shadow
+        shadowRadius: 4,
+        elevation: 8,
     },
     handleTimeText: {
         color: '#FFFFFF',
         fontSize: 10,
-        fontWeight: '600',
+        fontWeight: '700',
         textAlign: 'center',
+        letterSpacing: 0.5,
+    },
+    // Smooth animation styles
+    thumbnailAnimatedContainer: {
+        transition: 'all 0.2s ease-in-out',
     },
     adContainer: {
         marginVertical: 10,
