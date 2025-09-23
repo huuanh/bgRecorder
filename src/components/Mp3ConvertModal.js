@@ -81,15 +81,24 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
         isConvertingRef.current = true;
 
         try {
-            // Generate output file path for audio in separate directory
+            // Generate output file path for audio in independent directory
             const timestamp = Date.now();
             const inputPath = video.filePath;
             
-            // Create audio directory path
-            const videoDir = inputPath.substring(0, inputPath.lastIndexOf('/'));
-            const audioDir = `${videoDir}/Audio`;
+            // Get audio directory from native module (now uses Music/BgRecorder)
+            let audioDir;
+            try {
+                const audioResult = await VideoRecordingModule.getAudioFiles();
+                audioDir = audioResult.directory;
+            } catch (error) {
+                console.log('Error getting audio directory, using fallback:', error);
+                // Fallback to previous logic if needed
+                const videoDir = inputPath.substring(0, inputPath.lastIndexOf('/'));
+                audioDir = `${videoDir}/Audio`;
+            }
+            
             const videoFileName = inputPath.substring(inputPath.lastIndexOf('/') + 1);
-            const audioFileName = videoFileName.replace(/\.[^/.]+$/, `_${timestamp}.m4a`);
+            const audioFileName = videoFileName.replace(/\.[^/.]+$/, `_BGREC_${timestamp}.m4a`);
             const outputPath = `${audioDir}/${audioFileName}`;
 
             // Ensure audio directory exists
@@ -193,6 +202,16 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                     
                     if (ReturnCode.isSuccess(returnCode)) {
                         setConvertedAudioPath(outputPath);
+                        
+                        // Scan audio file for MediaStore to make it visible in Music apps
+                        try {
+                            await VideoRecordingModule.scanAudioFileForMediaStore(outputPath);
+                            console.log('Audio file scanned for MediaStore:', outputPath);
+                        } catch (scanError) {
+                            console.log('Warning: Failed to scan audio file for MediaStore:', scanError);
+                            // Don't show error to user as the conversion was successful
+                        }
+                        
                         setShowSuccessModal(true);
                     } else {
                         try {

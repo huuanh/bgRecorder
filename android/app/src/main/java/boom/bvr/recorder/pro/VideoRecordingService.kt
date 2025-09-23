@@ -19,6 +19,11 @@ import android.view.SurfaceView
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import android.os.Environment
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.media.MediaScannerConnection
+import android.net.Uri
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -72,6 +77,7 @@ class VideoRecordingService : Service() {
         overlayManager = OverlayManager(this)
     }
     
+    @RequiresPermission(Manifest.permission.CAMERA)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: ${intent?.action}")
         
@@ -215,6 +221,13 @@ class VideoRecordingService : Service() {
                 putExtra("timestamp", System.currentTimeMillis())
             })
             
+            // Notify MediaStore so video appears in Gallery
+            recordingFile?.let { file ->
+                if (file.exists()) {
+                    addVideoToMediaStore(file)
+                }
+            }
+            
             Log.d(TAG, "Recording stopped. Duration: ${duration}ms, File: ${recordingFile?.absolutePath}")
             
             // Stop foreground service after delay
@@ -230,19 +243,20 @@ class VideoRecordingService : Service() {
     
     private fun createOutputFile() {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "REC_${timestamp}.mp4"
+        // Add app identifier prefix for easy filtering in gallery
+        val fileName = "BGREC_${timestamp}.mp4"
         
-        // Use the consistent directory method
-        val appDataDir = File(getRecordedVideosDirectory())
-        recordingFile = File(appDataDir, fileName)
-        Log.d(TAG, "Output file will be: ${recordingFile?.absolutePath}")
+        // Use Movies directory in DCIM so videos appear in Gallery
+        val moviesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "BgRecorder")
         
-        // Ensure parent directory exists
-        recordingFile?.parentFile?.let { parentDir ->
-            if (!parentDir.exists()) {
-                parentDir.mkdirs()
-            }
+        // Ensure directory exists
+        if (!moviesDir.exists()) {
+            val created = moviesDir.mkdirs()
+            Log.d(TAG, "Created BgRecorder directory in Movies: $created, Path: ${moviesDir.absolutePath}")
         }
+        
+        recordingFile = File(moviesDir, fileName)
+        Log.d(TAG, "Output file will be: ${recordingFile?.absolutePath}")
     }
     
     private fun setupMediaRecorder() {
@@ -637,45 +651,79 @@ class VideoRecordingService : Service() {
     }
     
     fun getRecordedVideosDirectory(): String {
-        val appDataDir = File(getExternalFilesDir(null), "RecordedVideos")
-        if (!appDataDir.exists()) {
-            val created = appDataDir.mkdirs()
-            Log.d(TAG, "Created videos directory: $created, Path: ${appDataDir.absolutePath}")
+        // Return the new Movies directory for backward compatibility
+        val moviesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "BgRecorder")
+        if (!moviesDir.exists()) {
+            val created = moviesDir.mkdirs()
+            Log.d(TAG, "Created BgRecorder directory in Movies: $created, Path: ${moviesDir.absolutePath}")
         }
-        return appDataDir.absolutePath
+        return moviesDir.absolutePath
     }
     
     fun getRecordedVideosList(): List<Map<String, Any>> {
         val videosList = mutableListOf<Map<String, Any>>()
-        val appDataDir = File(getRecordedVideosDirectory()) // Use the consistent directory method
         
-        if (appDataDir.exists() && appDataDir.isDirectory) {
-            val videoFiles = appDataDir.listFiles { file ->
-                file.isFile && file.name.endsWith(".mp4", ignoreCase = true)
-            }
-            
-            videoFiles?.sortedByDescending { it.lastModified() }?.forEach { file ->
-                val sizeInBytes = file.length()
-                val sizeFormatted = when {
-                    sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
-                    sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
-                    sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
-                    else -> "$sizeInBytes B"
+        // Scan both old and new directories for app-recorded videos
+        val directories = listOf(
+            File(getExternalFilesDir(null), "RecordedVideos"), // Old directory
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "BgRecorder") // New directory
+        )
+        
+        directories.forEach { dir ->
+            if (dir.exists() && dir.isDirectory) {
+                val videoFiles = dir.listFiles { file ->
+                    file.isFile && file.name.endsWith(".mp4", ignoreCase = true) && 
+                    (file.name.startsWith("BGREC_") || file.name.startsWith("REC_")) // Filter app-recorded videos
                 }
                 
-                videosList.add(mapOf(
-                    "id" to file.lastModified(),
-                    "title" to file.name,
-                    "filePath" to file.absolutePath,
-                    "fileSize" to sizeFormatted,
-                    "lastModified" to file.lastModified(),
-                    "date" to SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
-                ))
+                videoFiles?.sortedByDescending { it.lastModified() }?.forEach { file ->
+                    val sizeInBytes = file.length()
+                    val sizeFormatted = when {
+                        sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
+                        sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
+                        sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
+                        else -> "$sizeInBytes B"
+                    }
+                    
+                    videosList.add(mapOf(
+                        "id" to file.name.hashCode(),
+                        "title" to file.name,
+                        "filePath" to file.absolutePath,
+                        "size" to sizeFormatted,
+                        "duration" to "00:00:00", // Would need MediaMetadataRetriever for actual duration
+                        "date" to SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(file.lastModified())),
+                        "isAppRecording" to true // Mark as app-recorded video
+                    ))
+                }
             }
         }
         
-        Log.d(TAG, "Found ${videosList.size} recorded videos in app directory")
-        return videosList
+        return videosList.sortedByDescending { (it["date"] as String) }
+    }
+    
+    private fun addVideoToMediaStore(videoFile: File) {
+        try {
+            Log.d(TAG, "Adding video to MediaStore: ${videoFile.absolutePath}")
+            
+            // Method 1: Use MediaScannerConnection for reliable scanning
+            MediaScannerConnection.scanFile(
+                this,
+                arrayOf(videoFile.absolutePath),
+                arrayOf("video/mp4")
+            ) { path, uri ->
+                Log.d(TAG, "MediaScanner completed for: $path with URI: $uri")
+            }
+            
+            // Method 2: Broadcast media scan intent as backup
+            sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
+                data = Uri.fromFile(videoFile)
+            })
+            
+            Log.d(TAG, "Video scan initiated for Gallery visibility")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scanning video file", e)
+        }
     }
     
     override fun onDestroy() {

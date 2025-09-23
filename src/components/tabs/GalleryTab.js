@@ -43,6 +43,7 @@ const GalleryTab = () => {
     const [mp3ConvertModalVideo, setMp3ConvertModalVideo] = useState(null);
     const [showTrimModal, setShowTrimModal] = useState(false);
     const [trimModalVideo, setTrimModalVideo] = useState(null);
+    const [videoFilter, setVideoFilter] = useState('all'); // 'all' or 'app'
 
     useEffect(() => {
         // Load videos and audio files quickly
@@ -56,7 +57,7 @@ const GalleryTab = () => {
         }, 30000);
         
         return () => clearInterval(interval);
-    }, []);
+    }, [videoFilter]); // Reload when filter changes
 
     // Quick load - get video list without thumbnails for fast initial display
     const loadRecordedVideosQuick = async () => {
@@ -69,29 +70,38 @@ const GalleryTab = () => {
 
             setIsLoading(true);
             
-            // Use the quick method to get basic video info without thumbnails
-            const result = await VideoRecordingModule.getRecordedVideosQuick();
+            // Use different methods based on filter
+            let result;
+            if (videoFilter === 'app') {
+                // Get only app-recorded videos
+                result = await VideoRecordingModule.getAppRecordedVideosOnly();
+            } else {
+                // Get all videos from gallery
+                result = await VideoRecordingModule.getAllVideosFromGallery();
+            }
                 
-            console.log('Quick videos from native module:', result.videos ? result.videos.length : 0);
+            console.log(`${videoFilter === 'app' ? 'App' : 'All'} videos from gallery:`, result ? result.length : 0);
             
-            if (result.videos && result.videos.length > 0) {
+            if (result && result.length > 0) {
                 // Format videos without thumbnails for fast display
-                const formattedVideos = result.videos.map(video => ({
+                const formattedVideos = result.map(video => ({
                     id: video.id,
                     title: video.title,
                     duration: video.duration || '00:00',
-                    size: video.fileSize,
-                    date: video.date,
+                    size: video.size,
+                    date: new Date(video.dateModified * 1000).toLocaleString(),
                     filePath: video.filePath,
-                    ratio: video.width && video.height ? `${video.width}x${video.height}` : '720x1280',
+                    ratio: '720x1280', // Default ratio
                     thumbnail: null, // No thumbnail initially - will be loaded by VideoThumbnail component
-                    lastModified: video.lastModified
+                    lastModified: video.dateModified,
+                    isAppRecording: video.isAppRecording,
+                    source: video.source
                 }));
                 
                 console.log('Setting videos in state (quick):', formattedVideos.length);
                 setVideos(formattedVideos);
             } else {
-                console.log('No videos found in directory');
+                console.log('No videos found');
                 setVideos([]);
             }
         } catch (error) {
@@ -529,38 +539,63 @@ const GalleryTab = () => {
     };
 
     const renderTabBar = () => (
-        <View style={styles.tabBar}>
-            <TouchableOpacity 
-                style={[styles.tabButton, activeTab === 'video' && styles.activeTabButton]}
-                onPress={() => setActiveTab('video')}
-            >
-                <Image 
-                    source={require('../../../assets/home/ic/ic_record.png')} 
-                    style={[styles.tabIcon, activeTab === 'video' && styles.activeTabIcon]} 
-                />
-                <Text style={[styles.tabText, activeTab === 'video' && styles.activeTabText]}>
-                    Video
-                </Text>
-                <View style={styles.tabBadge}>
-                    <Text style={styles.tabBadgeText}>{videos.length}</Text>
-                </View>
-            </TouchableOpacity>
+        <View style={styles.tabBarContainer}>
+            <View style={styles.tabBar}>
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'video' && styles.activeTabButton]}
+                    onPress={() => setActiveTab('video')}
+                >
+                    <Image 
+                        source={require('../../../assets/home/ic/ic_record.png')} 
+                        style={[styles.tabIcon, activeTab === 'video' && styles.activeTabIcon]} 
+                    />
+                    <Text style={[styles.tabText, activeTab === 'video' && styles.activeTabText]}>
+                        Video
+                    </Text>
+                    <View style={styles.tabBadge}>
+                        <Text style={styles.tabBadgeText}>{videos.length}</Text>
+                    </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'audio' && styles.activeTabButton]}
+                    onPress={() => setActiveTab('audio')}
+                >
+                    <Image 
+                        source={require('../../../assets/home/ic/ic-music.png')} 
+                        style={[styles.tabIcon, activeTab === 'audio' && styles.activeTabIcon]} 
+                    />
+                    <Text style={[styles.tabText, activeTab === 'audio' && styles.activeTabText]}>
+                        Audio
+                    </Text>
+                    <View style={styles.tabBadge}>
+                        <Text style={styles.tabBadgeText}>{audioFiles.length}</Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
             
-            <TouchableOpacity 
-                style={[styles.tabButton, activeTab === 'audio' && styles.activeTabButton]}
-                onPress={() => setActiveTab('audio')}
-            >
-                <Image 
-                    source={require('../../../assets/home/ic/ic-music.png')} 
-                    style={[styles.tabIcon, activeTab === 'audio' && styles.activeTabIcon]} 
-                />
-                <Text style={[styles.tabText, activeTab === 'audio' && styles.activeTabText]}>
-                    Audio
-                </Text>
-                <View style={styles.tabBadge}>
-                    <Text style={styles.tabBadgeText}>{audioFiles.length}</Text>
+            {/* Video Filter Bar */}
+            {activeTab === 'video' && (
+                <View style={styles.filterBar}>
+                    <TouchableOpacity 
+                        style={[styles.filterButton, videoFilter === 'all' && styles.activeFilterButton]}
+                        onPress={() => setVideoFilter('all')}
+                    >
+                        <Text style={[styles.filterText, videoFilter === 'all' && styles.activeFilterText]}>
+                            All Videos
+                        </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={[styles.filterButton, videoFilter === 'app' && styles.activeFilterButton]}
+                        onPress={() => setVideoFilter('app')}
+                    >
+                        <Text style={[styles.filterText, videoFilter === 'app' && styles.activeFilterText]}>
+                            App Videos
+                        </Text>
+                    </TouchableOpacity>
                 </View>
-            </TouchableOpacity>
+            )}
         </View>
     );
 
@@ -1018,6 +1053,35 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
         textAlign: 'center',
+    },
+    // Filter Bar Styles
+    tabBarContainer: {
+        marginBottom: 10,
+    },
+    filterBar: {
+        flexDirection: 'row',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        padding: 4,
+        marginTop: 8,
+    },
+    filterButton: {
+        flex: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+        alignItems: 'center',
+    },
+    activeFilterButton: {
+        backgroundColor: '#1E3A8A',
+    },
+    filterText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    activeFilterText: {
+        color: '#FFFFFF',
     },
 });
 

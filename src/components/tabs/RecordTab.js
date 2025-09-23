@@ -223,16 +223,26 @@ const RecordTab = () => {
 
     const saveVideoToStorage = async (videoData) => {
         try {
+            // Create video with app identifier prefix
+            const timestamp = Date.now();
+            const originalFileName = videoData.filePath?.split('/').pop() || `REC_${timestamp}.mp4`;
+            
+            // Add app identifier prefix to filename for filtering
+            const appIdentifiedName = `BGREC_${timestamp}_${originalFileName}`;
+            
             const newVideo = {
-                id: Date.now(),
-                title: videoData.filePath?.split('/').pop() || `REC_${Date.now()}.mp4`,
+                id: timestamp,
+                title: appIdentifiedName,
+                originalTitle: originalFileName, // Keep original title for display
                 duration: formatTime(Math.floor(videoData.duration / 1000)),
                 size: '0 MB', // Calculate actual size if needed
                 date: new Date().toLocaleString(),
                 filePath: videoData.filePath,
                 quality: recordingSettings.quality,
                 camera: recordingSettings.camera,
-                thumbnail: null
+                thumbnail: null,
+                appSource: 'BgRecorder', // App identifier metadata
+                isAppRecording: true // Flag to identify app recordings
             };
 
             const existingVideos = await AsyncStorage.getItem('recordedVideos');
@@ -241,6 +251,13 @@ const RecordTab = () => {
 
             await AsyncStorage.setItem('recordedVideos', JSON.stringify(videos));
             console.log('✅ Video saved to storage:', newVideo);
+            
+            // Also save to a separate app-specific list for faster filtering
+            const appVideos = await AsyncStorage.getItem('appRecordedVideos');
+            const appVideosList = appVideos ? JSON.parse(appVideos) : [];
+            appVideosList.unshift(newVideo);
+            await AsyncStorage.setItem('appRecordedVideos', JSON.stringify(appVideosList));
+            
         } catch (error) {
             console.error('❌ Failed to save video to storage:', error);
         }

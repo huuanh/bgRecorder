@@ -9,9 +9,11 @@ import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import android.media.MediaScannerConnection
 import android.media.ThumbnailUtils
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Base64
@@ -270,7 +272,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     private fun getAudioDirectory(): String {
-        val audioDataDir = java.io.File(reactApplicationContext.getExternalFilesDir(null), "RecordedVideos/Audio")
+        // Use Music directory for audio files (independent from video)
+        val musicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+        val audioDataDir = File(musicDir, "BgRecorder")
         if (!audioDataDir.exists()) {
             val created = audioDataDir.mkdirs()
             Log.d(TAG, "Created audio directory: $created, Path: ${audioDataDir.absolutePath}")
@@ -886,6 +890,183 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     // Method to send events to React Native
+    @ReactMethod
+    fun getAllVideosFromGallery(promise: Promise) {
+        try {
+            val videosList = mutableListOf<WritableMap>()
+            
+            // Query MediaStore for all videos
+            val projection = arrayOf(
+                MediaStore.Video.Media._ID,
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DATA,
+                MediaStore.Video.Media.SIZE,
+                MediaStore.Video.Media.DURATION,
+                MediaStore.Video.Media.DATE_ADDED,
+                MediaStore.Video.Media.DATE_MODIFIED
+            )
+            
+            val selection = "${MediaStore.Video.Media.MIME_TYPE} = ?"
+            val selectionArgs = arrayOf("video/mp4")
+            val sortOrder = "${MediaStore.Video.Media.DATE_MODIFIED} DESC"
+            
+            reactApplicationContext.contentResolver.query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                sortOrder
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
+                
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val name = cursor.getString(nameColumn) ?: ""
+                    val data = cursor.getString(dataColumn) ?: ""
+                    val size = cursor.getLong(sizeColumn)
+                    val duration = cursor.getLong(durationColumn)
+                    val dateAdded = cursor.getLong(dateAddedColumn)
+                    val dateModified = cursor.getLong(dateModifiedColumn)
+                    
+                    // Check if this is an app-recorded video
+                    val isAppRecording = name.startsWith("BGREC_") || name.startsWith("REC_")
+                    
+                    val sizeFormatted = when {
+                        size >= 1024 * 1024 * 1024 -> "${size / (1024 * 1024 * 1024)} GB"
+                        size >= 1024 * 1024 -> "${size / (1024 * 1024)} MB"
+                        size >= 1024 -> "${size / 1024} KB"
+                        else -> "$size B"
+                    }
+                    
+                    val durationFormatted = formatDuration(duration)
+                    
+                    val videoMap = WritableNativeMap().apply {
+                        putInt("id", id.toInt())
+                        putString("title", name)
+                        putString("filePath", data)
+                        putString("size", sizeFormatted)
+                        putString("duration", durationFormatted)
+                        putDouble("dateAdded", dateAdded.toDouble())
+                        putDouble("dateModified", dateModified.toDouble())
+                        putBoolean("isAppRecording", isAppRecording)
+                        putString("source", if (isAppRecording) "BgRecorder" else "Gallery")
+                    }
+                    
+                    videosList.add(videoMap)
+                }
+            }
+            
+            Log.d(TAG, "Found ${videosList.size} videos in gallery")
+            promise.resolve(WritableNativeArray().apply {
+                videosList.forEach { pushMap(it) }
+            })
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get videos from gallery", e)
+            promise.reject("GALLERY_ERROR", "Failed to get videos from gallery: ${e.message}")
+        }
+    }
+    
+    @ReactMethod 
+    fun getAppRecordedVideosOnly(promise: Promise) {
+        try {
+            val videosList = mutableListOf<WritableMap>()
+            
+            // Query MediaStore for app-recorded videos only
+            val projection = arrayOf(
+                MediaStore.Video.Media._ID,
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DATA,
+                MediaStore.Video.Media.SIZE,
+                MediaStore.Video.Media.DURATION,
+                MediaStore.Video.Media.DATE_ADDED,
+                MediaStore.Video.Media.DATE_MODIFIED
+            )
+            
+            // Filter for app-recorded videos
+            val selection = "${MediaStore.Video.Media.MIME_TYPE} = ? AND (${MediaStore.Video.Media.DISPLAY_NAME} LIKE ? OR ${MediaStore.Video.Media.DISPLAY_NAME} LIKE ?)"
+            val selectionArgs = arrayOf("video/mp4", "BGREC_%", "REC_%")
+            val sortOrder = "${MediaStore.Video.Media.DATE_MODIFIED} DESC"
+            
+            reactApplicationContext.contentResolver.query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                sortOrder
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
+                
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val name = cursor.getString(nameColumn) ?: ""
+                    val data = cursor.getString(dataColumn) ?: ""
+                    val size = cursor.getLong(sizeColumn)
+                    val duration = cursor.getLong(durationColumn)
+                    val dateAdded = cursor.getLong(dateAddedColumn)
+                    val dateModified = cursor.getLong(dateModifiedColumn)
+                    
+                    val sizeFormatted = when {
+                        size >= 1024 * 1024 * 1024 -> "${size / (1024 * 1024 * 1024)} GB"
+                        size >= 1024 * 1024 -> "${size / (1024 * 1024)} MB"
+                        size >= 1024 -> "${size / 1024} KB"
+                        else -> "$size B"
+                    }
+                    
+                    val durationFormatted = formatDuration(duration)
+                    
+                    val videoMap = WritableNativeMap().apply {
+                        putInt("id", id.toInt())
+                        putString("title", name)
+                        putString("filePath", data)
+                        putString("size", sizeFormatted)
+                        putString("duration", durationFormatted)
+                        putDouble("dateAdded", dateAdded.toDouble())
+                        putDouble("dateModified", dateModified.toDouble())
+                        putBoolean("isAppRecording", true)
+                        putString("source", "BgRecorder")
+                    }
+                    
+                    videosList.add(videoMap)
+                }
+            }
+            
+            Log.d(TAG, "Found ${videosList.size} app-recorded videos")
+            promise.resolve(WritableNativeArray().apply {
+                videosList.forEach { pushMap(it) }
+            })
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get app-recorded videos", e)
+            promise.reject("APP_VIDEOS_ERROR", "Failed to get app-recorded videos: ${e.message}")
+        }
+    }
+    
+    private fun formatDuration(durationMs: Long): String {
+        val seconds = durationMs / 1000
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+        
+        return if (hours > 0) {
+            String.format("%02d:%02d:%02d", hours, minutes, secs)
+        } else {
+            String.format("%02d:%02d", minutes, secs)
+        }
+    }
+
     fun notifyRecordingStarted() {
         sendEvent("onRecordingStarted", null)
     }
@@ -894,6 +1075,38 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         sendEvent("onRecordingStopped", WritableNativeMap().apply {
             putDouble("duration", duration.toDouble())
         })
+    }
+    
+    @ReactMethod
+    fun scanAudioFileForMediaStore(filePath: String, promise: Promise) {
+        try {
+            Log.d(TAG, "Scanning audio file for MediaStore: $filePath")
+            
+            val audioFile = File(filePath)
+            if (!audioFile.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Audio file does not exist: $filePath")
+                return
+            }
+            
+            // Use MediaScannerConnection for reliable scanning
+            android.media.MediaScannerConnection.scanFile(
+                reactApplicationContext,
+                arrayOf(audioFile.absolutePath),
+                arrayOf("audio/mp4", "audio/m4a")
+            ) { path, uri ->
+                Log.d(TAG, "Audio MediaScanner completed for: $path with URI: $uri")
+                promise.resolve("Audio file scanned successfully")
+            }
+            
+            // Also broadcast media scan intent as backup
+            reactApplicationContext.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
+                data = Uri.fromFile(audioFile)
+            })
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scanning audio file", e)
+            promise.reject("SCAN_ERROR", "Failed to scan audio file: ${e.message}")
+        }
     }
     
     override fun onCatalystInstanceDestroy() {
