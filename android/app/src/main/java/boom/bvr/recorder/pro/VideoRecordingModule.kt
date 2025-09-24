@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
@@ -107,7 +108,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             }
             
             // Start and bind to service
-            context.startForegroundService(serviceIntent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            }
             context.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
             
             promise.resolve(WritableNativeMap().apply {
@@ -889,6 +892,15 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             .emit(eventName, params)
     }
     
+    // Helper function to safely get Int from cursor (may be null)
+    private fun getIntFromCursor(cursor: Cursor, columnIndex: Int): Int {
+        return if (cursor.isNull(columnIndex)) {
+            0 // Default value if null
+        } else {
+            cursor.getInt(columnIndex)
+        }
+    }
+    
     // Method to send events to React Native
     @ReactMethod
     fun getAllVideosFromGallery(promise: Promise) {
@@ -903,7 +915,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 MediaStore.Video.Media.SIZE,
                 MediaStore.Video.Media.DURATION,
                 MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.DATE_MODIFIED
+                MediaStore.Video.Media.DATE_MODIFIED,
+                MediaStore.Video.Media.WIDTH,
+                MediaStore.Video.Media.HEIGHT
             )
             
             val selection = "${MediaStore.Video.Media.MIME_TYPE} = ?"
@@ -924,6 +938,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
                 val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
                 val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
+                val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
+                val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
                 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
@@ -933,6 +949,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                     val duration = cursor.getLong(durationColumn)
                     val dateAdded = cursor.getLong(dateAddedColumn)
                     val dateModified = cursor.getLong(dateModifiedColumn)
+                    val width = getIntFromCursor(cursor, widthColumn).takeIf { it > 0 } ?: 720
+                    val height = getIntFromCursor(cursor, heightColumn).takeIf { it > 0 } ?: 1280
                     
                     // Check if this is an app-recorded video
                     val isAppRecording = name.startsWith("BGREC_") || name.startsWith("REC_")
@@ -956,6 +974,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                         putDouble("dateModified", dateModified.toDouble())
                         putBoolean("isAppRecording", isAppRecording)
                         putString("source", if (isAppRecording) "BgRecorder" else "Gallery")
+                        putInt("width", width)
+                        putInt("height", height)
                     }
                     
                     videosList.add(videoMap)
@@ -986,7 +1006,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 MediaStore.Video.Media.SIZE,
                 MediaStore.Video.Media.DURATION,
                 MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.DATE_MODIFIED
+                MediaStore.Video.Media.DATE_MODIFIED,
+                MediaStore.Video.Media.WIDTH,
+                MediaStore.Video.Media.HEIGHT
             )
             
             // Filter for app-recorded videos
@@ -1008,6 +1030,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
                 val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
                 val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
+                val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
+                val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
                 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
@@ -1017,6 +1041,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                     val duration = cursor.getLong(durationColumn)
                     val dateAdded = cursor.getLong(dateAddedColumn)
                     val dateModified = cursor.getLong(dateModifiedColumn)
+                    val width = getIntFromCursor(cursor, widthColumn).takeIf { it > 0 } ?: 720
+                    val height = getIntFromCursor(cursor, heightColumn).takeIf { it > 0 } ?: 1280
                     
                     val sizeFormatted = when {
                         size >= 1024 * 1024 * 1024 -> "${size / (1024 * 1024 * 1024)} GB"
@@ -1037,6 +1063,8 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                         putDouble("dateModified", dateModified.toDouble())
                         putBoolean("isAppRecording", true)
                         putString("source", "BgRecorder")
+                        putInt("width", width)
+                        putInt("height", height)
                     }
                     
                     videosList.add(videoMap)
@@ -1106,6 +1134,42 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning audio file", e)
             promise.reject("SCAN_ERROR", "Failed to scan audio file: ${e.message}")
+        }
+    }
+
+    @ReactMethod
+    fun scanVideoFileForMediaStore(filePath: String, promise: Promise) {
+        try {
+            Log.d(TAG, "Scanning video file for MediaStore: $filePath")
+            
+            val videoFile = File(filePath)
+            if (!videoFile.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Video file does not exist: $filePath")
+                return
+            }
+            
+            // Use MediaScannerConnection for reliable scanning
+            android.media.MediaScannerConnection.scanFile(
+                reactApplicationContext,
+                arrayOf(videoFile.absolutePath),
+                arrayOf("video/mp4")
+            ) { path, uri ->
+                Log.d(TAG, "Video MediaScanner completed for: $path with URI: $uri")
+                
+                // Wait a moment for MediaStore to fully update
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    promise.resolve("Video file scanned successfully")
+                }, 500)
+            }
+            
+            // Also broadcast media scan intent as backup
+            reactApplicationContext.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
+                data = Uri.fromFile(videoFile)
+            })
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scanning video file", e)
+            promise.reject("SCAN_ERROR", "Failed to scan video file: ${e.message}")
         }
     }
     

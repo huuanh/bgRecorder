@@ -91,11 +91,13 @@ const GalleryTab = () => {
                     size: video.size,
                     date: new Date(video.dateModified * 1000).toLocaleString(),
                     filePath: video.filePath,
-                    ratio: '720x1280', // Default ratio
+                    ratio: video.width && video.height ? `${video.width}x${video.height}` : '720x1280',
                     thumbnail: null, // No thumbnail initially - will be loaded by VideoThumbnail component
                     lastModified: video.dateModified,
                     isAppRecording: video.isAppRecording,
-                    source: video.source
+                    source: video.source,
+                    width: video.width || 720,
+                    height: video.height || 1280
                 }));
                 
                 console.log('Setting videos in state (quick):', formattedVideos.length);
@@ -142,7 +144,9 @@ const GalleryTab = () => {
                     filePath: video.filePath,
                     ratio: video.width && video.height ? `${video.width}x${video.height}` : '720x1280',
                     thumbnail: quick ? null : video.thumbnail, // Only include thumbnail if not quick
-                    lastModified: video.lastModified
+                    lastModified: video.lastModified,
+                    width: video.width || 720,
+                    height: video.height || 1280
                 }));
                 
                 console.log('Setting videos in state:', formattedVideos.length);

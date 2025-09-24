@@ -23,6 +23,9 @@ import { NativeModules } from 'react-native';
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
+// Debug log to check if dimensions are valid
+console.log('TrimVideoModal Dimensions:', { width, height });
+
 const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const videoRef = useRef(null);
     const [paused, setPaused] = useState(false);
@@ -205,24 +208,57 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 
     // Memoize timeline calculations for better performance
     const timelineData = useMemo(() => {
-        if (!duration || duration <= 0) return { timeLabels: [], trimPositions: {} };
+        // Safe fallback when duration is not available
+        if (!duration || duration <= 0 || isNaN(duration)) {
+            return { 
+                timeLabels: [], 
+                trimPositions: {
+                    currentPercent: 0,
+                    startPercent: 0,
+                    endPercent: 0,
+                    selectionWidth: 0
+                }
+            };
+        }
         
-        const timeLabels = [
-            formatTime(0),
-            formatTime(duration / 4),
-            formatTime(duration / 2),
-            formatTime(3 * duration / 4),
-            formatTime(duration)
-        ];
-        
-        const trimPositions = {
-            currentPercent: (currentTime / duration) * 100,
-            startPercent: (trimStartTime / duration) * 100,
-            endPercent: (trimEndTime / duration) * 100,
-            selectionWidth: ((trimEndTime - trimStartTime) / duration) * 100
-        };
-        
-        return { timeLabels, trimPositions };
+        try {
+            const timeLabels = [
+                formatTime(0),
+                formatTime(duration / 4),
+                formatTime(duration / 2),
+                formatTime(3 * duration / 4),
+                formatTime(duration)
+            ];
+            
+            // Safe calculation with validation
+            const safeDivision = (numerator, denominator) => {
+                if (!denominator || denominator <= 0 || isNaN(denominator) || isNaN(numerator)) {
+                    return 0;
+                }
+                const result = (numerator / denominator) * 100;
+                return isNaN(result) ? 0 : Math.max(0, Math.min(100, result));
+            };
+            
+            const trimPositions = {
+                currentPercent: safeDivision(currentTime || 0, duration),
+                startPercent: safeDivision(trimStartTime || 0, duration),
+                endPercent: safeDivision(trimEndTime || 0, duration),
+                selectionWidth: safeDivision((trimEndTime || 0) - (trimStartTime || 0), duration)
+            };
+            
+            return { timeLabels, trimPositions };
+        } catch (error) {
+            console.error('Error calculating timeline data:', error);
+            return { 
+                timeLabels: [], 
+                trimPositions: {
+                    currentPercent: 0,
+                    startPercent: 0,
+                    endPercent: 0,
+                    selectionWidth: 0
+                }
+            };
+        }
     }, [duration, currentTime, trimStartTime, trimEndTime, formatTime]);
 
     const onLoad = (data) => {
@@ -423,6 +459,16 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
             const stats = await RNFS.stat(outputPath);
             console.log(`Trimmed video created: ${outputPath}, Size: ${stats.size} bytes`);
             
+            setLoadingMessage('Updating video library...');
+            setExportProgress(95);
+            
+            // Scan the new video file to MediaStore
+            try {
+                await VideoRecordingModule.scanVideoFileForMediaStore(outputPath);
+            } catch (error) {
+                console.log('MediaStore scan failed, but video was created successfully:', error);
+            }
+            
             setLoadingMessage('Trim completed successfully!');
             setExportProgress(100);
             setTrimmedVideoPath(outputPath);
@@ -517,9 +563,6 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                         onProgress={onProgress}
                         progressUpdateInterval={100}
                     />
-
-                    
-
                     {/* Video Info */}
                     <View style={styles.videoInfo}>
                         <Text style={styles.videoTitle}>{video.title}</Text>
@@ -564,7 +607,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                             <View style={styles.timelineWrapper}>
                                 {/* Time Labels Row */}
                                 <View style={styles.timeLabelsContainer}>
-                                    {timelineData.timeLabels.map((label, index) => (
+                                    {timelineData && timelineData.timeLabels && timelineData.timeLabels.map((label, index) => (
                                         <Text key={index} style={styles.timeLabel}>{label}</Text>
                                     ))}
                                 </View>
@@ -621,7 +664,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                         <View
                                             style={[
                                                 styles.trimSelection,
-                                                {
+                                                timelineData && timelineData.trimPositions && {
                                                     left: `${timelineData.trimPositions.startPercent}%`,
                                                     width: `${timelineData.trimPositions.selectionWidth}%`
                                                 }
@@ -632,7 +675,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                         <View
                                             style={[
                                                 styles.currentTimeIndicator,
-                                                {
+                                                timelineData && timelineData.trimPositions && {
                                                     left: `${timelineData.trimPositions.currentPercent}%`
                                                 }
                                             ]}
@@ -645,7 +688,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                             style={[
                                                 styles.trimHandle,
                                                 styles.startHandle,
-                                                { 
+                                                timelineData && timelineData.trimPositions && { 
                                                     left: `${timelineData.trimPositions.startPercent}%`
                                                 }
                                             ]}
@@ -667,7 +710,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                             style={[
                                                 styles.trimHandle,
                                                 styles.endHandle,
-                                                { 
+                                                timelineData && timelineData.trimPositions && { 
                                                     left: `${timelineData.trimPositions.endPercent}%`
                                                 }
                                             ]}
@@ -841,8 +884,8 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     video: {
-        width,
-        height: width * 0.6, // 16:9 aspect ratio
+        width: width || 375, // Fallback to iPhone width if undefined
+        height: (width || 375) * 0.6, // 16:9 aspect ratio
     },
     playOverlay: {
         justifyContent: 'center',
@@ -856,11 +899,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#1E3A8A',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.1,
+        // shadowRadius: 4,
+        // elevation: 3,
     },
     playIcon: {
         width: 16,
@@ -907,14 +950,14 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 8,
         paddingBottom: 25, // Add extra space for time labels
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        // shadowColor: '#000',
+        // shadowOffset: {
+        //     width: 0,
+        //     height: 2,
+        // },
+        // shadowOpacity: 0.1,
+        // shadowRadius: 4,
+        // elevation: 3,
     },
     timelineWrapper: {
         overflow: 'visible',
@@ -1044,11 +1087,11 @@ const styles = StyleSheet.create({
         height: '100%',
         backgroundColor: '#EF4444',
         borderRadius: 1.5,
-        shadowColor: '#EF4444',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 4,
-        elevation: 8,
+        // shadowColor: '#EF4444',
+        // shadowOffset: { width: 0, height: 0 },
+        // shadowOpacity: 0.6,
+        // shadowRadius: 4,
+        // elevation: 8,
     },
     trimSelection: {
         position: 'absolute',
@@ -1080,11 +1123,11 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 6,
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.25,
+        // shadowRadius: 4,
+        // elevation: 6,
         borderWidth: 2,
         borderColor: '#FFFFFF',
     },
@@ -1108,11 +1151,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         minWidth: 48,
         zIndex: 25,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 8,
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.3,
+        // shadowRadius: 4,
+        // elevation: 8,
     },
     handleTimeText: {
         color: '#FFFFFF',
@@ -1173,14 +1216,14 @@ const styles = StyleSheet.create({
         padding: 32,
         alignItems: 'center',
         minWidth: 280,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        // shadowColor: '#000',
+        // shadowOffset: {
+        //     width: 0,
+        //     height: 4,
+        // },
+        // shadowOpacity: 0.3,
+        // shadowRadius: 8,
+        // elevation: 8,
     },
     loadingTitle: {
         fontSize: 18,

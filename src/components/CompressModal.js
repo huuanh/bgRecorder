@@ -199,7 +199,19 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
             const session = await FFmpegKit.executeAsync(command, async (session) => {
                 const returnCode = await session.getReturnCode();
                 
-                // Complete progress immediately
+                if (ReturnCode.isSuccess(returnCode)) {
+                    // Scan the new video file to MediaStore
+                    setCompressionProgress(95);
+                    setLoadingMessage('Updating video library...');
+                    
+                    try {
+                        await VideoRecordingModule.scanVideoFileForMediaStore(outputPath);
+                    } catch (error) {
+                        console.log('MediaStore scan failed, but video was created successfully:', error);
+                    }
+                }
+                
+                // Complete progress
                 setCompressionProgress(100);
                 setLoadingMessage('Compression completed successfully!');
                 
