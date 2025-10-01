@@ -19,12 +19,14 @@ import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Base64
 import android.util.Log
+import androidx.compose.ui.text.intl.Locale
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.text.SimpleDateFormat
 
 class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
     
@@ -1188,4 +1190,6 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             serviceBound = false
         }
     }
+
+
 }

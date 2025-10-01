@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,35 +7,129 @@ import {
     ScrollView,
     Switch,
     Alert,
+    Image,
+    Dimensions,
 } from 'react-native';
 import { COLORS } from '../../constants';
+import { NativeAdComponent } from '../NativeAdComponent';
+import AdManager, { ADS_UNIT } from '../../AdManager';
+import CameraModeModal from '../CameraModeModal';
+import CameraSettingsManager from '../../utils/CameraSettingsManager';
+
+const { width } = Dimensions.get('window');
 
 const SettingsTab = () => {
     const [settings, setSettings] = useState({
-        notifications: true,
-        autoSave: true,
-        highQuality: false,
-        vibration: true,
-        darkMode: false,
-        autoDelete: false,
+        // Video Settings
+        cameraMode: 'back',
+        autoSplit: false,
+        duration: 30,
+        resolution: '720p',
+        previewSize: 'medium',
     });
+    
+    const [showCameraModeModal, setShowCameraModeModal] = useState(false);
 
-    const handleSettingToggle = (key) => {
+    // Load settings on component mount
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        try {
+            const savedSettings = await CameraSettingsManager.getSettings();
+            setSettings(savedSettings);
+        } catch (error) {
+            console.error('Failed to load settings:', error);
+        }
+    };
+
+    const toggleSetting = (key) => {
         setSettings(prev => ({
             ...prev,
             [key]: !prev[key]
         }));
     };
 
-    const handleOptionPress = (title, options) => {
+    const handleCameraModeChange = () => {
+        setShowCameraModeModal(true);
+    };
+
+    const handleCameraModeSelect = async (mode) => {
+        try {
+            await CameraSettingsManager.saveCameraMode(mode);
+            setSettings(prev => ({...prev, cameraMode: mode}));
+        } catch (error) {
+            console.error('Failed to save camera mode:', error);
+            Alert.alert('Error', 'Failed to save camera mode');
+        }
+    };
+
+    const handleDurationChange = () => {
         Alert.alert(
-            title,
-            '',
-            options.map(option => ({
-                text: option,
-                onPress: () => console.log(`Selected: ${option}`)
-            }))
+            'Recording Duration',
+            'Select maximum recording duration',
+            [
+                { text: '15 seconds', onPress: () => setSettings(prev => ({...prev, duration: 15})) },
+                { text: '30 seconds', onPress: () => setSettings(prev => ({...prev, duration: 30})) },
+                { text: '60 seconds', onPress: () => setSettings(prev => ({...prev, duration: 60})) },
+                { text: 'Cancel', style: 'cancel' }
+            ]
         );
+    };
+
+    const handleResolutionChange = () => {
+        Alert.alert(
+            'Video Resolution',
+            'Select video quality',
+            [
+                { text: '480p', onPress: () => setSettings(prev => ({...prev, resolution: '480p'})) },
+                { text: '720p', onPress: () => setSettings(prev => ({...prev, resolution: '720p'})) },
+                { text: '1080p', onPress: () => setSettings(prev => ({...prev, resolution: '1080p'})) },
+                { text: 'Cancel', style: 'cancel' }
+            ]
+        );
+    };
+
+    const handlePreviewSizeChange = () => {
+        Alert.alert(
+            'Preview Size',
+            'Select preview window size',
+            [
+                { text: 'Small', onPress: () => setSettings(prev => ({...prev, previewSize: 'small'})) },
+                { text: 'Medium', onPress: () => setSettings(prev => ({...prev, previewSize: 'medium'})) },
+                { text: 'Large', onPress: () => setSettings(prev => ({...prev, previewSize: 'large'})) },
+                { text: 'Cancel', style: 'cancel' }
+            ]
+        );
+    };
+
+    const handleOptionPress = (option) => {
+        switch (option) {
+            case 'changeIcon':
+                Alert.alert('Change Icon', 'Feature coming soon!');
+                break;
+            case 'setPassword':
+                Alert.alert('Set Password', 'Feature coming soon!');
+                break;
+            case 'saveLocation':
+                Alert.alert('Save Location', 'Feature coming soon!');
+                break;
+            case 'language':
+                Alert.alert('Language', 'Feature coming soon!');
+                break;
+            case 'share':
+                Alert.alert('Share App', 'Feature coming soon!');
+                break;
+            case 'privacy':
+                Alert.alert('Privacy Policy', 'Feature coming soon!');
+                break;
+            case 'upgrade':
+                Alert.alert('Upgrade to VIP', 'Get premium features with VIP membership!');
+                break;
+            default:
+                break;
+        }
     };
 
     const renderSettingItem = (icon, title, subtitle, hasSwitch = false, switchKey = null, onPress = null) => (
@@ -74,197 +168,263 @@ const SettingsTab = () => {
         <Text style={styles.sectionHeader}>{title}</Text>
     );
 
-    return (
-        <View style={styles.tabContent}>
-            <ScrollView style={styles.settingsList} showsVerticalScrollIndicator={false}>
-                {/* Recording Settings */}
-                {renderSectionHeader('Recording')}
-                {renderSettingItem(
-                    '🎥',
-                    'Default Quality',
-                    'HD 720p',
-                    false,
-                    null,
-                    () => handleOptionPress('Select Quality', ['HD 720p', 'FHD 1080p', 'UHD 4K'])
-                )}
-                {renderSettingItem(
-                    '📷',
-                    'Default Camera',
-                    'Front Camera',
-                    false,
-                    null,
-                    () => handleOptionPress('Select Camera', ['Front Camera', 'Back Camera'])
-                )}
-                {renderSettingItem(
-                    '💾',
-                    'Auto Save',
-                    'Automatically save recordings',
-                    true,
-                    'autoSave'
-                )}
-                {renderSettingItem(
-                    '🗑️',
-                    'Auto Delete',
-                    'Delete old recordings after 30 days',
-                    true,
-                    'autoDelete'
-                )}
+    const renderVIPBanner = () => (
+        <TouchableOpacity 
+            style={styles.vipBanner}
+            onPress={() => handleOptionPress('upgrade')}
+        >
+            <View style={styles.vipContent}>
+                <View style={styles.vipLeft}>
+                    <Text style={styles.vipTitle}>BECOME A VIP MEMBER</Text>
+                    <Text style={styles.vipSubtitle}>Enjoy Premium Package with exclusive features.</Text>
+                    <Text style={styles.vipButton}>Upgrade</Text>
+                </View>
+                <View style={styles.vipRight}>
+                    <Image 
+                        source={require('../../../assets/setting/diamond.png')} 
+                        style={{ width: 100, height: 100, resizeMode: 'contain' }} 
+                    />
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
-                {/* App Settings */}
-                {renderSectionHeader('App')}
-                {renderSettingItem(
-                    '🔔',
-                    'Notifications',
-                    'Recording status updates',
-                    true,
-                    'notifications'
+    const renderSettingItemWithValue = (iconSource, title, subtitle, hasSwitch = false, switchKey = null, onPress = null, currentValue = null) => (
+        <TouchableOpacity 
+            style={styles.settingItem} 
+            onPress={onPress}
+            disabled={hasSwitch}
+        >
+            <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                    <Image 
+                        source={iconSource} 
+                        style={styles.settingIconImage}
+                        resizeMode="contain"
+                    />
+                </View>
+                <View style={styles.settingInfo}>
+                    <Text style={styles.settingTitle}>{title}</Text>
+                </View>
+            </View>
+            <View style={styles.settingRight}>
+                {currentValue && <Text style={styles.currentValue}>{currentValue}</Text>}
+                {hasSwitch ? (
+                    <Switch
+                        value={settings[switchKey]}
+                        onValueChange={() => setSettings(prev => ({...prev, [switchKey]: !prev[switchKey]}))}
+                        trackColor={{ false: '#E5E7EB', true: COLORS.PRIMARY }}
+                        thumbColor={settings[switchKey] ? '#FFFFFF' : '#FFFFFF'}
+                    />
+                ) : (
+                    <Text style={styles.settingArrow}>›</Text>
                 )}
-                {renderSettingItem(
-                    '📳',
-                    'Vibration',
-                    'Haptic feedback',
-                    true,
-                    'vibration'
-                )}
-                {renderSettingItem(
-                    '🌙',
-                    'Dark Mode',
-                    'Dark appearance',
-                    true,
-                    'darkMode'
-                )}
-                {renderSettingItem(
-                    '🔤',
-                    'Language',
-                    'English',
-                    false,
-                    null,
-                    () => handleOptionPress('Select Language', ['English', 'Tiếng Việt', '中文', '日本語'])
-                )}
+            </View>
+        </TouchableOpacity>
+    );
 
-                {/* Storage */}
-                {renderSectionHeader('Storage')}
-                {renderSettingItem(
-                    '📁',
-                    'Storage Location',
-                    'Internal Storage',
-                    false,
-                    null,
-                    () => handleOptionPress('Select Storage', ['Internal Storage', 'SD Card'])
-                )}
-                {renderSettingItem(
-                    '🧹',
-                    'Clear Cache',
-                    'Free up space',
-                    false,
-                    null,
-                    () => Alert.alert('Clear Cache', 'Are you sure you want to clear cache?', [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Clear', style: 'destructive' }
-                    ])
-                )}
-
-                {/* Privacy & Security */}
-                {renderSectionHeader('Privacy & Security')}
-                {renderSettingItem(
-                    '🔒',
-                    'App Lock',
-                    'Protect app with password',
-                    false,
-                    null,
-                    () => Alert.alert('App Lock', 'This feature will be available in premium version')
-                )}
-                {renderSettingItem(
-                    '👁️',
-                    'Privacy Policy',
-                    'Read our privacy policy',
-                    false,
-                    null,
-                    () => console.log('Open privacy policy')
-                )}
-
-                {/* Premium */}
-                {renderSectionHeader('Premium')}
-                <TouchableOpacity style={styles.premiumCard}>
-                    <View style={styles.premiumHeader}>
-                        <Text style={styles.premiumIcon}>💎</Text>
-                        <View style={styles.premiumInfo}>
-                            <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
-                            <Text style={styles.premiumSubtitle}>Unlock all features</Text>
-                        </View>
+    const renderSection = (title, items) => (
+        <View style={styles.section}>
+            <Text style={styles.sectionHeader}>{title}</Text>
+            <View style={styles.sectionContent}>
+                {items.map((item, index) => (
+                    <View key={index}>
+                        {item}
+                        {index < items.length - 1 && <View style={styles.separator} />}
                     </View>
-                    <View style={styles.premiumFeatures}>
-                        <Text style={styles.premiumFeature}>• Unlimited recording time</Text>
-                        <Text style={styles.premiumFeature}>• 4K recording quality</Text>
-                        <Text style={styles.premiumFeature}>• No ads</Text>
-                        <Text style={styles.premiumFeature}>• Priority support</Text>
-                    </View>
-                    <TouchableOpacity style={styles.premiumButton}>
-                        <Text style={styles.premiumButtonText}>Upgrade Now</Text>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-
-                {/* About */}
-                {renderSectionHeader('About')}
-                {renderSettingItem(
-                    'ℹ️',
-                    'App Version',
-                    '1.0.0',
-                    false,
-                    null,
-                    () => console.log('Show version info')
-                )}
-                {renderSettingItem(
-                    '⭐',
-                    'Rate App',
-                    'Rate us on Play Store',
-                    false,
-                    null,
-                    () => console.log('Open Play Store')
-                )}
-                {renderSettingItem(
-                    '📧',
-                    'Contact Support',
-                    'Get help',
-                    false,
-                    null,
-                    () => console.log('Open support')
-                )}
-            </ScrollView>
+                ))}
+            </View>
         </View>
+    );
+
+    return (
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+            {/* VIP Banner */}
+            {renderVIPBanner()}
+
+            {/* Video Settings Section */}
+            {renderSection('Video Settings', [
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/icon_swap.png'), 
+                    'Camera', 
+                    'Select camera mode', 
+                    false, 
+                    null, 
+                    handleCameraModeChange,
+                    settings.cameraMode
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_autosplit.png'), 
+                    'Auto Split', 
+                    'Automatically split long recordings', 
+                    true, 
+                    'autoSplit'
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/icon_clock.png'), 
+                    'Duration', 
+                    'Maximum recording length', 
+                    false, 
+                    null, 
+                    handleDurationChange,
+                    `${settings.duration}s`
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/quality.png'), 
+                    'Resolution', 
+                    'Video quality setting', 
+                    false, 
+                    null, 
+                    handleResolutionChange,
+                    settings.resolution
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/icon_preview.png'), 
+                    'Preview Size', 
+                    'Recording preview window size', 
+                    false, 
+                    null, 
+                    handlePreviewSizeChange,
+                    settings.previewSize
+                ),
+            ])}
+
+            {/* Native Ad */}
+            <View style={styles.adContainer}>
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_AD} />
+            </View>
+            
+            {/* Other Section */}
+            {renderSection('Other', [
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_changeicon.png'), 
+                    'Change Icon', 
+                    'Customize app icon', 
+                    false, 
+                    null, 
+                    () => handleOptionPress('changeIcon')
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_password.png'), 
+                    'Set Password', 
+                    'Protect app with password', 
+                    false, 
+                    null, 
+                    () => handleOptionPress('setPassword')
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_lang.png'), 
+                    'Language', 
+                    'Change app language', 
+                    false, 
+                    null, 
+                    () => handleOptionPress('language')
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_share.png'), 
+                    'Share', 
+                    'Share this app with friends', 
+                    false, 
+                    null, 
+                    () => handleOptionPress('share')
+                ),
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_privacy.png'), 
+                    'Privacy Policy', 
+                    'View privacy policy', 
+                    false, 
+                    null, 
+                    () => handleOptionPress('privacy')
+                ),
+            ])}
+            
+            {/* Camera Mode Selection Modal */}
+            <CameraModeModal
+                visible={showCameraModeModal}
+                onClose={() => setShowCameraModeModal(false)}
+                currentMode={settings.cameraMode}
+                onSelect={handleCameraModeSelect}
+            />
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    tabContent: {
+    container: {
         flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 20,
+        backgroundColor: COLORS.BACKGROUND,
+        paddingHorizontal: 16,
+        paddingTop: 16,
     },
-    settingsList: {
+    vipBanner: {
+        backgroundColor: COLORS.PRIMARY,
+        borderRadius: 12,
+        marginBottom: 16,
+        overflow: 'hidden',
+    },
+    vipContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 8,
+    },
+    vipLeft: {
         flex: 1,
     },
-    sectionHeader: {
+    vipTitle: {
+        fontSize: 20,
+        fontWeight: 800,
+        color: COLORS.TERTIARY,
+        marginBottom: 4,
+    },
+    vipSubtitle: {
+        fontSize: 12,
+        color: COLORS.TERTIARY,
+        marginBottom: 4,
+    },
+    vipRight: {
+        marginLeft: 5,
+    },
+    vipButton: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1F2937',
-        marginTop: 24,
+        color: COLORS.WHITE,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: COLORS.ACTIVE,
+        borderRadius: 8,
+        textAlign: 'center',
+    },
+    adContainer: {
+        marginBottom: 16,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    section: {
+        marginBottom: 24,
+    },
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: COLORS.TEXT_PRIMARY,
         marginBottom: 12,
         marginLeft: 4,
+    },
+    sectionContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        overflow: 'hidden',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
     settingItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
         padding: 16,
-        marginBottom: 8,
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 1,
     },
     settingLeft: {
         flexDirection: 'row',
@@ -275,13 +435,15 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: COLORS.LIGHT_GRAY,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
-    settingIconText: {
-        fontSize: 18,
+    settingIconImage: {
+        width: 20,
+        height: 20,
+        tintColor: COLORS.TEXT_PRIMARY,
     },
     settingInfo: {
         flex: 1,
@@ -289,66 +451,27 @@ const styles = StyleSheet.create({
     settingTitle: {
         fontSize: 16,
         fontWeight: '500',
-        color: '#1F2937',
+        color: COLORS.TEXT_PRIMARY,
         marginBottom: 2,
     },
-    settingSubtitle: {
-        fontSize: 13,
-        color: '#6B7280',
-    },
     settingRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginLeft: 12,
+    },
+    currentValue: {
+        fontSize: 14,
+        color: COLORS.TEXT_SECONDARY,
+        marginRight: 8,
     },
     settingArrow: {
         fontSize: 20,
-        color: '#9CA3AF',
+        color: COLORS.TEXT_SECONDARY,
     },
-    premiumCard: {
-        backgroundColor: '#1E3A8A',
-        borderRadius: 16,
-        padding: 20,
-        marginVertical: 12,
-    },
-    premiumHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    premiumIcon: {
-        fontSize: 32,
-        marginRight: 12,
-    },
-    premiumInfo: {
-        flex: 1,
-    },
-    premiumTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 4,
-    },
-    premiumSubtitle: {
-        fontSize: 14,
-        color: '#93C5FD',
-    },
-    premiumFeatures: {
-        marginBottom: 20,
-    },
-    premiumFeature: {
-        fontSize: 14,
-        color: '#E5E7EB',
-        marginBottom: 4,
-    },
-    premiumButton: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 8,
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    premiumButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1E3A8A',
+    separator: {
+        height: 1,
+        backgroundColor: COLORS.LIGHT_GRAY,
+        marginLeft: 68,
     },
 });
 

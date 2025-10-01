@@ -85,7 +85,7 @@ const VideoSelectorModal = ({
                 <Text style={styles.videoTitle} numberOfLines={1}>
                     {item.title}
                 </Text>
-                <Text style={styles.videoDuration}>{item.duration}</Text>
+                {/* <Text style={styles.videoDuration}>{item.duration}</Text> */}
                 <Text style={styles.videoRatio}>{item.ratio}</Text>
             </View>
         </TouchableOpacity>
@@ -177,27 +177,32 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.SECONDARY,
         borderRadius: 8,
         margin: 5,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        padding: 5,
+        // height: 10,
+        // overflow: 'hidden',
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.1,
+        // shadowRadius: 4,
+        // elevation: 3,
     },
     videoThumbnailContainer: {
         width: '100%',
-        height: 120,
-        backgroundColor: '#000',
+        
+        // backgroundColor: '#000',
+        textAlign: 'center',
+        justifyContent: 'center',
+        alignItems: 'center',   
     },
     videoThumbnail: {
         width: '100%',
         height: '100%',
     },
     videoInfo: {
-        padding: 10,
+        paddingHorizontal: 10,
     },
     videoTitle: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: COLORS.TERTIARY,
         marginBottom: 4,

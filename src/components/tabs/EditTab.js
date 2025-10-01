@@ -1,29 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    ScrollView,
-    Dimensions,
-    Image,
-    Alert,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Image, Alert, StyleSheet, Dimensions } from 'react-native';
 import { COLORS } from '../../constants';
+import VideoSelectorModal from '../VideoSelectorModal';
+import MultiVideoSelectorModal from '../MultiVideoSelectorModal';
 import TrimVideoModal from '../TrimVideoModal';
 import CompressModal from '../CompressModal';
 import Mp3ConvertModal from '../Mp3ConvertModal';
-import VideoSelectorModal from '../VideoSelectorModal';
-import { NativeModules } from 'react-native';
+import MergeVideoModal from '../MergeVideoModal';
+import { NativeAdComponent } from '../NativeAdComponent';
+import { ADS_UNIT } from '../../AdManager';
 
-const { width } = Dimensions.get('window');
-const { VideoRecordingModule } = NativeModules;
+const { width: screenWidth } = Dimensions.get('window');
 
 const EditTab = () => {
+    // Single video modals
     const [showVideoSelector, setShowVideoSelector] = useState(false);
     const [videoSelectorTitle, setVideoSelectorTitle] = useState('');
-    const [videoSelectorAction, setVideoSelectorAction] = useState(null);
+    const [videoSelectorAction, setVideoSelectorAction] = useState('');
     
+    // Multi video modal (for merge)
+    const [showMultiVideoSelector, setShowMultiVideoSelector] = useState(false);
+    
+    // Tool modals
     const [showTrimModal, setShowTrimModal] = useState(false);
     const [trimModalVideo, setTrimModalVideo] = useState(null);
     
@@ -32,139 +30,148 @@ const EditTab = () => {
     
     const [showMp3ConvertModal, setShowMp3ConvertModal] = useState(false);
     const [mp3ConvertModalVideo, setMp3ConvertModalVideo] = useState(null);
+    
+    const [showMergeModal, setShowMergeModal] = useState(false);
+    const [mergeVideos, setMergeVideos] = useState([]);
 
-    const openVideoSelector = (title, action) => {
-        setVideoSelectorTitle(title);
-        setVideoSelectorAction(() => action);
+    // Single video selection handler
+    const handleVideoSelect = (video) => {
+        console.log('Selected video:', video);
+        
+        if (videoSelectorAction === 'trim') {
+            setTrimModalVideo(video);
+            setShowTrimModal(true);
+        } else if (videoSelectorAction === 'compress') {
+            setCompressModalVideo(video);
+            setShowCompressModal(true);
+        } else if (videoSelectorAction === 'mp3convert') {
+            setMp3ConvertModalVideo(video);
+            setShowMp3ConvertModal(true);
+        }
+        
+        setShowVideoSelector(false);
+    };
+
+    // Multi video selection handler (for merge)
+    const handleMultiVideoSelect = (videos) => {
+        console.log('Selected videos for merge:', videos);
+        setMergeVideos(videos);
+        setShowMultiVideoSelector(false);
+        setShowMergeModal(true);
+    };
+
+    // Tool action handlers
+    const handleTrimVideo = () => {
+        setVideoSelectorTitle('Select Video to Trim');
+        setVideoSelectorAction('trim');
         setShowVideoSelector(true);
     };
 
-    const handleVideoSelect = (video) => {
-        if (videoSelectorAction) {
-            videoSelectorAction(video);
-        }
+    const handleCompressVideo = () => {
+        setVideoSelectorTitle('Select Video to Compress');
+        setVideoSelectorAction('compress');
+        setShowVideoSelector(true);
     };
 
-    const handleTrimVideo = (video) => {
-        setTrimModalVideo(video);
-        setShowTrimModal(true);
+    const handleMergeVideo = () => {
+        setShowMultiVideoSelector(true);
     };
 
-    const handleCompressVideo = (video) => {
-        setCompressModalVideo(video);
-        setShowCompressModal(true);
+    const handleMp3ConvertVideo = () => {
+        setVideoSelectorTitle('Select Video to Convert');
+        setVideoSelectorAction('mp3convert');
+        setShowVideoSelector(true);
     };
 
-    const handleMp3ConvertVideo = (video) => {
-        setMp3ConvertModalVideo(video);
-        setShowMp3ConvertModal(true);
-    };
-
-    const handleTrimExport = (exportData) => {
-        Alert.alert('Success', 'Video trimmed successfully!');
-    };
-
-    const handleCompressExport = (exportData) => {
-        const { compressionRatio, originalSize, compressedSize } = exportData;
+    // Export handlers
+    const handleTrimExport = (exportedVideoPath) => {
+        console.log('Video trimmed successfully:', exportedVideoPath);
         Alert.alert(
-            'Video compressed successfully', 
-            // `Video compressed successfully!\n\nOriginal size: ${formatFileSize(originalSize)}\nCompressed size: ${formatFileSize(compressedSize)}\nReduction: ${compressionRatio}%`
+            'Success',
+            'Video has been trimmed successfully!',
+            [{ text: 'OK' }]
         );
+        setShowTrimModal(false);
+        setTrimModalVideo(null);
     };
 
-    const handleMp3ConvertExport = (audioPath) => {
+    const handleCompressExport = (result) => {
+        console.log('Video compressed successfully:', result);
+        const { inputSize, outputSize, compressionRatio } = result;
         Alert.alert(
-            'Success', 
-            `Audio extracted successfully!\n\nFile saved to: ${audioPath}`
+            'Compression Complete',
+            `Original: ${inputSize}\nCompressed: ${outputSize}\nReduction: ${compressionRatio}%`,
+            [{ text: 'OK' }]
         );
+        setShowCompressModal(false);
+        setCompressModalVideo(null);
     };
 
-    const formatFileSize = (bytes) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const handleMp3ConvertExport = (convertedAudioPath) => {
+        console.log('Audio converted successfully:', convertedAudioPath);
+        Alert.alert(
+            'Success',
+            `Audio file created: ${convertedAudioPath}`,
+            [{ text: 'OK' }]
+        );
+        setShowMp3ConvertModal(false);
+        setMp3ConvertModalVideo(null);
+    };
+
+    const handleMergeExport = (mergedVideoPath) => {
+        console.log('Videos merged successfully:', mergedVideoPath);
+        setShowMergeModal(false);
+        setMergeVideos([]);
     };
 
     const editOptions = [
         {
-            id: 'trim',
             title: 'Trim Video',
-            description: 'Cut and trim your videos',
             icon: require('../../../assets/edit/trim.png'),
-            backgroundColor: COLORS.ACTIVE,
-            onPress: () => {
-                openVideoSelector('Select Video to Trim', handleTrimVideo);
-            }
+            onPress: handleTrimVideo,
         },
         {
-            id: 'compress',
-            title: 'Compress Video', 
-            description: 'Reduce video file size',
+            title: 'Compress Video',
             icon: require('../../../assets/edit/compress.png'),
-            backgroundColor: COLORS.ACTIVE,
-            onPress: () => {
-                openVideoSelector('Select Video to Compress', handleCompressVideo);
-            }
+            onPress: handleCompressVideo,
         },
         {
-            id: 'merge',
             title: 'Merge Video',
-            description: 'Combine multiple videos',
             icon: require('../../../assets/edit/merge.png'),
-            backgroundColor: COLORS.ACTIVE,
-            onPress: () => {
-                // Navigate to merge video screen
-                console.log('Merge Video pressed');
-            }
+            onPress: handleMergeVideo,
         },
         {
-            id: 'v2mp3',
             title: 'Video to MP3',
-            description: 'Extract audio from video',
             icon: require('../../../assets/edit/v2mp3.png'),
-            backgroundColor: COLORS.ACTIVE,
-            onPress: () => {
-                openVideoSelector('Select Video to Convert', handleMp3ConvertVideo);
-            }
-        }
+            onPress: handleMp3ConvertVideo,
+        },
     ];
-
-    const renderEditOption = (option) => (
-        <TouchableOpacity 
-            key={option.id} 
-            style={[styles.editCard, { backgroundColor: COLORS.SECONDARY }]}
-            onPress={option.onPress}
-            activeOpacity={0.8}
-        >
-            <View style={[styles.iconContainer]}>
-                <Image source={option.icon} style={styles.editIcon} resizeMode="contain" />
-            </View>
-            <View style={styles.editInfo}>
-                <Text style={styles.editTitle}>{option.title}</Text>
-                {/* <Text style={styles.editDescription}>{option.description}</Text> */}
-            </View>
-        </TouchableOpacity>
-    );
 
     return (
         <View style={styles.tabContent}>
+            {/* Edit Options Grid */}
             <View style={styles.editGrid}>
-                {editOptions.map((option, index) => {
-                    if (index % 2 === 0) {
-                        return (
-                            <View key={`row-${index}`} style={styles.editRow}>
-                                {renderEditOption(option)}
-                                {editOptions[index + 1] && renderEditOption(editOptions[index + 1])}
-                            </View>
-                        );
-                    }
-                    return null;
-                })}
+                {editOptions.map((option, index) => (
+                    <TouchableOpacity
+                        key={index}
+                        style={styles.editCard}
+                        onPress={option.onPress}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.iconContainer}>
+                            <Image source={option.icon} style={styles.editIcon} />
+                        </View>
+                        <Text style={styles.editTitle}>{option.title}</Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
-            {/* Video Selector Modal */}
+            {/* Ad Banner */}
+            <View style={styles.adContainer}>
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+            </View>
+
+            {/* Single Video Selector Modal */}
             <VideoSelectorModal
                 visible={showVideoSelector}
                 title={videoSelectorTitle}
@@ -172,7 +179,16 @@ const EditTab = () => {
                 onVideoSelect={handleVideoSelect}
             />
 
-            {/* Trim Video Modal */}
+            {/* Multi Video Selector Modal (for merge) */}
+            <MultiVideoSelectorModal
+                visible={showMultiVideoSelector}
+                title="Select Videos to Merge"
+                onClose={() => setShowMultiVideoSelector(false)}
+                onVideoSelect={handleMultiVideoSelect}
+                minSelection={2}
+            />
+
+            {/* Tool Modals */}
             <TrimVideoModal
                 visible={showTrimModal}
                 video={trimModalVideo}
@@ -183,7 +199,6 @@ const EditTab = () => {
                 onExport={handleTrimExport}
             />
 
-            {/* Compress Video Modal */}
             <CompressModal
                 visible={showCompressModal}
                 video={compressModalVideo}
@@ -194,7 +209,6 @@ const EditTab = () => {
                 onCompress={handleCompressExport}
             />
 
-            {/* Mp3 Convert Modal */}
             <Mp3ConvertModal
                 visible={showMp3ConvertModal}
                 video={mp3ConvertModalVideo}
@@ -204,6 +218,16 @@ const EditTab = () => {
                 }}
                 onConvert={handleMp3ConvertExport}
             />
+
+            <MergeVideoModal
+                visible={showMergeModal}
+                videos={mergeVideos}
+                onClose={() => {
+                    setShowMergeModal(false);
+                    setMergeVideos([]);
+                }}
+                onExport={handleMergeExport}
+            />
         </View>
     );
 };
@@ -211,56 +235,46 @@ const EditTab = () => {
 const styles = StyleSheet.create({
     tabContent: {
         flex: 1,
-        backgroundColor: COLORS.BACKGROUND, // Beige background like in the image
-        paddingHorizontal: 20,
-        paddingTop: 20,
     },
+    
     editGrid: {
-        flex: 1,
-    },
-    editRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginBottom: 20,
+        paddingHorizontal: 16,
+        paddingTop: 16,
     },
     editCard: {
-        width: (width - 60) / 2, // Account for padding and gap
+        width: (screenWidth - 48) / 2,
         height: 120,
-        borderRadius: 8,
+        borderRadius: 12,
         padding: 16,
-        justifyContent: 'space-between',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    iconContainer: {
-        width: 50,
-        height: 50,
-        // borderRadius: 8,
+        marginBottom: 16,
+        backgroundColor: COLORS.SECONDARY,
         justifyContent: 'center',
         alignItems: 'center',
-        alignSelf: 'flex-start',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+    },
+    iconContainer: {
+        marginBottom: 8,
     },
     editIcon: {
-        width: 50,
-        height: 50,
-        // tintColor: '#FFFFFF',
-    },
-    editInfo: {
-        marginTop: 8,
+        width: 40,
+        height: 40,
     },
     editTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: 'bold',
         color: COLORS.TERTIARY,
-        marginBottom: 4,
+        textAlign: 'center',
     },
-    editDescription: {
-        fontSize: 12,
-        color: '#5D4037',
-        opacity: 0.8,
+    adContainer: {
+        margin: 16,
+        overflow: 'hidden',
     },
 });
 

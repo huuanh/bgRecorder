@@ -17,6 +17,8 @@ import { NativeAdComponent } from '../NativeAdComponent';
 import { ADS_UNIT } from '../../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactContextManager from '../../utils/ReactContextManager';
+import CameraSettingsManager from '../../utils/CameraSettingsManager';
+import CameraModeModal from '../CameraModeModal';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
@@ -33,6 +35,7 @@ const RecordTab = () => {
     const [recordingTime, setRecordingTime] = useState(0);
     const [availableStorage, setAvailableStorage] = useState({ used: 85, total: 125 });
     const [isServiceRecording, setIsServiceRecording] = useState(false);
+    const [showCameraModeModal, setShowCameraModeModal] = useState(false);
 
     useEffect(() => {
         // Debug log to check module availability
@@ -49,6 +52,9 @@ const RecordTab = () => {
             initTimer = setTimeout(() => {
                 // Check if service is already recording when component mounts
                 checkServiceStatus();
+                
+                // Load camera settings
+                loadCameraSettings();
             }, 500);
         });
         
@@ -218,6 +224,33 @@ const RecordTab = () => {
             } else {
                 console.log('⚠️ Status check failed, keeping current state');
             }
+        }
+    };
+
+    const loadCameraSettings = async () => {
+        try {
+            const settings = await CameraSettingsManager.getSettings();
+            setRecordingSettings(prev => ({
+                ...prev,
+                camera: settings.cameraMode === 'front' ? 'Front' : 'Back'
+            }));
+            console.log('✅ Camera settings loaded:', settings.cameraMode);
+        } catch (error) {
+            console.error('❌ Failed to load camera settings:', error);
+        }
+    };
+
+    const handleCameraModeSelect = async (mode) => {
+        try {
+            await CameraSettingsManager.saveCameraMode(mode);
+            setRecordingSettings(prev => ({
+                ...prev,
+                camera: mode === 'front' ? 'Front' : 'Back'
+            }));
+            console.log('✅ Camera mode updated:', mode);
+        } catch (error) {
+            console.error('❌ Failed to save camera mode:', error);
+            Alert.alert('Error', 'Failed to save camera mode');
         }
     };
 
@@ -473,9 +506,9 @@ const RecordTab = () => {
                 title = 'Video Quality';
                 break;
             case 'camera':
-                options = ['Front', 'Back'];
-                title = 'Camera Selection';
-                break;
+                // Use modal instead of Alert for camera selection
+                setShowCameraModeModal(true);
+                return;
         }
 
         Alert.alert(
@@ -601,6 +634,14 @@ const RecordTab = () => {
                     {availableStorage.used} GB/ {availableStorage.total} GB
                 </Text>
             </View>
+
+            {/* Camera Mode Selection Modal */}
+            <CameraModeModal
+                visible={showCameraModeModal}
+                onClose={() => setShowCameraModeModal(false)}
+                currentMode={recordingSettings.camera === 'Front' ? 'front' : 'back'}
+                onSelect={handleCameraModeSelect}
+            />
         </View>
     );
 };
@@ -612,7 +653,7 @@ const getSettingIcon = (setting) => {
         case 'duration':
             return require('../../../assets/home/ic/icon_clock.png');
         case 'quality':
-            return require('../../../assets/home/ic/ic_record2.png');
+            return require('../../../assets/home/ic/quality.png');
         case 'camera':
             return require('../../../assets/home/ic/icon_swap.png');
         default:
@@ -641,6 +682,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         marginBottom: 5,
+        resizeMode: 'contain',
     },
     settingLabel: {
         fontSize: 12,
