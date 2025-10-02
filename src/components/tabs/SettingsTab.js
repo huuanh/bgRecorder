@@ -17,7 +17,9 @@ import CameraModeModal from '../CameraModeModal';
 import DurationModal from '../DurationModal';
 import ResolutionModal from '../ResolutionModal';
 import PreviewSizeModal from '../PreviewSizeModal';
+import SetPasswordModal from '../SetPasswordModal';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
+import SecurityManager from '../../utils/SecurityManager';
 
 const { width } = Dimensions.get('window');
 
@@ -30,15 +32,26 @@ const SettingsTab = () => {
         resolution: 'HD', // Default to HD
         previewSize: 'medium',
     });
+
+    const [securitySettings, setSecuritySettings] = useState({
+        hasPassword: false,
+        biometricsEnabled: false,
+        appLockEnabled: false,
+        autoLockDelay: 5,
+    });
     
     const [showCameraModeModal, setShowCameraModeModal] = useState(false);
     const [showDurationModal, setShowDurationModal] = useState(false);
     const [showResolutionModal, setShowResolutionModal] = useState(false);
     const [showPreviewSizeModal, setShowPreviewSizeModal] = useState(false);
+    const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
+    const [biometricsAvailable, setBiometricsAvailable] = useState(false);
 
     // Load settings on component mount
     useEffect(() => {
         loadSettings();
+        loadSecuritySettings();
+        checkBiometricsAvailability();
     }, []);
 
     const loadSettings = async () => {
@@ -47,6 +60,24 @@ const SettingsTab = () => {
             setSettings(savedSettings);
         } catch (error) {
             console.error('Failed to load settings:', error);
+        }
+    };
+
+    const loadSecuritySettings = async () => {
+        try {
+            const savedSecuritySettings = await SecurityManager.getSecuritySettings();
+            setSecuritySettings(savedSecuritySettings);
+        } catch (error) {
+            console.error('Failed to load security settings:', error);
+        }
+    };
+
+    const checkBiometricsAvailability = async () => {
+        try {
+            const { available } = await SecurityManager.isBiometricsAvailable();
+            setBiometricsAvailable(available);
+        } catch (error) {
+            console.error('Failed to check biometrics availability:', error);
         }
     };
 
@@ -115,13 +146,118 @@ const SettingsTab = () => {
         }
     };
 
+    // Security handlers
+    const handlePasswordSetup = () => {
+        if (securitySettings.hasPassword) {
+            Alert.alert(
+                'Password Already Set',
+                'You already have a password set. Do you want to change it?',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Change Password', onPress: () => setShowSetPasswordModal(true) }
+                ]
+            );
+        } else {
+            setShowSetPasswordModal(true);
+        }
+    };
+
+    const handlePasswordSet = async () => {
+        await loadSecuritySettings();
+        Alert.alert('Success', 'Password has been set successfully!');
+    };
+
+    const handleBiometricToggle = async (enabled) => {
+        try {
+            if (enabled) {
+                if (!biometricsAvailable) {
+                    Alert.alert('Error', 'Biometric authentication is not available on this device');
+                    return;
+                }
+
+                const success = await SecurityManager.enableBiometrics();
+                if (success) {
+                    await loadSecuritySettings();
+                    Alert.alert('Success', 'Biometric authentication has been enabled');
+                } else {
+                    Alert.alert('Error', 'Failed to enable biometric authentication');
+                }
+            } else {
+                const success = await SecurityManager.disableBiometrics();
+                if (success) {
+                    await loadSecuritySettings();
+                    Alert.alert('Success', 'Biometric authentication has been disabled');
+                } else {
+                    Alert.alert('Error', 'Failed to disable biometric authentication');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling biometrics:', error);
+            Alert.alert('Error', 'An error occurred while updating biometric settings');
+        }
+    };
+
+    const handleRemovePassword = () => {
+        Alert.alert(
+            'Remove Password',
+            'Are you sure you want to remove your password? This will disable all security features.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            console.log('🔄 Starting password removal process...');
+                            
+                            // Show loading state
+                            // setLoading(true);
+                            
+                            // Add small delay to prevent race conditions
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            
+                            // Remove password with detailed error catching
+                            const result = await SecurityManager.removePassword();
+                            console.log('📋 Password removal result:', result);
+                            
+                            // Reload settings to reflect changes
+                            await loadSecuritySettings();
+                            
+                            // Hide loading
+                            // setLoading(false);
+                            
+                            Alert.alert(
+                                'Success', 
+                                'Password removed successfully. All security features have been disabled.',
+                                [{ text: 'OK' }]
+                            );
+                        } catch (error) {
+                            // setLoading(false);
+                            console.error('❌ Detailed error removing password:', {
+                                message: error.message,
+                                stack: error.stack,
+                                name: error.name
+                            });
+                            
+                            Alert.alert(
+                                'Error', 
+                                `Unable to remove password.\n\nDetails: ${error.message || 'Unknown error occurred'}`,
+                                [{ text: 'OK' }]
+                            );
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleOptionPress = (option) => {
         switch (option) {
             case 'changeIcon':
                 Alert.alert('Change Icon', 'Feature coming soon!');
                 break;
             case 'setPassword':
-                Alert.alert('Set Password', 'Feature coming soon!');
+                handlePasswordSetup();
                 break;
             case 'saveLocation':
                 Alert.alert('Save Location', 'Feature coming soon!');
@@ -200,39 +336,60 @@ const SettingsTab = () => {
         </TouchableOpacity>
     );
 
-    const renderSettingItemWithValue = (iconSource, title, subtitle, hasSwitch = false, switchKey = null, onPress = null, currentValue = null) => (
-        <TouchableOpacity 
-            style={styles.settingItem} 
-            onPress={onPress}
-            disabled={hasSwitch}
-        >
-            <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                    <Image 
-                        source={iconSource} 
-                        style={styles.settingIconImage}
-                        resizeMode="contain"
-                    />
+    const renderSettingItemWithValue = (iconSource, title, subtitle, hasSwitch = false, switchKey = null, onPress = null, currentValue = null) => {
+        const getSwitchValue = () => {
+            // Handle security settings
+            if (switchKey === 'biometricsEnabled' || switchKey === 'appLockEnabled') {
+                return securitySettings[switchKey];
+            }
+            // Handle regular settings
+            return settings[switchKey];
+        };
+
+        const handleSwitchChange = () => {
+            // Handle security switches
+            if (switchKey === 'biometricsEnabled') {
+                handleBiometricToggle(!securitySettings.biometricsEnabled);
+            } else {
+                // Handle regular switches
+                setSettings(prev => ({...prev, [switchKey]: !prev[switchKey]}));
+            }
+        };
+
+        return (
+            <TouchableOpacity 
+                style={styles.settingItem} 
+                onPress={onPress}
+                disabled={hasSwitch}
+            >
+                <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                        <Image 
+                            source={iconSource} 
+                            style={styles.settingIconImage}
+                            resizeMode="contain"
+                        />
+                    </View>
+                    <View style={styles.settingInfo}>
+                        <Text style={styles.settingTitle}>{title}</Text>
+                    </View>
                 </View>
-                <View style={styles.settingInfo}>
-                    <Text style={styles.settingTitle}>{title}</Text>
+                <View style={styles.settingRight}>
+                    {currentValue && <Text style={styles.currentValue}>{currentValue}</Text>}
+                    {hasSwitch ? (
+                        <Switch
+                            value={getSwitchValue()}
+                            onValueChange={handleSwitchChange}
+                            trackColor={{ false: '#E5E7EB', true: COLORS.TERTIARY }}
+                            thumbColor={getSwitchValue() ? '#FFFFFF' : '#FFFFFF'}
+                        />
+                    ) : (
+                        <Text style={styles.settingArrow}>›</Text>
+                    )}
                 </View>
-            </View>
-            <View style={styles.settingRight}>
-                {currentValue && <Text style={styles.currentValue}>{currentValue}</Text>}
-                {hasSwitch ? (
-                    <Switch
-                        value={settings[switchKey]}
-                        onValueChange={() => setSettings(prev => ({...prev, [switchKey]: !prev[switchKey]}))}
-                        trackColor={{ false: '#E5E7EB', true: COLORS.PRIMARY }}
-                        thumbColor={settings[switchKey] ? '#FFFFFF' : '#FFFFFF'}
-                    />
-                ) : (
-                    <Text style={styles.settingArrow}>›</Text>
-                )}
-            </View>
-        </TouchableOpacity>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     const renderSection = (title, items) => (
         <View style={styles.section}>
@@ -305,6 +462,38 @@ const SettingsTab = () => {
                 <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
             </View>
 
+            {/* Security Section */}
+            {renderSection('Security & Privacy', [
+                renderSettingItemWithValue(
+                    require('../../../assets/home/ic/ic_password.png'), 
+                    securitySettings.hasPassword ? 'Change Password' : 'Set Password', 
+                    securitySettings.hasPassword ? 'App locks automatically with password' : 'Set password to auto-lock app', 
+                    false, 
+                    null, 
+                    handlePasswordSetup,
+                    securitySettings.hasPassword ? 'Enabled' : 'Disabled'
+                ),
+                ...(securitySettings.hasPassword ? [
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_remove.png'), 
+                        'Remove Password', 
+                        'Remove password protection', 
+                        false, 
+                        null, 
+                        handleRemovePassword
+                    )
+                ] : []),
+                ...(biometricsAvailable ? [
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_fingerprint.png'), 
+                        'Biometric Lock', 
+                        'Use fingerprint/face to unlock app', 
+                        true, 
+                        'biometricsEnabled'
+                    )
+                ] : [])
+            ])}
+
             {/* Other Section */}
             {renderSection('Other', [
                 renderSettingItemWithValue(
@@ -314,14 +503,6 @@ const SettingsTab = () => {
                     false, 
                     null, 
                     () => handleOptionPress('changeIcon')
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_password.png'), 
-                    'Set Password', 
-                    'Protect app with password', 
-                    false, 
-                    null, 
-                    () => handleOptionPress('setPassword')
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_lang.png'), 
@@ -379,6 +560,13 @@ const SettingsTab = () => {
                 onClose={() => setShowPreviewSizeModal(false)}
                 currentPreviewSize={settings.previewSize}
                 onSelect={handlePreviewSizeSelect}
+            />
+
+            {/* Set Password Modal */}
+            <SetPasswordModal
+                visible={showSetPasswordModal}
+                onClose={() => setShowSetPasswordModal(false)}
+                onPasswordSet={handlePasswordSet}
             />
         </ScrollView>
     );

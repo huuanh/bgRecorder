@@ -5,14 +5,19 @@ import LoadingScreen from './src/components/LoadingScreen';
 import OnBoardScreen from './src/components/OnBoardScreen';
 import PermissionScreen from './src/components/PermissionScreen';
 import HomeScreen from './src/components/HomeScreen';
+import AuthenticationModal from './src/components/AuthenticationModal';
 import { COLORS } from './src/constants';
 import ReactContextManager from './src/utils/ReactContextManager';
+import SecurityManager from './src/utils/SecurityManager';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const [showOnBoard, setShowOnBoard] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
   const [appReady, setAppReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [securitySettings, setSecuritySettings] = useState(null);
   const isDarkMode = useColorScheme() === 'light';
 
   useEffect(() => {
@@ -20,16 +25,11 @@ function App() {
     console.log('🚀 App initialization started...');
     
     ReactContextManager.onReady(() => {
-      console.log('✅ App: React context ready, starting UI flow...');
+      console.log('✅ App: React context ready, checking security...');
       setAppReady(true);
       
-      // Start the normal flow after app is ready
-      const timer = setTimeout(() => {
-        setLoading(false);
-        setShowOnBoard(true);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+      // Check if authentication is required
+      checkAuthenticationRequired();
     });
 
     // Cleanup on unmount
@@ -37,6 +37,71 @@ function App() {
       ReactContextManager.cleanup();
     };
   }, []);
+
+  const checkAuthenticationRequired = async () => {
+    try {
+      // Add delay to ensure UIManager is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const settings = await SecurityManager.getSecuritySettings();
+      setSecuritySettings(settings);
+      
+      if (settings.hasPassword) {
+        console.log('🔐 Password exists, showing authentication...');
+        setShowAuthModal(true);
+      } else {
+        console.log('🔓 No password set, proceeding to app...');
+        setIsAuthenticated(true);
+        startNormalFlow();
+      }
+    } catch (error) {
+      console.error('❌ Error checking security settings:', error);
+      // If there's an error, proceed without authentication
+      setIsAuthenticated(true);
+      startNormalFlow();
+    }
+  };
+
+  const startNormalFlow = () => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setShowOnBoard(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  };
+
+  const handleAuthenticated = () => {
+    console.log('✅ Authentication successful, proceeding to app...');
+    setIsAuthenticated(true);
+    setShowAuthModal(false);
+    startNormalFlow();
+  };
+
+  // Handle app state changes (background/foreground)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      try {
+        if (nextAppState === 'active' && securitySettings?.hasPassword && isAuthenticated) {
+          // Re-authenticate when app comes to foreground
+          console.log('🔐 App became active, re-authentication required...');
+          // Add delay to ensure UI is ready
+          setTimeout(() => {
+            setIsAuthenticated(false);
+            setShowAuthModal(true);
+          }, 200);
+        }
+      } catch (error) {
+        console.error('❌ Error handling app state change:', error);
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [securitySettings, isAuthenticated]);
 
   const handleOnBoardNext = () => {
     console.log('🔄 OnBoard completed, navigating to Permissions...');
@@ -92,6 +157,10 @@ function App() {
         <View style={styles.container}>
           <LoadingScreen />
         </View>
+      ) : !isAuthenticated && securitySettings?.hasPassword ? (
+        <View style={styles.container}>
+          <LoadingScreen />
+        </View>
       ) : loading ? (
         <LoadingScreen />
       ) : showOnBoard ? (
@@ -104,6 +173,13 @@ function App() {
       ) : (
         <HomeScreen />
       )}
+      
+      {/* Authentication Modal */}
+      <AuthenticationModal
+        visible={showAuthModal}
+        onAuthenticated={handleAuthenticated}
+        onClose={() => {}} // Prevent manual close
+      />
     </SafeAreaProvider>
   );
 }
