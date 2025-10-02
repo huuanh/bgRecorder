@@ -19,6 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactContextManager from '../../utils/ReactContextManager';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
 import CameraModeModal from '../CameraModeModal';
+import DurationModal from '../DurationModal';
+import ResolutionModal from '../ResolutionModal';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
@@ -36,6 +38,8 @@ const RecordTab = () => {
     const [availableStorage, setAvailableStorage] = useState({ used: 85, total: 125 });
     const [isServiceRecording, setIsServiceRecording] = useState(false);
     const [showCameraModeModal, setShowCameraModeModal] = useState(false);
+    const [showDurationModal, setShowDurationModal] = useState(false);
+    const [showResolutionModal, setShowResolutionModal] = useState(false);
 
     useEffect(() => {
         // Debug log to check module availability
@@ -232,9 +236,11 @@ const RecordTab = () => {
             const settings = await CameraSettingsManager.getSettings();
             setRecordingSettings(prev => ({
                 ...prev,
-                camera: settings.cameraMode === 'front' ? 'Front' : 'Back'
+                camera: settings.cameraMode === 'front' ? 'Front' : 'Back',
+                duration: settings.duration,
+                quality: settings.resolution || 'HD'
             }));
-            console.log('✅ Camera settings loaded:', settings.cameraMode);
+            console.log('✅ Camera settings loaded:', settings.cameraMode, 'duration:', settings.duration, 'quality:', settings.resolution);
         } catch (error) {
             console.error('❌ Failed to load camera settings:', error);
         }
@@ -253,6 +259,36 @@ const RecordTab = () => {
             Alert.alert('Error', 'Failed to save camera mode');
         }
     };
+
+    const handleDurationSelect = async (duration) => {
+        try {
+            await CameraSettingsManager.saveDuration(duration);
+            setRecordingSettings(prev => ({
+                ...prev,
+                duration: duration
+            }));
+            console.log('✅ Duration updated:', duration);
+        } catch (error) {
+            console.error('❌ Failed to save duration:', error);
+            Alert.alert('Error', 'Failed to save duration');
+        }
+    };
+
+    const handleResolutionSelect = async (resolution) => {
+        try {
+            await CameraSettingsManager.saveResolution(resolution);
+            setRecordingSettings(prev => ({
+                ...prev,
+                quality: resolution
+            }));
+            console.log('✅ Resolution updated:', resolution);
+        } catch (error) {
+            console.error('❌ Failed to save resolution:', error);
+            Alert.alert('Error', 'Failed to save resolution');
+        }
+    };
+
+
 
     const saveVideoToStorage = async (videoData) => {
         try {
@@ -310,8 +346,12 @@ const RecordTab = () => {
     const showRecordingOverlayDuringRecording = async () => {
         try {
             if (VideoRecordingModule && isRecording) {
-                await VideoRecordingModule.showRecordingOverlayDuringRecording();
-                console.log('✅ Recording overlay shown during recording');
+                // Get preview size from settings for native overlay
+                const settings = await CameraSettingsManager.getSettings();
+                const previewSize = CameraSettingsManager.getPreviewSize(settings.previewSize);
+                
+                await VideoRecordingModule.showRecordingOverlayDuringRecording(previewSize);
+                console.log('✅ Recording overlay shown during recording with size:', previewSize);
             }
         } catch (error) {
             console.error('❌ Failed to show overlay during recording:', error);
@@ -418,8 +458,16 @@ const RecordTab = () => {
                     setIsRecording(true);
                     setIsServiceRecording(true);
                     
-                    const result = await VideoRecordingModule.startRecording(recordingSettings);
-                    console.log('✅ Recording start result:', result);
+                    // Get video size mapping for current quality setting
+                    const videoSize = await CameraSettingsManager.getVideoSize(recordingSettings.quality);
+                    const recordingConfig = {
+                        ...recordingSettings,
+                        width: videoSize.width,
+                        height: videoSize.height
+                    };
+                    
+                    const result = await VideoRecordingModule.startRecording(recordingConfig);
+                    console.log('✅ Recording start result:', result, 'with video size:', videoSize);
                     
                     // Check if recording actually started successfully
                     if (result && result.success !== false) {
@@ -444,8 +492,12 @@ const RecordTab = () => {
                     if (recordingSettings.preview) {
                         setTimeout(async () => {
                             try {
-                                await VideoRecordingModule.showRecordingOverlay();
-                                console.log('✅ Recording overlay shown');
+                                // Get preview size from settings for native overlay
+                                const settings = await CameraSettingsManager.getSettings();
+                                const previewSize = CameraSettingsManager.getPreviewSize(settings.previewSize);
+                                
+                                await VideoRecordingModule.showRecordingOverlay(previewSize);
+                                console.log('✅ Recording overlay shown with size:', previewSize);
                             } catch (error) {
                                 console.log('❌ Failed to show overlay:', error);
                             }
@@ -498,13 +550,13 @@ const RecordTab = () => {
                 title = 'Preview Mode';
                 break;
             case 'duration':
-                options = ['3 mins', '5 mins', '10 mins', '15 mins', '30 mins'];
-                title = 'Recording Duration';
-                break;
+                // Use modal instead of Alert for duration selection
+                setShowDurationModal(true);
+                return;
             case 'quality':
-                options = ['SD', 'HD', 'Full HD'];
-                title = 'Video Quality';
-                break;
+                // Use modal instead of Alert for quality selection
+                setShowResolutionModal(true);
+                return;
             case 'camera':
                 // Use modal instead of Alert for camera selection
                 setShowCameraModeModal(true);
@@ -547,7 +599,7 @@ const RecordTab = () => {
             case 'preview':
                 return recordingSettings.preview ? 'On' : 'Off';
             case 'duration':
-                return `${recordingSettings.duration} mins`;
+                return recordingSettings.duration === -1 ? 'Unlimited' : `${recordingSettings.duration} mins`;
             default:
                 return recordingSettings[setting];
         }
@@ -641,6 +693,22 @@ const RecordTab = () => {
                 onClose={() => setShowCameraModeModal(false)}
                 currentMode={recordingSettings.camera === 'Front' ? 'front' : 'back'}
                 onSelect={handleCameraModeSelect}
+            />
+
+            {/* Duration Selection Modal */}
+            <DurationModal
+                visible={showDurationModal}
+                onClose={() => setShowDurationModal(false)}
+                currentDuration={recordingSettings.duration}
+                onSelect={handleDurationSelect}
+            />
+
+            {/* Resolution Selection Modal */}
+            <ResolutionModal
+                visible={showResolutionModal}
+                onClose={() => setShowResolutionModal(false)}
+                currentResolution={recordingSettings.quality}
+                onSelect={handleResolutionSelect}
             />
         </View>
     );

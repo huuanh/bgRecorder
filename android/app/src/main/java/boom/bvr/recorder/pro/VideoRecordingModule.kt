@@ -61,7 +61,7 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             reactContext.registerReceiver(broadcastReceiver, filter)
         }
     }
-    
+
     override fun getName(): String = "VideoRecordingModule"
     
     private val serviceConnection = object : ServiceConnection {
@@ -753,9 +753,9 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     @ReactMethod
-    fun showRecordingOverlay(promise: Promise) {
+    fun showRecordingOverlay(previewSize: ReadableMap?, promise: Promise) {
         try {
-            Log.d(TAG, "showRecordingOverlay called")
+            Log.d(TAG, "showRecordingOverlay called with previewSize: $previewSize")
             
             val overlayManager = recordingService?.getOverlayManager()
             if (overlayManager == null) {
@@ -763,6 +763,15 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 promise.reject("OVERLAY_ERROR", "Recording service not available")
                 return
             }
+            
+            // Parse preview size from React Native and store it for overlay manager to use
+            val width = previewSize?.getInt("width") ?: 180   // Default medium size - portrait orientation
+            val height = previewSize?.getInt("height") ?: 240
+            
+            Log.d(TAG, "Using preview size: ${width}x${height}")
+            
+            // Store preview size in overlay manager before showing
+            overlayManager.setPreviewSize(width, height)
             
             val success = overlayManager.showOverlay(
                 cameraDevice = null,
@@ -808,12 +817,21 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     }
     
     @ReactMethod
-    fun showRecordingOverlayDuringRecording(promise: Promise) {
+    fun showRecordingOverlayDuringRecording(previewSize: ReadableMap?, promise: Promise) {
         try {
             if (!serviceBound || recordingService == null) {
                 promise.reject("SERVICE_NOT_AVAILABLE", "Recording service not available")
                 return
             }
+            
+            // Parse preview size from React Native
+            val width = previewSize?.getInt("width") ?: 180   // Default medium size - portrait orientation
+            val height = previewSize?.getInt("height") ?: 240
+            
+            Log.d(TAG, "showOverlayDuringRecording with preview size: ${width}x${height}")
+            
+            // Set preview size in overlay manager before showing
+            recordingService!!.getOverlayManager()?.setPreviewSize(width, height)
             
             val success = recordingService!!.showOverlayDuringRecording()
             if (success) {

@@ -14,6 +14,9 @@ import { COLORS } from '../../constants';
 import { NativeAdComponent } from '../NativeAdComponent';
 import AdManager, { ADS_UNIT } from '../../AdManager';
 import CameraModeModal from '../CameraModeModal';
+import DurationModal from '../DurationModal';
+import ResolutionModal from '../ResolutionModal';
+import PreviewSizeModal from '../PreviewSizeModal';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
 
 const { width } = Dimensions.get('window');
@@ -23,12 +26,15 @@ const SettingsTab = () => {
         // Video Settings
         cameraMode: 'back',
         autoSplit: false,
-        duration: 30,
-        resolution: '720p',
+        duration: 3, // Default to 3 minutes
+        resolution: 'HD', // Default to HD
         previewSize: 'medium',
     });
     
     const [showCameraModeModal, setShowCameraModeModal] = useState(false);
+    const [showDurationModal, setShowDurationModal] = useState(false);
+    const [showResolutionModal, setShowResolutionModal] = useState(false);
+    const [showPreviewSizeModal, setShowPreviewSizeModal] = useState(false);
 
     // Load settings on component mount
     useEffect(() => {
@@ -66,42 +72,47 @@ const SettingsTab = () => {
     };
 
     const handleDurationChange = () => {
-        Alert.alert(
-            'Recording Duration',
-            'Select maximum recording duration',
-            [
-                { text: '15 seconds', onPress: () => setSettings(prev => ({...prev, duration: 15})) },
-                { text: '30 seconds', onPress: () => setSettings(prev => ({...prev, duration: 30})) },
-                { text: '60 seconds', onPress: () => setSettings(prev => ({...prev, duration: 60})) },
-                { text: 'Cancel', style: 'cancel' }
-            ]
-        );
+        setShowDurationModal(true);
     };
 
+    const handleDurationSelect = async (duration) => {
+        try {
+            await CameraSettingsManager.saveDuration(duration);
+            setSettings(prev => ({...prev, duration: duration}));
+        } catch (error) {
+            console.error('Failed to save duration:', error);
+            Alert.alert('Error', 'Failed to save duration');
+        }
+    };
+
+
+
     const handleResolutionChange = () => {
-        Alert.alert(
-            'Video Resolution',
-            'Select video quality',
-            [
-                { text: '480p', onPress: () => setSettings(prev => ({...prev, resolution: '480p'})) },
-                { text: '720p', onPress: () => setSettings(prev => ({...prev, resolution: '720p'})) },
-                { text: '1080p', onPress: () => setSettings(prev => ({...prev, resolution: '1080p'})) },
-                { text: 'Cancel', style: 'cancel' }
-            ]
-        );
+        setShowResolutionModal(true);
+    };
+
+    const handleResolutionSelect = async (resolution) => {
+        try {
+            await CameraSettingsManager.saveResolution(resolution);
+            setSettings(prev => ({...prev, resolution: resolution}));
+        } catch (error) {
+            console.error('Failed to save resolution:', error);
+            Alert.alert('Error', 'Failed to save resolution');
+        }
     };
 
     const handlePreviewSizeChange = () => {
-        Alert.alert(
-            'Preview Size',
-            'Select preview window size',
-            [
-                { text: 'Small', onPress: () => setSettings(prev => ({...prev, previewSize: 'small'})) },
-                { text: 'Medium', onPress: () => setSettings(prev => ({...prev, previewSize: 'medium'})) },
-                { text: 'Large', onPress: () => setSettings(prev => ({...prev, previewSize: 'large'})) },
-                { text: 'Cancel', style: 'cancel' }
-            ]
-        );
+        setShowPreviewSizeModal(true);
+    };
+
+    const handlePreviewSizeSelect = async (previewSize) => {
+        try {
+            await CameraSettingsManager.savePreviewSize(previewSize);
+            setSettings(prev => ({...prev, previewSize: previewSize}));
+        } catch (error) {
+            console.error('Failed to save preview size:', error);
+            Alert.alert('Error', 'Failed to save preview size');
+        }
     };
 
     const handleOptionPress = (option) => {
@@ -267,7 +278,7 @@ const SettingsTab = () => {
                     false, 
                     null, 
                     handleDurationChange,
-                    `${settings.duration}s`
+                    settings.duration === -1 ? 'Unlimited' : `${settings.duration} mins`
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/quality.png'), 
@@ -291,9 +302,9 @@ const SettingsTab = () => {
 
             {/* Native Ad */}
             <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_AD} />
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
             </View>
-            
+
             {/* Other Section */}
             {renderSection('Other', [
                 renderSettingItemWithValue(
@@ -344,6 +355,30 @@ const SettingsTab = () => {
                 onClose={() => setShowCameraModeModal(false)}
                 currentMode={settings.cameraMode}
                 onSelect={handleCameraModeSelect}
+            />
+
+            {/* Duration Selection Modal */}
+            <DurationModal
+                visible={showDurationModal}
+                onClose={() => setShowDurationModal(false)}
+                currentDuration={settings.duration}
+                onSelect={handleDurationSelect}
+            />
+
+            {/* Resolution Selection Modal */}
+            <ResolutionModal
+                visible={showResolutionModal}
+                onClose={() => setShowResolutionModal(false)}
+                currentResolution={settings.resolution}
+                onSelect={handleResolutionSelect}
+            />
+
+            {/* Preview Size Selection Modal */}
+            <PreviewSizeModal
+                visible={showPreviewSizeModal}
+                onClose={() => setShowPreviewSizeModal(false)}
+                currentPreviewSize={settings.previewSize}
+                onSelect={handlePreviewSizeSelect}
             />
         </ScrollView>
     );
@@ -397,7 +432,6 @@ const styles = StyleSheet.create({
     },
     adContainer: {
         marginBottom: 16,
-        borderRadius: 12,
         overflow: 'hidden',
     },
     section: {

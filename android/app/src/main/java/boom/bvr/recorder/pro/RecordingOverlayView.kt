@@ -17,6 +17,8 @@ import kotlinx.coroutines.*
 
 class RecordingOverlayView @JvmOverloads constructor(
     context: Context,
+    private val initPreviewWidth: Int = 160,  // Default medium size
+    private val initPreviewHeight: Int = 120,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
@@ -39,6 +41,10 @@ class RecordingOverlayView @JvmOverloads constructor(
     private var updateJob: Job? = null
     private var frameUpdateCount = 0 // Add counter for frame updates
 
+    // Preview size settings - initialize with constructor values
+    private var previewWidth = initPreviewWidth
+    private var previewHeight = initPreviewHeight
+
     // Touch and drag variables
     private var lastTouchX = 0f
     private var lastTouchY = 0f
@@ -52,16 +58,20 @@ class RecordingOverlayView @JvmOverloads constructor(
     var onStopRecordingCallback: (() -> Unit)? = null
 
     init {
+        Log.d(TAG, "🏗️ RecordingOverlayView initialized with preview size: ${previewWidth}x${previewHeight}")
+        // Setup with constructor provided size
         setupOverlayView()
     }
 
     private fun setupOverlayView() {
         setBackgroundColor(Color.TRANSPARENT)
 
-        // Create main container with rounded corners
-        // Adjust size for proper camera aspect ratio (9:16 for portrait)
-        val containerWidth = (160 * context.resources.displayMetrics.density).toInt()
-        val containerHeight = (240 * context.resources.displayMetrics.density).toInt()
+        // Create main container with rounded corners using preview size settings
+        val density = context.resources.displayMetrics.density
+        val containerWidth = (previewWidth * density).toInt()
+        val containerHeight = (previewHeight * density).toInt() // Add space for controls
+        
+        Log.d(TAG, "📐 setupOverlayView with size: ${previewWidth}x${previewHeight}, density: $density, container: ${containerWidth}x${containerHeight}")
         
         val containerView = FrameLayout(context).apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -76,12 +86,13 @@ class RecordingOverlayView @JvmOverloads constructor(
             elevation = 8f
         }
 
-        // Create TextureView for camera preview with proper aspect ratio
-        val previewHeight = (180 * context.resources.displayMetrics.density).toInt() // 9:16 ratio
+        // Create TextureView for camera preview using preview size settings
+        val textureWidth = (previewWidth * density).toInt()
+        val textureHeight = (previewHeight * density).toInt()
         textureView = TextureView(context).apply {
             layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                previewHeight
+                textureWidth,
+                textureHeight
             )
         }
         containerView.addView(textureView)
@@ -308,15 +319,80 @@ class RecordingOverlayView @JvmOverloads constructor(
     
     fun getTextureView(): TextureView? = textureView
     
+    private fun adjustTextureViewAspectRatio(previewWidth: Int, previewHeight: Int) {
+        textureView?.let { texture ->
+            texture.post {
+                // Get actual camera preview size ratio (typically 4:3 or 16:9)
+                val cameraAspectRatio = previewWidth.toFloat() / previewHeight.toFloat()
+                
+                // Get TextureView current size
+                val textureWidth = texture.width
+                val textureHeight = texture.height
+                val textureAspectRatio = textureWidth.toFloat() / textureHeight.toFloat()
+                
+                Log.d(TAG, "OVERLAY_DEBUG: Camera ratio: $cameraAspectRatio, Texture ratio: $textureAspectRatio")
+                
+                if (Math.abs(cameraAspectRatio - textureAspectRatio) > 0.1f) {
+                    // Apply scaling to maintain aspect ratio
+                    val matrix = Matrix()
+                    
+                    if (cameraAspectRatio > textureAspectRatio) {
+                        // Camera is wider, scale height
+                        val scale = cameraAspectRatio / textureAspectRatio
+                        matrix.setScale(1f, scale, textureWidth / 2f, textureHeight / 2f)
+                    } else {
+                        // Camera is taller, scale width  
+                        val scale = textureAspectRatio / cameraAspectRatio
+                        matrix.setScale(scale, 1f, textureWidth / 2f, textureHeight / 2f)
+                    }
+                    
+                    texture.setTransform(matrix)
+                    Log.d(TAG, "OVERLAY_DEBUG: Applied transform matrix to fix aspect ratio")
+                }
+            }
+        }
+    }
+    
     fun setService(videoService: VideoRecordingService?) {
         service = videoService
         Log.d(TAG, "OVERLAY_DEBUG: Service set for overlay: ${service != null}")
         
         // Setup camera preview after service is set with small delay
+        setupCameraPreviewDelayed()
+    }
+    
+    private fun setupCameraPreviewDelayed() {
         textureView?.post {
             Log.d(TAG, "OVERLAY_DEBUG: TextureView post - setting up camera preview")
             Log.d(TAG, "OVERLAY_DEBUG: TextureView isAvailable: ${textureView?.isAvailable}")
             setupCameraPreview()
+        }
+    }
+    
+    fun setPreviewSize(width: Int, height: Int) {
+        Log.d(TAG, "🔄 setPreviewSize called with: ${width}x${height} (current: ${previewWidth}x${previewHeight})")
+        
+        // Must run on UI thread since we're touching views
+        post {
+            previewWidth = width
+            previewHeight = height
+            
+            // Store current service reference
+            val currentService = service
+            
+            Log.d(TAG, "🔄 Rebuilding overlay with new size on UI thread, service exists: ${currentService != null}")
+            
+            // Completely rebuild the overlay with new size
+            removeAllViews()
+            setupOverlayView()
+            
+            // Restore service connection if it existed
+            if (currentService != null) {
+                Log.d(TAG, "🔄 Restoring service connection after rebuild")
+                setupCameraPreviewDelayed()
+            }
+            
+            Log.d(TAG, "✅ Overlay recreated with new preview size: ${width}x${height}")
         }
     }
 
@@ -410,9 +486,9 @@ class RecordingOverlayView @JvmOverloads constructor(
             val centerX = viewWidth / 2f
             val centerY = viewHeight / 2f
             
-            // Camera preview is typically 16:9 or 4:3, we need to fit it properly in our view
-            // Most cameras provide 16:9 ratio (1920x1080 or similar)
-            val cameraAspectRatio = 16f / 9f // Standard camera ratio
+            // Camera preview now using 3:4 for portrait orientation overlay
+            // This matches our portrait overlay better for mobile usage
+            val cameraAspectRatio = 3f / 4f // Portrait camera ratio for overlay
             val viewAspectRatio = viewWidth.toFloat() / viewHeight.toFloat()
             
             var scaleX = 1f
@@ -461,9 +537,9 @@ class RecordingOverlayView @JvmOverloads constructor(
             val screenWidth = displayMetrics.widthPixels
             val screenHeight = displayMetrics.heightPixels
             
-            // Get overlay dimensions (updated to match new container size)
-            val overlayWidth = (160 * displayMetrics.density).toInt()
-            val overlayHeight = (240 * displayMetrics.density).toInt()
+            // Get overlay dimensions using current preview size
+            val overlayWidth = (previewWidth * displayMetrics.density).toInt()
+            val overlayHeight = (previewHeight * displayMetrics.density).toInt()
             
             // Constrain to screen boundaries
             params.x = params.x.coerceIn(0, screenWidth - overlayWidth)
@@ -483,8 +559,8 @@ class RecordingOverlayView @JvmOverloads constructor(
             val screenWidth = displayMetrics.widthPixels
             val screenHeight = displayMetrics.heightPixels
             
-            // Updated overlay width to match new container size
-            val overlayWidth = (160 * displayMetrics.density).toInt()
+            // Use current preview width for snapping
+            val overlayWidth = (previewWidth * displayMetrics.density).toInt()
             val centerX = params.x + overlayWidth / 2
             
             // Snap to left or right edge based on which is closer

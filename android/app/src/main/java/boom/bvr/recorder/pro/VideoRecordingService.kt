@@ -24,6 +24,7 @@ import android.content.ContentValues
 import android.provider.MediaStore
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.content.SharedPreferences
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -75,6 +76,9 @@ class VideoRecordingService : Service() {
         createNotificationChannel()
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         overlayManager = OverlayManager(this)
+        
+        // Initialize preview size settings when service is created
+        loadAndApplyPreviewSizeSettings()
     }
     
     @RequiresPermission(Manifest.permission.CAMERA)
@@ -103,6 +107,8 @@ class VideoRecordingService : Service() {
             }
             ACTION_SHOW_OVERLAY -> {
                 if (isRecording) {
+                    // Load and apply preview size settings before showing overlay
+                    loadAndApplyPreviewSizeSettings()
                     overlayManager?.showOverlay(cameraDevice, { stopRecording() }, this)
                     updateNotification("Recording video... (Overlay shown)")
                 }
@@ -333,6 +339,9 @@ class VideoRecordingService : Service() {
                         val service = this@VideoRecordingService
                         Log.d(TAG, "OVERLAY_DEBUG: About to show overlay with overlay manager: ${overlayManager != null}")
                         
+                        // Load and apply preview size settings before showing overlay
+                        loadAndApplyPreviewSizeSettings()
+                        
                         val overlayResult = overlayManager?.showOverlay(cameraDevice, {
                             // Callback when user closes overlay - stop recording
                             Log.d(TAG, "OVERLAY_DEBUG: User requested stop recording from overlay")
@@ -366,23 +375,46 @@ class VideoRecordingService : Service() {
     
     private fun startCameraRecording() {
         try {
-            val captureRequestBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
-            captureRequestBuilder?.addTarget(recordingSurface!!)
+            Log.d(TAG, "OVERLAY_DEBUG: Starting camera recording with preview")
             
-            // Add preview surface if overlay is showing
-            previewSurface?.let { surface ->
-                captureRequestBuilder?.addTarget(surface)
-                Log.d(TAG, "OVERLAY_DEBUG: Added preview surface to capture request")
+            // Check if recording surface is safe
+            val recSurface = recordingSurface
+            if (!isSurfaceSafe(recSurface)) {
+                Log.e(TAG, "OVERLAY_DEBUG: Recording surface is unsafe, cannot start recording")
+                return
             }
             
+            val captureRequestBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
+            if (captureRequestBuilder == null) {
+                Log.e(TAG, "OVERLAY_DEBUG: Cannot create capture request builder")
+                return
+            }
+            
+            captureRequestBuilder.addTarget(recSurface!!)
+            
             val surfaces = mutableListOf<Surface>().apply {
-                add(recordingSurface!!)
-                previewSurface?.let { add(it) }
+                add(recSurface!!)
+            }
+            
+            // Add preview surface if overlay is showing and surface is safe
+            previewSurface?.let { surface ->
+                if (isSurfaceSafe(surface)) {
+                    captureRequestBuilder.addTarget(surface)
+                    surfaces.add(surface)
+                    Log.d(TAG, "OVERLAY_DEBUG: Added safe preview surface to capture request")
+                } else {
+                    Log.w(TAG, "OVERLAY_DEBUG: Preview surface is unsafe, skipping")
+                }
             }
             
             // Use new SessionConfiguration API (API 28+) or fallback to deprecated method
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val outputConfigurations = surfaces.map { OutputConfiguration(it) }
+                val outputConfigurations = createSafeOutputConfigurations(surfaces)
+                if (outputConfigurations == null || outputConfigurations.isEmpty()) {
+                    Log.e(TAG, "OVERLAY_DEBUG: No valid surfaces for session configuration")
+                    return
+                }
+                
                 val sessionConfiguration = SessionConfiguration(
                     SessionConfiguration.SESSION_REGULAR,
                     outputConfigurations,
@@ -444,15 +476,33 @@ class VideoRecordingService : Service() {
     private fun startCameraRecordingWithoutPreview() {
         try {
             Log.d(TAG, "OVERLAY_DEBUG: Starting camera recording without preview")
+            
+            // Check if recording surface is safe
+            val recSurface = recordingSurface
+            if (!isSurfaceSafe(recSurface)) {
+                Log.e(TAG, "OVERLAY_DEBUG: Recording surface is unsafe, cannot start recording")
+                return
+            }
+            
             val captureRequestBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
-            captureRequestBuilder?.addTarget(recordingSurface!!)
+            if (captureRequestBuilder == null) {
+                Log.e(TAG, "OVERLAY_DEBUG: Cannot create capture request builder")
+                return
+            }
+            
+            captureRequestBuilder.addTarget(recSurface!!)
             
             // Chỉ sử dụng recording surface, không có preview
-            val surfaces = listOf(recordingSurface!!)
+            val surfaces = listOf(recSurface!!)
             
             // Use new SessionConfiguration API (API 28+) or fallback to deprecated method
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val outputConfigurations = surfaces.map { OutputConfiguration(it) }
+                val outputConfigurations = createSafeOutputConfigurations(surfaces)
+                if (outputConfigurations == null || outputConfigurations.isEmpty()) {
+                    Log.e(TAG, "OVERLAY_DEBUG: No valid surfaces for recording-only session configuration")
+                    return
+                }
+                
                 val sessionConfiguration = SessionConfiguration(
                     SessionConfiguration.SESSION_REGULAR,
                     outputConfigurations,
@@ -462,7 +512,7 @@ class VideoRecordingService : Service() {
                             try {
                                 captureSession = session
                                 session.setRepeatingRequest(
-                                    captureRequestBuilder!!.build(),
+                                    captureRequestBuilder.build(),
                                     null,
                                     null
                                 )
@@ -488,7 +538,7 @@ class VideoRecordingService : Service() {
                             try {
                                 captureSession = session
                                 session.setRepeatingRequest(
-                                    captureRequestBuilder!!.build(),
+                                    captureRequestBuilder.build(),
                                     null,
                                     null
                                 )
@@ -508,6 +558,82 @@ class VideoRecordingService : Service() {
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start camera recording without preview", e)
+        }
+    }
+    
+    private fun isSurfaceSafe(surface: Surface?): Boolean {
+        return try {
+            surface != null && surface.isValid
+        } catch (e: Exception) {
+            Log.w(TAG, "OVERLAY_DEBUG: Error checking surface validity: ${e.message}")
+            false
+        }
+    }
+    
+    private fun createSafeOutputConfigurations(surfaces: List<Surface>): List<OutputConfiguration>? {
+        return try {
+            val validConfigurations = surfaces.mapNotNull { surface ->
+                try {
+                    // Use safe surface check and create config atomically
+                    if (isSurfaceSafe(surface)) {
+                        OutputConfiguration(surface)
+                    } else {
+                        Log.w(TAG, "OVERLAY_DEBUG: Skipping unsafe surface in createSafeOutputConfigurations")
+                        null
+                    }
+                } catch (e: IllegalArgumentException) {
+                    // Surface became abandoned between check and OutputConfiguration creation
+                    Log.w(TAG, "OVERLAY_DEBUG: Surface became abandoned during OutputConfiguration creation: ${e.message}")
+                    null
+                } catch (e: Exception) {
+                    Log.e(TAG, "OVERLAY_DEBUG: Unexpected error creating OutputConfiguration", e)
+                    null
+                }
+            }
+            
+            if (validConfigurations.isNotEmpty()) {
+                Log.d(TAG, "OVERLAY_DEBUG: Created ${validConfigurations.size} valid output configurations from ${surfaces.size} surfaces")
+                validConfigurations
+            } else {
+                Log.w(TAG, "OVERLAY_DEBUG: No valid output configurations could be created from ${surfaces.size} surfaces")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create output configurations", e)
+            null
+        }
+    }
+    
+    private fun loadAndApplyPreviewSizeSettings() {
+        try {
+            val prefs = getSharedPreferences("RNAsyncStorageDataSource", Context.MODE_PRIVATE)
+            val cameraSettingsJson = prefs.getString("camera_settings", null)
+            
+            if (cameraSettingsJson != null) {
+                Log.d(TAG, "OVERLAY_DEBUG: Found camera settings: $cameraSettingsJson")
+                
+                // Parse JSON manually (simple approach)
+                val previewSize = when {
+                    cameraSettingsJson.contains("\"previewSize\":\"small\"") -> "small"
+                    cameraSettingsJson.contains("\"previewSize\":\"large\"") -> "large"
+                    else -> "medium"
+                }
+                
+                val (width, height) = when (previewSize) {
+                    "small" -> Pair(135, 180)  // 3:4 ratio - portrait orientation
+                    "large" -> Pair(225, 300)  // 3:4 ratio - portrait orientation
+                    else -> Pair(180, 240)     // medium 3:4 ratio - portrait orientation
+                }
+                
+                Log.d(TAG, "OVERLAY_DEBUG: Loaded preview size: $previewSize (${width}x${height})")
+                overlayManager?.setPreviewSize(width, height)
+            } else {
+                Log.d(TAG, "OVERLAY_DEBUG: No camera settings found, using default medium size")
+                overlayManager?.setPreviewSize(180, 240) // Default medium - portrait orientation
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "OVERLAY_DEBUG: Failed to load preview size settings", e)
+            overlayManager?.setPreviewSize(180, 240) // Fallback to default - portrait orientation
         }
     }
     
@@ -593,13 +719,21 @@ class VideoRecordingService : Service() {
     fun getCameraDevice(): CameraDevice? = cameraDevice
     
     fun setPreviewSurface(surface: Surface?) {
+        // Clean up old surface if it's unsafe
+        previewSurface?.let { oldSurface ->
+            if (!isSurfaceSafe(oldSurface)) {
+                Log.d(TAG, "OVERLAY_DEBUG: Cleaning up unsafe preview surface")
+                previewSurface = null
+            }
+        }
+        
         previewSurface = surface
-        Log.d(TAG, "OVERLAY_DEBUG: Preview surface set: ${surface != null}")
+        Log.d(TAG, "OVERLAY_DEBUG: Preview surface set: ${surface != null}, safe: ${isSurfaceSafe(surface)}")
         Log.d(TAG, "OVERLAY_DEBUG: Current state - isRecording: $isRecording, cameraDevice: ${cameraDevice != null}, captureSession: ${captureSession != null}")
         
         // If recording is active and camera device exists
         if (isRecording && cameraDevice != null) {
-            if (surface != null) {
+            if (isSurfaceSafe(surface)) {
                 // Surface được set lại (show overlay) - restart capture session với preview
                 Log.d(TAG, "OVERLAY_DEBUG: Restarting capture session with preview surface")
                 try {
@@ -607,25 +741,52 @@ class VideoRecordingService : Service() {
                     captureSession = null
                     
                     handler.postDelayed({
-                        Log.d(TAG, "OVERLAY_DEBUG: Starting new capture session with preview")
-                        startCameraRecording()
-                    }, 100)
+                        // Triple check all conditions before restarting
+                        val currentPreviewSurface = previewSurface
+                        val currentRecordingSurface = recordingSurface
+                        
+                        Log.d(TAG, "OVERLAY_DEBUG: Delayed restart check - preview safe: ${isSurfaceSafe(currentPreviewSurface)}, recording safe: ${isSurfaceSafe(currentRecordingSurface)}")
+                        
+                        if (isSurfaceSafe(currentPreviewSurface) && isSurfaceSafe(currentRecordingSurface)) {
+                            Log.d(TAG, "OVERLAY_DEBUG: Starting new capture session with preview")
+                            startCameraRecording()
+                        } else if (isSurfaceSafe(currentRecordingSurface)) {
+                            Log.w(TAG, "OVERLAY_DEBUG: Preview surface became invalid, starting without preview")
+                            startCameraRecordingWithoutPreview()
+                        } else {
+                            Log.e(TAG, "OVERLAY_DEBUG: All surfaces invalid, cannot restart recording")
+                        }
+                    }, 200) // Further increased delay for better stability
                     
                 } catch (e: Exception) {
                     Log.e(TAG, "OVERLAY_DEBUG: Failed to restart capture session with preview", e)
                 }
             } else {
-                // Surface = null (hide overlay) - chỉ ghi video, không có preview
-                Log.d(TAG, "OVERLAY_DEBUG: Preview surface removed, continuing recording without preview")
+                // Surface = null hoặc invalid (hide overlay) - chỉ ghi video, không có preview
+                Log.d(TAG, "OVERLAY_DEBUG: Preview surface removed/invalid, continuing recording without preview")
+                
+                // Kiểm tra recording surface vẫn safe trước khi restart
+                val recSurface = recordingSurface
+                if (!isSurfaceSafe(recSurface)) {
+                    Log.e(TAG, "OVERLAY_DEBUG: Recording surface is unsafe, cannot continue recording")
+                    return
+                }
+                
                 try {
                     // Restart capture session chỉ với recording surface (không có preview)
                     captureSession?.close()
                     captureSession = null
                     
                     handler.postDelayed({
-                        Log.d(TAG, "OVERLAY_DEBUG: Starting recording-only capture session")
-                        startCameraRecordingWithoutPreview()
-                    }, 100)
+                        // Check recording surface is still safe before restarting
+                        val currentRecordingSurface = recordingSurface
+                        if (isSurfaceSafe(currentRecordingSurface)) {
+                            Log.d(TAG, "OVERLAY_DEBUG: Starting recording-only capture session")
+                            startCameraRecordingWithoutPreview()
+                        } else {
+                            Log.e(TAG, "OVERLAY_DEBUG: Recording surface became invalid, cannot restart")
+                        }
+                    }, 200) // Matched delay for consistency
                     
                 } catch (e: Exception) {
                     Log.e(TAG, "OVERLAY_DEBUG: Failed to restart recording-only session", e)
@@ -643,6 +804,8 @@ class VideoRecordingService : Service() {
     
     fun showOverlayDuringRecording(): Boolean {
         return if (isRecording && overlayManager != null) {
+            // Load and apply preview size settings before showing overlay
+            loadAndApplyPreviewSizeSettings()
             overlayManager!!.showOverlayDuringRecording()
         } else {
             Log.w(TAG, "Cannot show overlay - not recording or overlay manager not available")

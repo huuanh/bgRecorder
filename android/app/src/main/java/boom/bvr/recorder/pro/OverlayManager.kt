@@ -23,12 +23,30 @@ class OverlayManager(private val context: Context) {
     private var isOverlayShowing = false
     private var service: VideoRecordingService? = null
     
+    // Preview size settings
+    private var previewWidth = 180   // Default medium size - portrait orientation
+    private var previewHeight = 240
+    
     init {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     }
     
+    fun setPreviewSize(width: Int, height: Int) {
+        previewWidth = width
+        previewHeight = height
+        Log.d(TAG, "Preview size set to: ${width}x${height}")
+        
+        // If overlay view already exists, update its size immediately on UI thread
+        overlayView?.let { overlay ->
+            overlay.post {
+                overlay.setPreviewSize(width, height)
+                Log.d(TAG, "Preview size applied to existing overlay view on UI thread")
+            }
+        }
+    }
+    
     fun showOverlay(cameraDevice: CameraDevice? = null, onStopRecording: (() -> Unit)? = null, service: VideoRecordingService? = null): Boolean {
-        Log.d(TAG, "showOverlay called - isShowing: $isOverlayShowing")
+        Log.d(TAG, "showOverlay called - isShowing: $isOverlayShowing, preview size: ${previewWidth}x${previewHeight}")
         
         if (isOverlayShowing) {
             Log.d(TAG, "OVERLAY_DEBUG: Overlay is already showing")
@@ -47,8 +65,8 @@ class OverlayManager(private val context: Context) {
         Log.d(TAG, "OVERLAY_DEBUG: Service set in overlay manager: ${service != null}")
         
         try {
-            Log.d(TAG, "OVERLAY_DEBUG: Creating RecordingOverlayView...")
-            overlayView = RecordingOverlayView(context).apply {
+            Log.d(TAG, "OVERLAY_DEBUG: Creating RecordingOverlayView with preview size: ${previewWidth}x${previewHeight}")
+            overlayView = RecordingOverlayView(context, previewWidth, previewHeight).apply {
                 onCloseCallback = {
                     hideOverlay()
                     // Update notification to show overlay is hidden
@@ -144,8 +162,8 @@ class OverlayManager(private val context: Context) {
         try {
             val service = this.service
             if (service != null && service.getRecordingStatus()) {
-                Log.d(TAG, "OVERLAY_DEBUG: Creating overlay for active recording...")
-                overlayView = RecordingOverlayView(context).apply {
+                Log.d(TAG, "OVERLAY_DEBUG: Creating overlay for active recording with preview size: ${previewWidth}x${previewHeight}")
+                overlayView = RecordingOverlayView(context, previewWidth, previewHeight).apply {
                     onCloseCallback = {
                         hideOverlay()
                     }

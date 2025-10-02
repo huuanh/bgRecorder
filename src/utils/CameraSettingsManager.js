@@ -14,6 +14,28 @@ class CameraSettingsManager {
         }
     }
 
+    static async saveDuration(duration) {
+        try {
+            const settings = await this.getSettings();
+            settings.duration = duration;
+            await AsyncStorage.setItem(CAMERA_SETTINGS_KEY, JSON.stringify(settings));
+            console.log('✅ Duration saved:', duration);
+        } catch (error) {
+            console.error('❌ Failed to save duration:', error);
+        }
+    }
+
+    static async saveResolution(resolution) {
+        try {
+            const settings = await this.getSettings();
+            settings.resolution = resolution;
+            await AsyncStorage.setItem(CAMERA_SETTINGS_KEY, JSON.stringify(settings));
+            console.log('✅ Resolution saved:', resolution);
+        } catch (error) {
+            console.error('❌ Failed to save resolution:', error);
+        }
+    }
+
     static async getCameraMode() {
         try {
             const settings = await this.getSettings();
@@ -44,8 +66,8 @@ class CameraSettingsManager {
             return {
                 cameraMode: 'back',
                 autoSplit: false,
-                duration: 30,
-                resolution: '720p',
+                duration: 3, // Default to 3 minutes
+                resolution: 'HD', // Default to HD
                 previewSize: 'medium',
             };
         } catch (error) {
@@ -53,10 +75,51 @@ class CameraSettingsManager {
             return {
                 cameraMode: 'back',
                 autoSplit: false, 
-                duration: 30,
-                resolution: '720p',
+                duration: 3, // Default to 3 minutes
+                resolution: 'HD', // Default to HD
                 previewSize: 'medium',
             };
+        }
+    }
+
+    static getVideoSize(resolution) {
+        switch (resolution) {
+            case 'SD':
+                return { width: 640, height: 360 };
+            case 'HD':
+                return { width: 720, height: 480 };
+            case 'Full HD':
+                return { width: 1280, height: 720 };
+            default:
+                return { width: 720, height: 480 }; // Default to HD
+        }
+    }
+
+    static async savePreviewSize(previewSize) {
+        try {
+            const currentSettings = await this.getSettings();
+            const updatedSettings = {
+                ...currentSettings,
+                previewSize: previewSize
+            };
+            await AsyncStorage.setItem(CAMERA_SETTINGS_KEY, JSON.stringify(updatedSettings));
+            console.log('✅ Preview size saved:', previewSize);
+        } catch (error) {
+            console.error('❌ Failed to save preview size:', error);
+            throw error;
+        }
+    }
+
+    static getPreviewSize(previewSizeId) {
+        switch (previewSizeId) {
+            case 'small':
+                return { width: 135, height: 180 }; // 3:4 ratio - portrait orientation
+            case 'medium':
+                return { width: 180, height: 240 }; // 3:4 ratio - portrait orientation  
+            case 'large':
+                return { width: 225, height: 300 }; // 3:4 ratio - portrait orientation
+            default:
+                return { width: 180, height: 240 }; // Default to medium
         }
     }
 
