@@ -102,6 +102,28 @@ const RecordTab = () => {
             }
         );
 
+        const recordingSplitListener = DeviceEventEmitter.addListener(
+            'onRecordingSplit',
+            (data) => {
+                console.log('📄 Recording split from service:', data);
+                
+                // Save the split video part to storage
+                if (data.filePath && data.duration) {
+                    saveVideoToStorage(data);
+                }
+                
+                // Show notification for split part
+                Alert.alert(
+                    'Auto Split',
+                    `Part ${data.partNumber} saved!\nDuration: ${formatTime(Math.floor(data.duration / 1000))}\nContinuing recording...`,
+                    [
+                        { text: 'OK' }
+                    ],
+                    { cancelable: true }
+                );
+            }
+        );
+
         // Handle app state changes
         const handleAppStateChange = (nextAppState) => {
             if (nextAppState === 'active' && isServiceRecording) {
@@ -115,6 +137,7 @@ const RecordTab = () => {
         return () => {
             recordingStartedListener.remove();
             recordingStoppedListener.remove();
+            recordingSplitListener.remove();
             appStateSubscription?.remove();
             
             // Clear any pending timers
@@ -238,7 +261,8 @@ const RecordTab = () => {
                 ...prev,
                 camera: settings.cameraMode === 'front' ? 'Front' : 'Back',
                 duration: settings.duration,
-                quality: settings.resolution || 'HD'
+                quality: settings.resolution || 'HD',
+                autoSplit: settings.autoSplit || false
             }));
             console.log('✅ Camera settings loaded:', settings.cameraMode, 'duration:', settings.duration, 'quality:', settings.resolution);
         } catch (error) {

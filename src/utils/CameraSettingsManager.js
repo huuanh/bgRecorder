@@ -36,6 +36,17 @@ class CameraSettingsManager {
         }
     }
 
+    static async saveAutoSplit(autoSplit) {
+        try {
+            const settings = await this.getSettings();
+            settings.autoSplit = autoSplit;
+            await AsyncStorage.setItem(CAMERA_SETTINGS_KEY, JSON.stringify(settings));
+            console.log('✅ Auto Split saved:', autoSplit);
+        } catch (error) {
+            console.error('❌ Failed to save auto split:', error);
+        }
+    }
+
     static async getCameraMode() {
         try {
             const settings = await this.getSettings();

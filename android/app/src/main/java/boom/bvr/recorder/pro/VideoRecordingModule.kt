@@ -47,6 +47,7 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         val filter = IntentFilter().apply {
             addAction("com.bgrecorder.RECORDING_STARTED")
             addAction("com.bgrecorder.RECORDING_STOPPED")
+            addAction("com.bgrecorder.RECORDING_SPLIT")
         }
         
         // Use ContextCompat.registerReceiver for Android 13+ compatibility
@@ -107,6 +108,7 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 putExtra(VideoRecordingService.EXTRA_QUALITY, settings.getString("quality"))
                 putExtra(VideoRecordingService.EXTRA_CAMERA, settings.getString("camera"))
                 putExtra(VideoRecordingService.EXTRA_PREVIEW, settings.getBoolean("preview"))
+                putExtra(VideoRecordingService.EXTRA_AUTO_SPLIT, settings.getBoolean("autoSplit"))
             }
             
             // Start and bind to service

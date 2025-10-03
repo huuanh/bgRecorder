@@ -44,6 +44,30 @@ class RecordingBroadcastReceiver(private val reactContext: ReactApplicationConte
                 Log.d(TAG, "Sending recording stopped event with metadata: $params")
                 sendEventToReactNative("onRecordingStopped", params)
             }
+            "com.bgrecorder.RECORDING_SPLIT" -> {
+                val duration = intent.getLongExtra("duration", 0L)
+                val filePath = intent.getStringExtra("filePath")
+                val fileName = intent.getStringExtra("fileName")
+                val fileSize = intent.getStringExtra("fileSize")
+                val partNumber = intent.getIntExtra("partNumber", 1)
+                val quality = intent.getStringExtra("quality")
+                val camera = intent.getStringExtra("camera")
+                val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
+                
+                val params = Arguments.createMap().apply {
+                    putDouble("duration", duration.toDouble())
+                    putString("filePath", filePath)
+                    putString("fileName", fileName)
+                    putString("fileSize", fileSize)
+                    putInt("partNumber", partNumber)
+                    putString("quality", quality)
+                    putString("camera", camera)
+                    putDouble("timestamp", timestamp.toDouble())
+                }
+                
+                Log.d(TAG, "Sending recording split event for part ${partNumber}: $params")
+                sendEventToReactNative("onRecordingSplit", params)
+            }
         }
     }
     

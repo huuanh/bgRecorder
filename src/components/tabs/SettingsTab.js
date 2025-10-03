@@ -346,12 +346,23 @@ const SettingsTab = () => {
             return settings[switchKey];
         };
 
-        const handleSwitchChange = () => {
+        const handleSwitchChange = async () => {
             // Handle security switches
             if (switchKey === 'biometricsEnabled') {
                 handleBiometricToggle(!securitySettings.biometricsEnabled);
+            } else if (switchKey === 'autoSplit') {
+                // Handle auto split toggle
+                const newValue = !settings.autoSplit;
+                try {
+                    await CameraSettingsManager.saveAutoSplit(newValue);
+                    setSettings(prev => ({...prev, autoSplit: newValue}));
+                    console.log('✅ Auto Split setting saved:', newValue);
+                } catch (error) {
+                    console.error('❌ Failed to save auto split:', error);
+                    Alert.alert('Error', 'Failed to save auto split setting');
+                }
             } else {
-                // Handle regular switches
+                // Handle other regular switches
                 setSettings(prev => ({...prev, [switchKey]: !prev[switchKey]}));
             }
         };

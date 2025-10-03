@@ -46,6 +46,7 @@ class VideoRecordingService : Service() {
         const val EXTRA_QUALITY = "quality"
         const val EXTRA_CAMERA = "camera"
         const val EXTRA_PREVIEW = "preview"
+        const val EXTRA_AUTO_SPLIT = "autoSplit"
     }
     
     private var mediaRecorder: MediaRecorder? = null
@@ -63,6 +64,9 @@ class VideoRecordingService : Service() {
     
     private val handler = Handler(Looper.getMainLooper())
     private var autoStopRunnable: Runnable? = null
+    private var autoSplitRunnable: Runnable? = null
+    private var isAutoSplitEnabled = false
+    private var splitCounter = 1
     
     private val binder = LocalBinder()
     
@@ -91,16 +95,27 @@ class VideoRecordingService : Service() {
                 val quality = intent.getStringExtra(EXTRA_QUALITY) ?: "HD"
                 val camera = intent.getStringExtra(EXTRA_CAMERA) ?: "Back"
                 val preview = intent.getBooleanExtra(EXTRA_PREVIEW, false)
+                val autoSplit = intent.getBooleanExtra(EXTRA_AUTO_SPLIT, false)
                 
                 recordingSettings = mutableMapOf(
                     "duration" to duration,
                     "quality" to quality,
                     "camera" to camera,
-                    "preview" to preview
+                    "preview" to preview,
+                    "autoSplit" to autoSplit
                 )
                 
+                isAutoSplitEnabled = autoSplit
+                splitCounter = 1
+                
                 startRecording()
-                setupAutoStop(duration)
+                
+                // Setup auto stop or auto split based on settings
+                if (isAutoSplitEnabled && duration == -60000L) { // -1 minute means unlimited
+                    setupAutoSplit() // Split every 3 minutes for unlimited recordings
+                } else if (duration > 0) {
+                    setupAutoStop(duration) // Normal timed recording
+                }
             }
             ACTION_STOP_RECORDING -> {
                 stopRecording()
@@ -122,6 +137,11 @@ class VideoRecordingService : Service() {
     
     @RequiresPermission(Manifest.permission.CAMERA)
     private fun startRecording() {
+        startRecordingInternal()
+    }
+    
+    @RequiresPermission(Manifest.permission.CAMERA)
+    private fun startRecordingInternal() {
         try {
             Log.d(TAG, "Starting recording with settings: $recordingSettings")
             
@@ -159,16 +179,21 @@ class VideoRecordingService : Service() {
     }
     
     private fun stopRecording() {
+        stopRecordingInternal(true)
+    }
+    
+    private fun stopRecordingInternal(sendBroadcast: Boolean = true) {
         try {
-            Log.d(TAG, "Stopping recording")
+            Log.d(TAG, "Stopping recording (sendBroadcast: $sendBroadcast)")
             
             if (!isRecording) {
                 Log.w(TAG, "Not recording")
                 return
             }
             
-            // Stop auto-stop timer
+            // Stop auto-stop and auto-split timers
             autoStopRunnable?.let { handler.removeCallbacks(it) }
+            autoSplitRunnable?.let { handler.removeCallbacks(it) }
             
             // Hide overlay
             overlayManager?.stopRecording()
@@ -216,16 +241,18 @@ class VideoRecordingService : Service() {
                 } else "Unknown"
             } ?: "Unknown"
 
-            // Send broadcast with full metadata
-            sendBroadcast(Intent("com.bgrecorder.RECORDING_STOPPED").apply {
-                putExtra("duration", duration)
-                putExtra("filePath", recordingFile?.absolutePath)
-                putExtra("fileName", recordingFile?.name)
-                putExtra("fileSize", fileSize)
-                putExtra("quality", recordingSettings["quality"] as? String ?: "HD 720p")
-                putExtra("camera", recordingSettings["camera"] as? String ?: "Back")
-                putExtra("timestamp", System.currentTimeMillis())
-            })
+            // Send broadcast with full metadata (only if requested)
+            if (sendBroadcast) {
+                sendBroadcast(Intent("com.bgrecorder.RECORDING_STOPPED").apply {
+                    putExtra("duration", duration)
+                    putExtra("filePath", recordingFile?.absolutePath)
+                    putExtra("fileName", recordingFile?.name)
+                    putExtra("fileSize", fileSize)
+                    putExtra("quality", recordingSettings["quality"] as? String ?: "HD 720p")
+                    putExtra("camera", recordingSettings["camera"] as? String ?: "Back")
+                    putExtra("timestamp", System.currentTimeMillis())
+                })
+            }
             
             // Notify MediaStore so video appears in Gallery
             recordingFile?.let { file ->
@@ -250,7 +277,12 @@ class VideoRecordingService : Service() {
     private fun createOutputFile() {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         // Add app identifier prefix for easy filtering in gallery
-        val fileName = "BGREC_${timestamp}.mp4"
+        // Include split counter if auto split is enabled
+        val fileName = if (isAutoSplitEnabled && splitCounter > 1) {
+            "BGREC_${timestamp}_part${splitCounter}.mp4"
+        } else {
+            "BGREC_${timestamp}.mp4"
+        }
         
         // Use Movies directory in DCIM so videos appear in Gallery
         val moviesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "BgRecorder")
@@ -643,6 +675,80 @@ class VideoRecordingService : Service() {
             stopRecording()
         }
         handler.postDelayed(autoStopRunnable!!, duration)
+    }
+    
+    private fun setupAutoSplit() {
+        val splitInterval = 3 * 60 * 1000L // 3 minutes in milliseconds
+        autoSplitRunnable = Runnable {
+            Log.d(TAG, "Auto-splitting recording after 3 minutes (part ${splitCounter})")
+            performAutoSplit()
+        }
+        handler.postDelayed(autoSplitRunnable!!, splitInterval)
+        Log.d(TAG, "✅ Auto split setup: will split every 3 minutes")
+    }
+    
+    private fun performAutoSplit() {
+        try {
+            Log.d(TAG, "🔄 Starting auto split process...")
+            
+            // Stop current recording
+            val currentRecordingFile = recordingFile
+            val currentDuration = System.currentTimeMillis() - startTime
+            stopRecordingInternal(false) // Don't send broadcast yet
+            
+            // Increment split counter for next part
+            splitCounter++
+            
+            // Start new recording immediately
+            Log.d(TAG, "📹 Starting recording part ${splitCounter}")
+            startRecordingInternal()
+            
+            // Send broadcast for completed part
+            currentRecordingFile?.let { file ->
+                sendRecordingSplitBroadcast(file, currentDuration, splitCounter - 1)
+            }
+            
+            // Setup next split
+            if (isAutoSplitEnabled && isRecording) {
+                setupAutoSplit()
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Auto split failed", e)
+            // If split fails, just continue recording
+        }
+    }
+    
+    private fun sendRecordingSplitBroadcast(file: File, duration: Long, partNumber: Int) {
+        // Get file size
+        val fileSize = if (file.exists()) {
+            val sizeInBytes = file.length()
+            when {
+                sizeInBytes >= 1024 * 1024 * 1024 -> "${sizeInBytes / (1024 * 1024 * 1024)} GB"
+                sizeInBytes >= 1024 * 1024 -> "${sizeInBytes / (1024 * 1024)} MB"
+                sizeInBytes >= 1024 -> "${sizeInBytes / 1024} KB"
+                else -> "$sizeInBytes B"
+            }
+        } else "Unknown"
+        
+        // Send broadcast for this split part
+        sendBroadcast(Intent("com.bgrecorder.RECORDING_SPLIT").apply {
+            putExtra("duration", duration)
+            putExtra("filePath", file.absolutePath)
+            putExtra("fileName", file.name)
+            putExtra("fileSize", fileSize)
+            putExtra("partNumber", partNumber)
+            putExtra("quality", recordingSettings["quality"] as? String ?: "HD 720p")
+            putExtra("camera", recordingSettings["camera"] as? String ?: "Back")
+            putExtra("timestamp", System.currentTimeMillis())
+        })
+        
+        // Notify MediaStore so video appears in Gallery
+        if (file.exists()) {
+            addVideoToMediaStore(file)
+        }
+        
+        Log.d(TAG, "✅ Split part ${partNumber} completed. Duration: ${duration}ms, File: ${file.absolutePath}")
     }
     
     private fun createNotificationChannel() {
