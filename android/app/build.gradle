@@ -81,7 +81,7 @@ android {
 
     namespace "boom.bvr.recorder.pro"
     defaultConfig {
-    applicationId "boom.bvr.recorder.pro"
+        applicationId "boom.bvr.recorder.pro"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -127,9 +127,10 @@ dependencies {
     }
 
     // Kotlin Coroutines for overlay functionality
+
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
+    implementation 'com.android.billingclient:billing:8.0.0'
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation 'com.google.firebase:firebase-config'
     implementation 'com.google.firebase:firebase-analytics'

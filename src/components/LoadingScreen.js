@@ -4,6 +4,7 @@ import { COLORS } from '../constants';
 import AdManager, { ADS_UNIT } from '../AdManager.js';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { SmallNativeAd } from './NativeAdComponent';
+import IAPManager from '../utils/IAPManager';
 
 const LoadingScreen = () => {
   // State for loading text and progress
@@ -11,6 +12,7 @@ const LoadingScreen = () => {
   const [remoteConfigLoaded, setRemoteConfigLoaded] = useState(false);
   const [adManagerLoaded, setAdManagerLoaded] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
+  const [iapManagerLoaded, setIapManagerLoaded] = useState(false);
   const [timeoutReached, setTimeoutReached] = useState(false);
   const [progress, setProgress] = useState(0);
   
@@ -26,19 +28,31 @@ const LoadingScreen = () => {
     const initializeServices = async () => {
       try {
         console.log('🔧 Initializing services...');
-        setLoadingText('Loading.');
-        setProgress(20);
+        setLoadingText('Initializing services...');
+        setProgress(10);
         
         // Initialize AdManager
         console.log('🔧 Loading AdManager...');
-        setLoadingText('Loading...');
-        setProgress(50);
+        setLoadingText('Loading....');
+        setProgress(30);
         await AdManager.initialize();
-        console.log('🔧 AdManager initialized successfully');
+        console.log('✅ AdManager initialized successfully');
         
         if (!isCompleted) {
           setAdManagerLoaded(true);
-          setProgress(80);
+          setProgress(50);
+        }
+        
+        // Initialize IAP Manager
+        console.log('🔧 Loading IAP Manager...');
+        setLoadingText('Loading...');
+        setProgress(70);
+        await IAPManager.getInstance().initialize();
+        console.log('✅ IAP Manager initialized successfully');
+        
+        if (!isCompleted) {
+          setIapManagerLoaded(true);
+          setProgress(90);
         }
         
         setLoadingText('Ready to start!');
@@ -52,6 +66,7 @@ const LoadingScreen = () => {
         // Set all as loaded even if failed to allow app to continue
         if (!isCompleted) {
           setAdManagerLoaded(true);
+          setIapManagerLoaded(true);
         }
       }
     };
@@ -64,6 +79,7 @@ const LoadingScreen = () => {
       if (!isCompleted) {
         setTimeoutReached(true);
         setAdManagerLoaded(true);
+        setIapManagerLoaded(true);
       }
     }, 10000);
     

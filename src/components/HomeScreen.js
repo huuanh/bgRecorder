@@ -11,6 +11,7 @@ import RecordTab from './tabs/RecordTab';
 import GalleryTab from './tabs/GalleryTab';
 import EditTab from './tabs/EditTab';
 import SettingsTab from './tabs/SettingsTab';
+// import IAPTestButton from './IAPTestButton';
 
 const HomeScreen = () => {
     const [activeTab, setActiveTab] = useState('record');
@@ -45,6 +46,9 @@ const HomeScreen = () => {
 
             {/* Tab Content */}
             {renderTabContent()}
+
+            {/* IAP Test Button (Development Only) */}
+            {/* <IAPTestButton /> */}
 
             {/* Bottom Tabs */}
             <View style={styles.bottomTabs}>

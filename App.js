@@ -24,10 +24,10 @@ function App() {
     // Simplified initialization using ReactContextManager
     console.log('🚀 App initialization started...');
     
-    ReactContextManager.onReady(() => {
+    ReactContextManager.onReady( async () => {
       console.log('✅ App: React context ready, checking security...');
       setAppReady(true);
-      
+            
       // Check if authentication is required
       checkAuthenticationRequired();
     });
@@ -35,6 +35,7 @@ function App() {
     // Cleanup on unmount
     return () => {
       ReactContextManager.cleanup();
+      // IAPManager.cleanup();
     };
   }, []);
 

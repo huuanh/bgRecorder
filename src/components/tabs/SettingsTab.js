@@ -18,8 +18,10 @@ import DurationModal from '../DurationModal';
 import ResolutionModal from '../ResolutionModal';
 import PreviewSizeModal from '../PreviewSizeModal';
 import SetPasswordModal from '../SetPasswordModal';
+import IAPModal from '../IAPModal';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
 import SecurityManager from '../../utils/SecurityManager';
+import useIAP from '../../hooks/useIAP';
 
 const { width } = Dimensions.get('window');
 
@@ -46,6 +48,9 @@ const SettingsTab = () => {
     const [showPreviewSizeModal, setShowPreviewSizeModal] = useState(false);
     const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
     const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+
+    // Use IAP hook
+    const { showIAPModal, showIAP, hideIAP } = useIAP();
 
     // Load settings on component mount
     useEffect(() => {
@@ -164,7 +169,7 @@ const SettingsTab = () => {
 
     const handlePasswordSet = async () => {
         await loadSecuritySettings();
-        Alert.alert('Success', 'Password has been set successfully!');
+        // Alert.alert('Success', 'Password has been set successfully!');
     };
 
     const handleBiometricToggle = async (enabled) => {
@@ -226,11 +231,11 @@ const SettingsTab = () => {
                             // Hide loading
                             // setLoading(false);
                             
-                            Alert.alert(
-                                'Success', 
-                                'Password removed successfully. All security features have been disabled.',
-                                [{ text: 'OK' }]
-                            );
+                            // Alert.alert(
+                            //     'Success', 
+                            //     'Password removed successfully. All security features have been disabled.',
+                            //     [{ text: 'OK' }]
+                            // );
                         } catch (error) {
                             // setLoading(false);
                             console.error('❌ Detailed error removing password:', {
@@ -272,7 +277,7 @@ const SettingsTab = () => {
                 Alert.alert('Privacy Policy', 'Feature coming soon!');
                 break;
             case 'upgrade':
-                Alert.alert('Upgrade to VIP', 'Get premium features with VIP membership!');
+                showIAP('settings_vip_banner');
                 break;
             default:
                 break;
@@ -578,6 +583,12 @@ const SettingsTab = () => {
                 visible={showSetPasswordModal}
                 onClose={() => setShowSetPasswordModal(false)}
                 onPasswordSet={handlePasswordSet}
+            />
+
+            {/* IAP Modal */}
+            <IAPModal
+                visible={showIAPModal}
+                onClose={hideIAP}
             />
         </ScrollView>
     );
