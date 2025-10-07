@@ -6,6 +6,7 @@ import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { SmallNativeAd } from './NativeAdComponent';
 import IAPManager from '../utils/IAPManager';
 import VIPManager from '../utils/VIPManager';
+import NetworkManager from '../utils/NetworkManager';
 
 const LoadingScreen = () => {
   // State for loading text and progress
@@ -29,6 +30,28 @@ const LoadingScreen = () => {
     let isCompleted = false;
     const initializeServices = async () => {
       try {
+        // First check network connection
+        console.log('🌐 Checking network connection...');
+        setLoadingText('Checking network connection...');
+        setProgress(5);
+        
+        const isConnected = await NetworkManager.checkConnection();
+        if (!isConnected) {
+          console.log('❌ No network connection detected - App.js will handle modal');
+          setLoadingText('No internet connection - Please check your connection');
+          
+          // Wait for connection before continuing services initialization
+          try {
+            await NetworkManager.waitForConnection(60000); // Wait up to 60 seconds
+            console.log('✅ Network connection restored');
+            setLoadingText('Connection restored - Initializing services...');
+          } catch (error) {
+            console.log('⏰ Network wait timeout');
+            setLoadingText('Connection timeout - Some features may not work properly');
+            // Continue with limited functionality
+          }
+        }
+        
         console.log('🔧 Initializing services...');
         setLoadingText('Initializing services...');
         setProgress(10);
@@ -161,7 +184,6 @@ const LoadingScreen = () => {
       </View>
       <Text style={styles.loadingText}>{loadingText}</Text>
       <Text style={styles.adsText}>This action may contain ads</Text>
-      
     </View>
   );
 };

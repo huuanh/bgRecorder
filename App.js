@@ -9,6 +9,8 @@ import AuthenticationModal from './src/components/AuthenticationModal';
 import { COLORS } from './src/constants';
 import ReactContextManager from './src/utils/ReactContextManager';
 import SecurityManager from './src/utils/SecurityManager';
+import NetworkLoadingModal from './src/components/NetworkLoadingModal';
+import useNetworkConnection from './src/hooks/useNetworkConnection';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -18,7 +20,12 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [securitySettings, setSecuritySettings] = useState(null);
+  const [showGlobalNetworkModal, setShowGlobalNetworkModal] = useState(false);
+
   const isDarkMode = useColorScheme() === 'light';
+
+  // Use network connection hook
+  const { isConnected, isChecking } = useNetworkConnection();
 
   useEffect(() => {
     // Simplified initialization using ReactContextManager
@@ -38,6 +45,29 @@ function App() {
       // IAPManager.cleanup();
     };
   }, []);
+
+  // Network state management
+  useEffect(() => {
+    // Block loading screen if no network connection
+    if (!isConnected && !isChecking) {
+      // console.log('🌐 App: No network detected - blocking app access');
+      
+      // // Show network modal for other scenes (except network-required)
+      // if (currentScene !== 'network-required') {
+        setShowGlobalNetworkModal(true);
+    //   }
+    // } else if (isConnected && (showGlobalNetworkModal || currentScene === 'network-required')) {
+    //   console.log('🎉 App: Network restored - allowing app access');
+    //   setShowGlobalNetworkModal(false);
+      
+    //   // When network is restored from network-required screen, proceed to loading
+    //   if (currentScene === 'network-required') {
+    //     console.log('🔄 App: Network restored - proceeding to loading screen');
+    //     setCurrentScene('loading');
+    //   }
+    }
+  }, [isConnected, isChecking, showGlobalNetworkModal]);
+
 
   const checkAuthenticationRequired = async () => {
     try {
@@ -120,6 +150,11 @@ function App() {
     setShowPermissions(false);
   };
 
+  const handleGlobalNetworkRestored = () => {
+    console.log('🎉 App: Global network connection restored');
+    setShowGlobalNetworkModal(false);
+  };
+
   // Note: Mobile Ads initialization is handled by AdManager
   useEffect(() => {
     // const initializeMobileAds = async () => {
@@ -180,6 +215,12 @@ function App() {
         visible={showAuthModal}
         onAuthenticated={handleAuthenticated}
         onClose={() => {}} // Prevent manual close
+      />
+
+      {/* Global Network Loading Modal - Don't show on network-required scene */}
+      <NetworkLoadingModal
+        visible={showGlobalNetworkModal }
+        onConnectionRestored={handleGlobalNetworkRestored}
       />
     </SafeAreaProvider>
   );
