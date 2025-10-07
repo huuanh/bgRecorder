@@ -22,10 +22,13 @@ import IAPModal from '../IAPModal';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
 import SecurityManager from '../../utils/SecurityManager';
 import useIAP from '../../hooks/useIAP';
+import { useVipStatus } from '../../utils/VipUtils';
 
 const { width } = Dimensions.get('window');
 
 const SettingsTab = () => {
+    const { isVip, loading } = useVipStatus();
+    
     const [settings, setSettings] = useState({
         // Video Settings
         cameraMode: 'back',
@@ -120,8 +123,6 @@ const SettingsTab = () => {
             Alert.alert('Error', 'Failed to save duration');
         }
     };
-
-
 
     const handleResolutionChange = () => {
         setShowResolutionModal(true);
@@ -424,7 +425,7 @@ const SettingsTab = () => {
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             {/* VIP Banner */}
-            {renderVIPBanner()}
+            {!isVip && renderVIPBanner()}
 
             {/* Video Settings Section */}
             {renderSection('Video Settings', [
@@ -560,6 +561,7 @@ const SettingsTab = () => {
                 onClose={() => setShowDurationModal(false)}
                 currentDuration={settings.duration}
                 onSelect={handleDurationSelect}
+                onShowIAP={() => showIAP('settings_duration')}
             />
 
             {/* Resolution Selection Modal */}
@@ -568,6 +570,7 @@ const SettingsTab = () => {
                 onClose={() => setShowResolutionModal(false)}
                 currentResolution={settings.resolution}
                 onSelect={handleResolutionSelect}
+                onShowIAP={() => showIAP('settings_resolution')}
             />
 
             {/* Preview Size Selection Modal */}
@@ -606,6 +609,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 16,
         overflow: 'hidden',
+    },
+    vipActiveBanner: {
+        backgroundColor: '#FFD700', // Gold background for VIP
+        borderWidth: 2,
+        borderColor: '#FFA500',
     },
     vipContent: {
         flexDirection: 'row',

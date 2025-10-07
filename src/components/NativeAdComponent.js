@@ -3,16 +3,25 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'rea
 import { COLORS } from '../constants';
 import { ADS_UNIT } from '../AdManager';
 import { NativeAdView, NativeMediaView, NativeAsset, NativeAssetType, NativeAd } from 'react-native-google-mobile-ads';
+import { useVipStatus } from '../utils/VipUtils';
 const { width, height } = Dimensions.get('window');
 
 // Native Ad Component
 export const NativeAdComponent = (props) => {
+    const { isVip, loading } = useVipStatus();
     const [nativeAd, setNativeAd] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isMediaVisible, setIsMediaVisible] = useState(true);
     const hasToggle = props.hasToggleMedia !== undefined ? props.hasToggleMedia : false;
 
     useEffect(() => {
+        // Don't load ads for VIP users
+        if (isVip) {
+            console.log('👑 VIP user detected - skipping ad load');
+            setIsLoading(false);
+            return;
+        }
+
         const loadNativeAd = async () => {
             try {
                 console.log('🔍 Loading Native Ad...', props);
@@ -35,7 +44,12 @@ export const NativeAdComponent = (props) => {
         };
 
         loadNativeAd();
-    }, []);
+    }, [isVip]);
+
+    // Don't render anything for VIP users
+    if (isVip) {
+        return null;
+    }
 
     if (isLoading) {
         return (

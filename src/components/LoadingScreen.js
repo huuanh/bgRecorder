@@ -5,6 +5,7 @@ import AdManager, { ADS_UNIT } from '../AdManager.js';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { SmallNativeAd } from './NativeAdComponent';
 import IAPManager from '../utils/IAPManager';
+import VIPManager from '../utils/VIPManager';
 
 const LoadingScreen = () => {
   // State for loading text and progress
@@ -13,6 +14,7 @@ const LoadingScreen = () => {
   const [adManagerLoaded, setAdManagerLoaded] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [iapManagerLoaded, setIapManagerLoaded] = useState(false);
+  const [vipManagerLoaded, setVipManagerLoaded] = useState(false);
   const [timeoutReached, setTimeoutReached] = useState(false);
   const [progress, setProgress] = useState(0);
   
@@ -45,15 +47,32 @@ const LoadingScreen = () => {
         
         // Initialize IAP Manager
         console.log('🔧 Loading IAP Manager...');
-        setLoadingText('Loading...');
-        setProgress(70);
+        setLoadingText('Loading IAP Manager...');
+        setProgress(60);
         await IAPManager.getInstance().initialize();
         console.log('✅ IAP Manager initialized successfully');
         
         if (!isCompleted) {
           setIapManagerLoaded(true);
-          setProgress(90);
+          setProgress(75);
         }
+        
+        // Initialize VIP Manager
+        console.log('🔧 Loading VIP Manager...');
+        setLoadingText('Checking VIP status...');
+        setProgress(85);
+        await VIPManager.getInstance().initialize();
+        console.log('✅ VIP Manager initialized successfully');
+        
+        if (!isCompleted) {
+          setVipManagerLoaded(true);
+          setProgress(95);
+        }
+        
+        // Log final VIP status
+        const vipManager = VIPManager.getInstance();
+        const vipInfo = vipManager.getVipInfo();
+        console.log('🏁 Final VIP Info:', vipInfo);
         
         setLoadingText('Ready to start!');
         setProgress(100);
@@ -67,6 +86,7 @@ const LoadingScreen = () => {
         if (!isCompleted) {
           setAdManagerLoaded(true);
           setIapManagerLoaded(true);
+          setVipManagerLoaded(true);
         }
       }
     };
@@ -80,6 +100,7 @@ const LoadingScreen = () => {
         setTimeoutReached(true);
         setAdManagerLoaded(true);
         setIapManagerLoaded(true);
+        setVipManagerLoaded(true);
       }
     }, 10000);
     

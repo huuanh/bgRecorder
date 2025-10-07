@@ -3,6 +3,7 @@ import { IS_PRODUCTION } from './constants';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import mobileAds from 'react-native-google-mobile-ads';
+import { checkVipStatus } from './utils/VipUtils';
 // import AnalyticsManager from './AnalyticsManager';
 
 let AnalyticsManager = null;
@@ -157,6 +158,12 @@ class AdManager {
     
     // Preload all ads
     preloadAllAds() {
+        // Don't preload ads for VIP users
+        if (checkVipStatus()) {
+            console.log('👑 VIP user detected - skipping ad preloading');
+            return;
+        }
+        
         console.log('🔄 Starting to preload all ads...');
         this.preloadInterstitialAd();
         this.preloadRewardedAd();
@@ -166,6 +173,12 @@ class AdManager {
     
     // Preload interstitial ad
     preloadInterstitialAd() {
+        // Don't preload ads for VIP users
+        if (checkVipStatus()) {
+            console.log('👑 VIP user - skipping interstitial ad preload');
+            return;
+        }
+        
         if (!this.isModuleLoaded || this.adLoadingStates.interstitial || this.preloadedAds.interstitial) {
             return;
         }
@@ -205,6 +218,12 @@ class AdManager {
 
     // Preload rewarded ad
     preloadRewardedAd() {
+        // Don't preload ads for VIP users (but rewarded ads might still be shown)
+        if (checkVipStatus()) {
+            console.log('👑 VIP user - skipping rewarded ad preload');
+            return;
+        }
+        
         if (!this.isModuleLoaded || this.adLoadingStates.rewarded || this.preloadedAds.rewarded) {
             return;
         }
@@ -244,6 +263,12 @@ class AdManager {
 
     // Preload app open ad
     preloadAppOpenAd() {
+        // Don't preload ads for VIP users
+        if (checkVipStatus()) {
+            console.log('👑 VIP user - skipping app open ad preload');
+            return;
+        }
+        
         if (!this.isModuleLoaded || this.adLoadingStates.appOpen || this.preloadedAds.appOpen) {
             return;
         }
@@ -302,6 +327,13 @@ class AdManager {
 
     // Load and show interstitial ad
     async showInterstitialAd(onAdClosed, onAdError, usePreloaded = true) {
+        // Don't show ads for VIP users
+        if (checkVipStatus()) {
+            console.log('👑 VIP user - skipping interstitial ad');
+            if (onAdClosed) onAdClosed();
+            return true;
+        }
+        
         if (!this.isAdsInitialized()) {
             console.log('❌ Cannot show interstitial ad - not initialized');
             if (onAdError) onAdError('Ads not initialized');
@@ -563,6 +595,12 @@ class AdManager {
     }
 
     async showAppOpenAd(usePreloaded = true) {
+        // Don't show ads for VIP users
+        if (checkVipStatus()) {
+            console.log('👑 VIP user - skipping app open ad');
+            return true;
+        }
+        
         // Check cooldown period
         const currentTime = Date.now();
         if (currentTime - this.lastAppOpenAdTime < this.APP_OPEN_AD_COOLDOWN) {

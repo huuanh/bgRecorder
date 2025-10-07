@@ -21,6 +21,7 @@ import CameraSettingsManager from '../../utils/CameraSettingsManager';
 import CameraModeModal from '../CameraModeModal';
 import DurationModal from '../DurationModal';
 import ResolutionModal from '../ResolutionModal';
+import IAPModal from '../IAPModal';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
@@ -40,6 +41,7 @@ const RecordTab = () => {
     const [showCameraModeModal, setShowCameraModeModal] = useState(false);
     const [showDurationModal, setShowDurationModal] = useState(false);
     const [showResolutionModal, setShowResolutionModal] = useState(false);
+    const [showIAPModal, setShowIAPModal] = useState(false);
 
     useEffect(() => {
         // Debug log to check module availability
@@ -310,6 +312,11 @@ const RecordTab = () => {
             console.error('❌ Failed to save resolution:', error);
             Alert.alert('Error', 'Failed to save resolution');
         }
+    };
+
+    const handleShowIAP = () => {
+        console.log('🛒 Opening IAP Modal from RecordTab');
+        setShowIAPModal(true);
     };
 
 
@@ -725,6 +732,7 @@ const RecordTab = () => {
                 onClose={() => setShowDurationModal(false)}
                 currentDuration={recordingSettings.duration}
                 onSelect={handleDurationSelect}
+                onShowIAP={handleShowIAP}
             />
 
             {/* Resolution Selection Modal */}
@@ -733,6 +741,13 @@ const RecordTab = () => {
                 onClose={() => setShowResolutionModal(false)}
                 currentResolution={recordingSettings.quality}
                 onSelect={handleResolutionSelect}
+                onShowIAP={handleShowIAP}
+            />
+
+            {/* IAP Modal */}
+            <IAPModal
+                visible={showIAPModal}
+                onClose={() => setShowIAPModal(false)}
             />
         </View>
     );

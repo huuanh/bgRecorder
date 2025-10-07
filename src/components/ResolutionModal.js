@@ -11,10 +11,12 @@ import {
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
+import { useVipStatus } from '../utils/VipUtils';
 
 const { width } = Dimensions.get('window');
 
-const ResolutionModal = ({ visible, onClose, currentResolution, onSelect }) => {
+const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShowIAP }) => {
+    const { isVip, loading } = useVipStatus();
     const resolutionOptions = [
         {
             id: 'SD',
@@ -41,17 +43,32 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect }) => {
     ];
 
     const handleSelect = (resolution) => {
+        // Check if trying to select Full HD without VIP
+        console.log('Selected resolution:', resolution, 'isVip:', isVip);   
+        if (resolution == 'Full HD' && !isVip) {
+            // Show upgrade prompt
+            if (onShowIAP) {
+                onShowIAP();
+            }
+            return;
+        }
+        
         onSelect(resolution);
         onClose();
     };
 
     const renderResolutionItem = (option) => {
         const isSelected = currentResolution === option.id;
+        const isLocked = option.isPro && !isVip;
         
         return (
             <TouchableOpacity
                 key={option.id}
-                style={[styles.resolutionItem, isSelected && styles.selectedItem]}
+                style={[
+                    styles.resolutionItem, 
+                    isSelected && styles.selectedItem,
+                    isLocked && styles.lockedItem
+                ]}
                 onPress={() => handleSelect(option.id)}
             >
                 <View style={styles.resolutionLeft}>
@@ -59,17 +76,32 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect }) => {
                         {isSelected && <View style={styles.radioButtonInner} />}
                     </View>
                     <View style={styles.resolutionInfo}>
-                        <Text style={[styles.resolutionTitle, isSelected && styles.selectedText]}>
+                        <Text style={[
+                            styles.resolutionTitle, 
+                            isSelected && styles.selectedText,
+                            isLocked && styles.lockedText
+                        ]}>
                             {option.title}
                         </Text>
-                        <Text style={[styles.resolutionDescription, isSelected && styles.selectedDescription]}>
+                        <Text style={[
+                            styles.resolutionDescription, 
+                            isSelected && styles.selectedDescription,
+                            isLocked && styles.lockedDescription
+                        ]}>
                             {option.description}
                         </Text>
+                        {isLocked && (
+                            <Text style={styles.upgradeText}>
+                                Tap to upgrade to VIP
+                            </Text>
+                        )}
                     </View>
                 </View>
                 {option.isPro && (
-                    <View style={styles.proTag}>
-                        <Text style={styles.proText}>PRO</Text>
+                    <View style={[styles.proTag]}>
+                        <Text style={[styles.proText, isLocked && styles.lockedProText]}>
+                            {isLocked ? '🔒 VIP' : 'VIP'}
+                        </Text>
                     </View>
                 )}
             </TouchableOpacity>
@@ -167,6 +199,11 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: COLORS.ACTIVE,
     },
+    lockedItem: {
+        backgroundColor: COLORS.GRAY_100,
+        borderColor: COLORS.TERTIARY,
+        opacity: 0.7,
+    },
     resolutionLeft: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -210,6 +247,18 @@ const styles = StyleSheet.create({
     selectedDescription: {
         color: COLORS.PRIMARY_DARK,
     },
+    lockedText: {
+        color: COLORS.TERTIARY,
+    },
+    lockedDescription: {
+        color: COLORS.TERTIARY,
+    },
+    upgradeText: {
+        fontSize: 12,
+        color: COLORS.ACCENT,
+        fontWeight: '500',
+        marginTop: 2,
+    },
     proTag: {
         backgroundColor: COLORS.ACCENT,
         paddingHorizontal: 8,
@@ -220,6 +269,12 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
         color: COLORS.WHITE,
+    },
+    lockedProTag: {
+        backgroundColor: COLORS.GRAY_300,
+    },
+    lockedProText: {
+        color: COLORS.GRAY_600,
     },
     adContainer: {
         // marginTop: 16,

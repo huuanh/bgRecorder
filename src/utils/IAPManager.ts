@@ -190,6 +190,11 @@ class IAPManager {
       Alert.alert('Purchase success');
       this.isVip = true;
       
+      // Update VIP Manager
+      const VIPManager = require('./VIPManager').default;
+      const vipManager = VIPManager.getInstance();
+      await vipManager.setVipStatus(true);
+      
       // Call all registered success callbacks
       this.purchaseSuccessCallbacks.forEach(callback => {
         try {
