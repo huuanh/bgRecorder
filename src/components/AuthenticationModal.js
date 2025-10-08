@@ -14,10 +14,12 @@ import {
 import { COLORS } from '../constants';
 import SecurityManager from '../utils/SecurityManager';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
+    const { t } = useTranslation();
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +57,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
 
     const handlePasswordAuthentication = async () => {
         if (!password) {
-            Alert.alert('Error', 'Please enter your password');
+            Alert.alert(t('error', 'Error'), 'Please enter your password');
             return;
         }
 
@@ -75,7 +77,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
                     Alert.alert(
                         'Too Many Attempts',
                         'You have entered the wrong password 3 times. Please try again later.',
-                        [{ text: 'OK', onPress: () => BackHandler.exitApp() }]
+                        [{ text: t('ok', 'OK'), onPress: () => BackHandler.exitApp() }]
                     );
                 } else {
                     Alert.alert(
@@ -87,7 +89,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
             }
         } catch (error) {
             console.error('Error verifying password:', error);
-            Alert.alert('Error', 'An error occurred while verifying password');
+            Alert.alert(t('error', 'Error'), 'An error occurred while verifying password');
         } finally {
             setIsLoading(false);
         }
@@ -108,7 +110,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
             }
         } catch (error) {
             console.error('Error with biometric authentication:', error);
-            Alert.alert('Error', 'An error occurred during biometric authentication');
+            Alert.alert(t('error', 'Error'), 'An error occurred during biometric authentication');
         } finally {
             setIsLoading(false);
         }
@@ -131,17 +133,17 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
                         <View style={styles.iconContainer}>
                             <Icon name="lock" size={40} color={COLORS.TERTIARY} />
                         </View>
-                        <Text style={styles.title}>App Locked</Text>
+                        <Text style={styles.title}>{t('appLocked', 'App Locked')}</Text>
                     </View>
 
                     <View style={styles.content}>
                         {securitySettings.hasPassword && (
                             <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Password</Text>
+                                <Text style={styles.label}>{t('password', 'Password')}</Text>
                                 <View style={styles.passwordInput}>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Enter your password"
+                                        placeholder={t('enterPassword', 'Enter your password')}
                                         placeholderTextColor={COLORS.TERTIARY}
                                         value={password}
                                         onChangeText={setPassword}
@@ -178,7 +180,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
                                     ) : (
                                         <>
                                             <Icon name="key" size={20} color={COLORS.WHITE} />
-                                            <Text style={styles.authButtonText}>Unlock with Password</Text>
+                                            <Text style={styles.authButtonText}>{t('unlockWithPassword', 'Unlock with Password')}</Text>
                                         </>
                                     )}
                                 </TouchableOpacity>
@@ -199,7 +201,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
                                         color={COLORS.TERTIARY} 
                                     />
                                     <Text style={styles.biometricButtonText}>
-                                        Use Biometrics
+                                        {t('useBiometrics', 'Use Biometrics')}
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -209,7 +211,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
                             <View style={styles.warningContainer}>
                                 <Icon name="warning" size={16} color={COLORS.ACTIVE} />
                                 <Text style={styles.warningText}>
-                                    {attemptCount} failed attempt{attemptCount > 1 ? 's' : ''}
+                                    {t('failedAttempts', '{count} failed attempt{plural}', { count: attemptCount, plural: attemptCount > 1 ? 's' : '' })}
                                 </Text>
                             </View>
                         )}
@@ -220,7 +222,7 @@ const AuthenticationModal = ({ visible, onAuthenticated, onClose }) => {
                         onPress={() => BackHandler.exitApp()}
                     >
                         <Icon name="exit-to-app" size={20} color={COLORS.TERTIARY} />
-                        <Text style={styles.exitButtonText}>Exit App</Text>
+                        <Text style={styles.exitButtonText}>{t('exitApp', 'Exit App')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

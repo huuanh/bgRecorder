@@ -11,10 +11,12 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import NetworkManager from '../utils/NetworkManager';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const NetworkLoadingModal = ({ visible, onConnectionRestored }) => {
+    const { t } = useTranslation();
     const [isRetrying, setIsRetrying] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
     const pulseAnim = useRef(new Animated.Value(1)).current;

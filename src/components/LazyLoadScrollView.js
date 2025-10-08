@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, ScrollView, Dimensions } from 'react-native';
+import useTranslation from '../hooks/useTranslation';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -7,7 +8,7 @@ const { height: screenHeight } = Dimensions.get('window');
  * LazyLoadScrollView - Only renders components when they're visible in viewport
  * This helps with performance when there are many video thumbnails
  */
-const LazyLoadScrollView = ({ 
+const LazyLoadScrollView = ({
     children, 
     renderItem, 
     data, 
@@ -17,7 +18,7 @@ const LazyLoadScrollView = ({
 }) => {
     const [scrollY, setScrollY] = useState(0);
     const scrollViewRef = useRef(null);
-
+    const { t } = useTranslation(); 
     const handleScroll = (event) => {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         setScrollY(currentScrollY);

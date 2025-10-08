@@ -16,12 +16,14 @@ import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const CompressModal = ({ visible, onClose, video, onCompress }) => {
-    const [selectedQuality, setSelectedQuality] = useState('medium');
+    const { t } = useTranslation(); 
+    const [selectedQuality, setSelectedQuality] = useState(t('medium', 'medium'));
     const [isCompressing, setIsCompressing] = useState(false);
     const [compressionProgress, setCompressionProgress] = useState(0);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -37,7 +39,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
 
     useEffect(() => {
         if (visible) {
-            setSelectedQuality('medium');
+            setSelectedQuality(t('medium', 'medium'));
             setIsCompressing(false);
             setCompressionProgress(0);
             setIsPlaying(false);
@@ -90,7 +92,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
     const getQualityOptions = () => {
         return [
             {
-                id: 'small',
+                id: t('small', 'small'),
                 title: 'Small',
                 resolution: '116 x 208',
                 size: calculateCompressedSize('116:208'),
@@ -98,7 +100,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                 scale: '116:208'
             },
             {
-                id: 'medium',
+                id: t('medium', 'medium'),
                 title: 'Medium',
                 resolution: '174 x 312',
                 size: calculateCompressedSize('174:312'),
@@ -106,7 +108,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                 scale: '174:312'
             },
             {
-                id: 'large',
+                id: t('large', 'large'),
                 title: 'Large',
                 resolution: '230 x 414',
                 size: calculateCompressedSize('230:414'),
@@ -118,13 +120,13 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
 
     const handleCompress = async () => {
         if (!video || !video.filePath) {
-            Alert.alert('Error', 'Video file not found');
+            Alert.alert(t('error', 'Error'), t('video_file_not_found', 'Video file not found'));
             return;
         }
 
         const selectedOption = getQualityOptions().find(option => option.id === selectedQuality);
         if (!selectedOption) {
-            Alert.alert('Error', 'Please select a compression quality');
+            Alert.alert(t('error', 'Error'), 'Please select a compression quality');
             return;
         }
 
@@ -240,19 +242,19 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
             isCompressingRef.current = false;
             setCompressionProgress(0);
             setLoadingMessage('');
-            Alert.alert('Error', 'Failed to compress video: ' + error.message);
+            Alert.alert(t('error', 'Error'), 'Failed to compress video: ' + error.message);
         }
     };
 
     const handleShare = async () => {
         try {
             if (!compressedVideoPath) {
-                Alert.alert('Error', 'No video file to share');
+                Alert.alert(t('error', 'Error'), 'No video file to share');
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -262,9 +264,9 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
         } catch (error) {
             console.error('Failed to share video:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
-                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+                Alert.alert(t('no_app_available', 'No App Available'), 'No app found to handle this share type. Please install the required app.');
             } else {
-                Alert.alert('Share Error', 'Failed to share video: ' + error.message);
+                Alert.alert(t('share_error', 'Share Error'), 'Failed to share video: ' + error.message);
             }
         }
     };
@@ -283,7 +285,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                     Alert.alert(
                         'Compression in Progress',
                         'Please wait for the compression to complete before closing.',
-                        [{ text: 'OK' }]
+                        [{ text: t('ok', 'OK') }]
                     );
                 }
             }}
@@ -294,7 +296,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                     <TouchableOpacity onPress={onClose} style={styles.backButton}>
                         <Image source={require('../../assets/home/ic/ic_back.png')} style={styles.backIcon} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Compress Video</Text>
+                    <Text style={styles.headerTitle}>{t('compressVideo', 'Compress Video')}</Text>
                     <View style={styles.placeholder} />
                 </View>
 
@@ -403,11 +405,11 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                         <View style={styles.loadingContainer}>
                             <ActivityIndicator size="small" color="#FFFFFF" />
                             <Text style={styles.exportButtonText}>
-                                Compressing... {Math.round(compressionProgress)}%
+                                {t('compressing', 'Compressing...')} {Math.round(compressionProgress)}%
                             </Text>
                         </View>
                     ) : (
-                        <Text style={styles.exportButtonText}>Export</Text>
+                        <Text style={styles.exportButtonText}>{t('export', 'Export')}</Text>
                     )}
                 </TouchableOpacity>
 
@@ -416,9 +418,9 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                     <View style={styles.loadingOverlay}>
                         <View style={styles.loadingContent}>
                             <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-                            <Text style={styles.loadingTitle}>Compressing Video</Text>
+                            <Text style={styles.loadingTitle}>{t('compressingVideo', 'Compressing Video')}</Text>
                             <Text style={styles.loadingSubtitle}>
-                                {loadingMessage || 'Please wait...'}
+                                {loadingMessage || t('pleaseWait', 'Please wait...')}
                             </Text>
                             
                             {/* Progress Bar */}
@@ -461,7 +463,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                         </View>
                         
                         {/* Success Title */}
-                        <Text style={styles.successTitle}>Your video has been exported</Text>
+                        <Text style={styles.successTitle}>{t('videoExported', 'Your video has been exported')}</Text>
                         
                         {/* Ad Banner */}
                         <View style={styles.successAdBanner}>
@@ -480,7 +482,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                                 onClose();
                             }}
                         >
-                            <Text style={styles.backHomeText}>Back to Home</Text>
+                            <Text style={styles.backHomeText}>{t('backToHome', 'Back to Home')}</Text>
                         </TouchableOpacity>
                         
                         {/* Share Button */}
@@ -488,7 +490,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                             style={styles.shareButton}
                             onPress={handleShare}
                         >
-                            <Text style={styles.shareButtonText}>Share Video</Text>
+                            <Text style={styles.shareButtonText}>{t('shareVideo', 'Share Video')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

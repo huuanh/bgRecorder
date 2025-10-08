@@ -12,29 +12,31 @@ import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
 import { useVipStatus } from '../utils/VipUtils';
+import useTranslation from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShowIAP }) => {
+    const { t } = useTranslation();
     const { isVip, loading } = useVipStatus();
     const resolutionOptions = [
         {
             id: 'SD',
-            title: 'SD Quality',
+            title: t('sd_quality', 'SD Quality'),
             description: '640x360 • Standard Definition',
             size: '640x360',
             icon: require('../../assets/home/ic/quality.png')
         },
         {
             id: 'HD',
-            title: 'HD Quality', 
+            title: t('hd_quality', 'HD Quality'), 
             description: '720x480 • High Definition (Default)',
             size: '720x480',
             icon: require('../../assets/home/ic/quality.png')
         },
         {
             id: 'Full HD',
-            title: 'Full HD Quality',
+            title: t('full_hd_quality', 'Full HD Quality'),
             description: '1280x720 • Full High Definition (PRO)',
             size: '1280x720',
             icon: require('../../assets/home/ic/quality.png'),
@@ -118,7 +120,7 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShow
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Video Quality</Text>
+                        <Text style={styles.title}>{t('videoQuality', 'Video Quality')}</Text>
                     </View>
                     
                     <View style={styles.content}>
@@ -135,14 +137,14 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShow
                             style={styles.cancelButton}
                             onPress={onClose}
                         >
-                            <Text style={styles.cancelText}>Cancel</Text>
+                            <Text style={styles.cancelText}>{t('cancel', 'Cancel')}</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
                             style={styles.okButton}
                             onPress={onClose}
                         >
-                            <Text style={styles.okText}>OK</Text>
+                            <Text style={styles.okText}>{t('ok', 'OK')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

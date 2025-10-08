@@ -13,12 +13,14 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants';
 import IconManager from '../utils/IconManager';
+import useTranslation from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 
 
 const ChangeIconModal = ({ visible, onClose }) => {
+    const { t } = useTranslation();
     const [selectedIcon, setSelectedIcon] = useState('default');
 
     // Icon categories with 3 rows: Browser, Computer, Weather
@@ -84,7 +86,7 @@ const ChangeIconModal = ({ visible, onClose }) => {
                     Alert.alert(
                         'Icon Changed Successfully',
                         `App icon changed to "${iconName}"!`,
-                        [{ text: 'OK' }]
+                        [{ text: t('ok', 'OK') }]
                     );
                 } else {
                     // Android message is handled by IconManager
@@ -94,7 +96,7 @@ const ChangeIconModal = ({ visible, onClose }) => {
             }
         } catch (error) {
             console.log('❌ Error changing app icon:', error);
-            Alert.alert('Error', 'Failed to change app icon');
+            Alert.alert(t('error', 'Error'), 'Failed to change app icon');
         }
     };
 

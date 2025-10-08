@@ -16,11 +16,13 @@ import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
+    const { t } = useTranslation();
     const [isConverting, setIsConverting] = useState(false);
     const [conversionProgress, setConversionProgress] = useState(0);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -70,7 +72,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
 
     const handleConvert = async () => {
         if (!video || !video.filePath) {
-            Alert.alert('Error', 'Video file not found');
+            Alert.alert(t('error', 'Error'), t('video_file_not_found', 'Video file not found'));
             return;
         }
 
@@ -120,7 +122,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                         Alert.alert(
                             'No Audio Track', 
                             'This video does not contain any audio to extract. Please record a new video with microphone enabled.',
-                            [{ text: 'OK' }]
+                            [{ text: t('ok', 'OK') }]
                         );
                         setIsConverting(false);
                         isConvertingRef.current = false;
@@ -218,7 +220,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                             const logs = await session.getAllLogs();
                             const errorMessages = logs
                                 .map(log => log.getMessage())
-                                .filter(msg => msg.includes('Error') || msg.includes('does not contain'))
+                                .filter(msg => msg.includes(t('error', 'Error')) || msg.includes('does not contain'))
                                 .join('\n');
                             
                             console.error('FFmpeg failed with logs:', errorMessages);
@@ -227,13 +229,13 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                                 Alert.alert(
                                     'No Audio Track', 
                                     'This video does not contain any audio to extract. Please record a new video with audio enabled.',
-                                    [{ text: 'OK' }]
+                                    [{ text: t('ok', 'OK') }]
                                 );
                             } else {
                                 Alert.alert(
                                     'Conversion Failed', 
                                     'Failed to convert video to audio. The video might not have an audio track.',
-                                    [{ text: 'OK' }]
+                                    [{ text: t('ok', 'OK') }]
                                 );
                             }
                         } catch (logError) {
@@ -254,19 +256,19 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
             isConvertingRef.current = false;
             setConversionProgress(0);
             setLoadingMessage('');
-            Alert.alert('Error', 'Failed to convert video: ' + error.message);
+            Alert.alert(t('error', 'Error'), 'Failed to convert video: ' + error.message);
         }
     };
 
     const handleShare = async () => {
         try {
             if (!convertedAudioPath) {
-                Alert.alert('Error', 'No audio file to share');
+                Alert.alert(t('error', 'Error'), 'No audio file to share');
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -276,9 +278,9 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
         } catch (error) {
             console.error('Failed to share audio:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
-                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+                Alert.alert(t('no_app_available', 'No App Available'), 'No app found to handle this share type. Please install the required app.');
             } else {
-                Alert.alert('Share Error', 'Failed to share audio: ' + error.message);
+                Alert.alert(t('share_error', 'Share Error'), 'Failed to share audio: ' + error.message);
             }
         }
     };
@@ -297,7 +299,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                     Alert.alert(
                         'Conversion in Progress',
                         'Please wait for the conversion to complete before closing.',
-                        [{ text: 'OK' }]
+                        [{ text: t('ok', 'OK') }]
                     );
                 }
             }}

@@ -13,10 +13,12 @@ import {
 import { COLORS } from '../constants';
 import SecurityManager from '../utils/SecurityManager';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const SetPasswordModal = ({ visible, onClose, onPasswordSet }) => {
+    const { t } = useTranslation();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -24,17 +26,17 @@ const SetPasswordModal = ({ visible, onClose, onPasswordSet }) => {
 
     const handleSetPassword = async () => {
         if (!password || !confirmPassword) {
-            Alert.alert('Error', 'Please enter both password and confirmation');
+            Alert.alert(t('error', 'Error'), 'Please enter both password and confirmation');
             return;
         }
 
         if (password.length < 4) {
-            Alert.alert('Error', 'Password must be at least 4 characters long');
+            Alert.alert(t('error', 'Error'), 'Password must be at least 4 characters long');
             return;
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+            Alert.alert(t('error', 'Error'), t('passwords_do_not_match', 'Passwords do not match'));
             return;
         }
 
@@ -44,11 +46,11 @@ const SetPasswordModal = ({ visible, onClose, onPasswordSet }) => {
             const success = await SecurityManager.savePassword(password);
             if (success) {
                 Alert.alert(
-                    'Success',
+                    t('success', 'Success'),
                     'Password has been set successfully!',
                     [
                         {
-                            text: 'OK',
+                            text: t('ok', 'OK'),
                             onPress: () => {
                                 resetForm();
                                 onPasswordSet && onPasswordSet();
@@ -58,11 +60,11 @@ const SetPasswordModal = ({ visible, onClose, onPasswordSet }) => {
                     ]
                 );
             } else {
-                Alert.alert('Error', 'Failed to set password. Please try again.');
+                Alert.alert(t('error', 'Error'), 'Failed to set password. Please try again.');
             }
         } catch (error) {
             console.error('Error setting password:', error);
-            Alert.alert('Error', 'An error occurred while setting password');
+            Alert.alert(t('error', 'Error'), 'An error occurred while setting password');
         } finally {
             setIsLoading(false);
         }

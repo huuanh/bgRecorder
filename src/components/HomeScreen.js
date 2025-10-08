@@ -12,8 +12,10 @@ import GalleryTab from './tabs/GalleryTab';
 import EditTab from './tabs/EditTab';
 import SettingsTab from './tabs/SettingsTab';
 // import IAPTestButton from './IAPTestButton';
+import useTranslation from '../hooks/useTranslation';
 
 const HomeScreen = () => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('record');
 
     const renderTabContent = () => {
@@ -66,7 +68,7 @@ const HomeScreen = () => {
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'record' && styles.activeTabText]}>
-                        Record
+                        {t('record', 'Record')}
                     </Text>
                 </TouchableOpacity>
 
@@ -84,7 +86,7 @@ const HomeScreen = () => {
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'gallery' && styles.activeTabText]}>
-                        Gallery
+                        {t('gallery', 'Gallery')}
                     </Text>
                 </TouchableOpacity>
 
@@ -102,7 +104,7 @@ const HomeScreen = () => {
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'edit' && styles.activeTabText]}>
-                        edit
+                        {t('edit', 'Edit')}
                     </Text>
                 </TouchableOpacity>
 
@@ -120,7 +122,7 @@ const HomeScreen = () => {
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'settings' && styles.activeTabText]}>
-                        Settings
+                        {t('settings', 'Settings')}
                     </Text>
                 </TouchableOpacity>
             </View>

@@ -14,10 +14,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Video from 'react-native-video';
 import { NativeAdComponent } from './NativeAdComponent';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const videoRef = useRef(null);
     const [paused, setPaused] = useState(true); // Start paused to show ad
@@ -62,7 +64,7 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
         Alert.alert(
             'Playback Error',
             'Failed to play video. The file might be corrupted or in an unsupported format.',
-            [{ text: 'OK', onPress: onClose }]
+            [{ text: t('ok', 'OK'), onPress: onClose }]
         );
     };
 

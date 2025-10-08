@@ -9,10 +9,12 @@ import Mp3ConvertModal from '../Mp3ConvertModal';
 import MergeVideoModal from '../MergeVideoModal';
 import { NativeAdComponent } from '../NativeAdComponent';
 import { ADS_UNIT } from '../../AdManager';
+import useTranslation from '../../hooks/useTranslation';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const EditTab = () => {
+    const { t } = useTranslation();
     // Single video modals
     const [showVideoSelector, setShowVideoSelector] = useState(false);
     const [videoSelectorTitle, setVideoSelectorTitle] = useState('');
@@ -87,9 +89,9 @@ const EditTab = () => {
     const handleTrimExport = (exportedVideoPath) => {
         console.log('Video trimmed successfully:', exportedVideoPath);
         Alert.alert(
-            'Success',
+            t('success', 'Success'),
             'Video has been trimmed successfully!',
-            [{ text: 'OK' }]
+            [{ text: t('ok', 'OK') }]
         );
         setShowTrimModal(false);
         setTrimModalVideo(null);
@@ -101,7 +103,7 @@ const EditTab = () => {
         Alert.alert(
             'Compression Complete',
             `Original: ${inputSize}\nCompressed: ${outputSize}\nReduction: ${compressionRatio}%`,
-            [{ text: 'OK' }]
+            [{ text: t('ok', 'OK') }]
         );
         setShowCompressModal(false);
         setCompressModalVideo(null);
@@ -110,9 +112,9 @@ const EditTab = () => {
     const handleMp3ConvertExport = (convertedAudioPath) => {
         console.log('Audio converted successfully:', convertedAudioPath);
         Alert.alert(
-            'Success',
+            t('success', 'Success'),
             `Audio file created: ${convertedAudioPath}`,
-            [{ text: 'OK' }]
+            [{ text: t('ok', 'OK') }]
         );
         setShowMp3ConvertModal(false);
         setMp3ConvertModalVideo(null);

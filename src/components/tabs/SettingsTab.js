@@ -20,14 +20,17 @@ import PreviewSizeModal from '../PreviewSizeModal';
 import SetPasswordModal from '../SetPasswordModal';
 import IAPModal from '../IAPModal';
 import ChangeIconModal from '../ChangeIconModal';
+import ChangeLanguageModal from '../ChangeLanguageModal';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
 import SecurityManager from '../../utils/SecurityManager';
 import useIAP from '../../hooks/useIAP';
 import { useVipStatus } from '../../utils/VipUtils';
+import useTranslation from '../../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 const SettingsTab = () => {
+    const { t } = useTranslation();
     const { isVip, loading } = useVipStatus();
     
     const [settings, setSettings] = useState({
@@ -36,7 +39,7 @@ const SettingsTab = () => {
         autoSplit: false,
         duration: 3, // Default to 3 minutes
         resolution: 'HD', // Default to HD
-        previewSize: 'medium',
+        previewSize: t('medium', 'medium'),
     });
 
     const [securitySettings, setSecuritySettings] = useState({
@@ -52,6 +55,7 @@ const SettingsTab = () => {
     const [showPreviewSizeModal, setShowPreviewSizeModal] = useState(false);
     const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
     const [showChangeIconModal, setShowChangeIconModal] = useState(false);
+    const [showChangeLanguageModal, setShowChangeLanguageModal] = useState(false);
     const [biometricsAvailable, setBiometricsAvailable] = useState(false);
 
     // Use IAP hook
@@ -108,7 +112,7 @@ const SettingsTab = () => {
             setSettings(prev => ({...prev, cameraMode: mode}));
         } catch (error) {
             console.error('Failed to save camera mode:', error);
-            Alert.alert('Error', 'Failed to save camera mode');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_camera_mode', 'Failed to save camera mode'));
         }
     };
 
@@ -122,7 +126,7 @@ const SettingsTab = () => {
             setSettings(prev => ({...prev, duration: duration}));
         } catch (error) {
             console.error('Failed to save duration:', error);
-            Alert.alert('Error', 'Failed to save duration');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_duration', 'Failed to save duration'));
         }
     };
 
@@ -136,7 +140,7 @@ const SettingsTab = () => {
             setSettings(prev => ({...prev, resolution: resolution}));
         } catch (error) {
             console.error('Failed to save resolution:', error);
-            Alert.alert('Error', 'Failed to save resolution');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_resolution', 'Failed to save resolution'));
         }
     };
 
@@ -150,7 +154,7 @@ const SettingsTab = () => {
             setSettings(prev => ({...prev, previewSize: previewSize}));
         } catch (error) {
             console.error('Failed to save preview size:', error);
-            Alert.alert('Error', 'Failed to save preview size');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_preview_size', 'Failed to save preview size'));
         }
     };
 
@@ -161,7 +165,7 @@ const SettingsTab = () => {
                 'Password Already Set',
                 'You already have a password set. Do you want to change it?',
                 [
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('cancel', 'Cancel'), style: 'cancel' },
                     { text: 'Change Password', onPress: () => setShowSetPasswordModal(true) }
                 ]
             );
@@ -172,36 +176,36 @@ const SettingsTab = () => {
 
     const handlePasswordSet = async () => {
         await loadSecuritySettings();
-        // Alert.alert('Success', 'Password has been set successfully!');
+        // Alert.alert(t('success', 'Success'), 'Password has been set successfully!');
     };
 
     const handleBiometricToggle = async (enabled) => {
         try {
             if (enabled) {
                 if (!biometricsAvailable) {
-                    Alert.alert('Error', 'Biometric authentication is not available on this device');
+                    Alert.alert(t('error', 'Error'), 'Biometric authentication is not available on this device');
                     return;
                 }
 
                 const success = await SecurityManager.enableBiometrics();
                 if (success) {
                     await loadSecuritySettings();
-                    Alert.alert('Success', 'Biometric authentication has been enabled');
+                    Alert.alert(t('success', 'Success'), 'Biometric authentication has been enabled');
                 } else {
-                    Alert.alert('Error', 'Failed to enable biometric authentication');
+                    Alert.alert(t('error', 'Error'), 'Failed to enable biometric authentication');
                 }
             } else {
                 const success = await SecurityManager.disableBiometrics();
                 if (success) {
                     await loadSecuritySettings();
-                    Alert.alert('Success', 'Biometric authentication has been disabled');
+                    Alert.alert(t('success', 'Success'), 'Biometric authentication has been disabled');
                 } else {
-                    Alert.alert('Error', 'Failed to disable biometric authentication');
+                    Alert.alert(t('error', 'Error'), 'Failed to disable biometric authentication');
                 }
             }
         } catch (error) {
             console.error('Error toggling biometrics:', error);
-            Alert.alert('Error', 'An error occurred while updating biometric settings');
+            Alert.alert(t('error', 'Error'), 'An error occurred while updating biometric settings');
         }
     };
 
@@ -210,7 +214,7 @@ const SettingsTab = () => {
             'Remove Password',
             'Are you sure you want to remove your password? This will disable all security features.',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('cancel', 'Cancel'), style: 'cancel' },
                 {
                     text: 'Remove',
                     style: 'destructive',
@@ -235,9 +239,9 @@ const SettingsTab = () => {
                             // setLoading(false);
                             
                             // Alert.alert(
-                            //     'Success', 
+                            //     t('success', 'Success'), 
                             //     'Password removed successfully. All security features have been disabled.',
-                            //     [{ text: 'OK' }]
+                            //     [{ text: t('ok', 'OK') }]
                             // );
                         } catch (error) {
                             // setLoading(false);
@@ -248,9 +252,9 @@ const SettingsTab = () => {
                             });
                             
                             Alert.alert(
-                                'Error', 
+                                t('error', 'Error'), 
                                 `Unable to remove password.\n\nDetails: ${error.message || 'Unknown error occurred'}`,
-                                [{ text: 'OK' }]
+                                [{ text: t('ok', 'OK') }]
                             );
                         }
                     }
@@ -268,16 +272,16 @@ const SettingsTab = () => {
                 handlePasswordSetup();
                 break;
             case 'saveLocation':
-                Alert.alert('Save Location', 'Feature coming soon!');
+                Alert.alert(t('save_location', 'Save Location'), t('coming_soon', 'Feature coming soon!'));
                 break;
             case 'language':
-                Alert.alert('Language', 'Feature coming soon!');
+                setShowChangeLanguageModal(true);
                 break;
             case 'share':
-                Alert.alert('Share App', 'Feature coming soon!');
+                Alert.alert(t('share_app', 'Share App'), t('coming_soon', 'Feature coming soon!'));
                 break;
             case 'privacy':
-                Alert.alert('Privacy Policy', 'Feature coming soon!');
+                Alert.alert(t('privacy_policy', 'Privacy Policy'), t('coming_soon', 'Feature coming soon!'));
                 break;
             case 'upgrade':
                 showIAP('settings_vip_banner');
@@ -330,9 +334,9 @@ const SettingsTab = () => {
         >
             <View style={styles.vipContent}>
                 <View style={styles.vipLeft}>
-                    <Text style={styles.vipTitle}>BECOME A VIP MEMBER</Text>
-                    <Text style={styles.vipSubtitle}>Enjoy Premium Package with exclusive features.</Text>
-                    <Text style={styles.vipButton}>Upgrade</Text>
+                    <Text style={styles.vipTitle}>{t('becomeVipMember', 'BECOME A VIP MEMBER')}</Text>
+                    <Text style={styles.vipSubtitle}>{t('enjoyPremiumPackage', 'Enjoy Premium Package with exclusive features.')}</Text>
+                    <Text style={styles.vipButton}>{t('upgrade', 'Upgrade')}</Text>
                 </View>
                 <View style={styles.vipRight}>
                     <Image 
@@ -367,7 +371,7 @@ const SettingsTab = () => {
                     console.log('✅ Auto Split setting saved:', newValue);
                 } catch (error) {
                     console.error('❌ Failed to save auto split:', error);
-                    Alert.alert('Error', 'Failed to save auto split setting');
+                    Alert.alert(t('error', 'Error'), 'Failed to save auto split setting');
                 }
             } else {
                 // Handle other regular switches
@@ -442,14 +446,14 @@ const SettingsTab = () => {
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_autosplit.png'), 
-                    'Auto Split', 
+                    t('auto_split', 'Auto Split'), 
                     'Automatically split long recordings', 
                     true, 
                     'autoSplit'
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/icon_clock.png'), 
-                    'Duration', 
+                    t('duration', 'Duration'), 
                     'Maximum recording length', 
                     false, 
                     null, 
@@ -458,7 +462,7 @@ const SettingsTab = () => {
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/quality.png'), 
-                    'Resolution', 
+                    t('resolution', 'Resolution'), 
                     'Video quality setting', 
                     false, 
                     null, 
@@ -467,7 +471,7 @@ const SettingsTab = () => {
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/icon_preview.png'), 
-                    'Preview Size', 
+                    t('preview_size', 'Preview Size'), 
                     'Recording preview window size', 
                     false, 
                     null, 
@@ -485,7 +489,7 @@ const SettingsTab = () => {
             {renderSection('Security & Privacy', [
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_password.png'), 
-                    securitySettings.hasPassword ? 'Change Password' : 'Set Password', 
+                    securitySettings.hasPassword ? 'Change Password' : t('set_password', 'Set Password'), 
                     securitySettings.hasPassword ? 'App locks automatically with password' : 'Set password to auto-lock app', 
                     false, 
                     null, 
@@ -517,7 +521,7 @@ const SettingsTab = () => {
             {renderSection('Other', [
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_changeicon.png'), 
-                    'Change Icon', 
+                    t('change_icon', 'Change Icon'), 
                     'Customize app icon', 
                     false, 
                     null, 
@@ -525,7 +529,7 @@ const SettingsTab = () => {
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_lang.png'), 
-                    'Language', 
+                    t('language', 'Language'), 
                     'Change app language', 
                     false, 
                     null, 
@@ -533,7 +537,7 @@ const SettingsTab = () => {
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_share.png'), 
-                    'Share', 
+                    t('share', 'Share'), 
                     'Share this app with friends', 
                     false, 
                     null, 
@@ -541,7 +545,7 @@ const SettingsTab = () => {
                 ),
                 renderSettingItemWithValue(
                     require('../../../assets/home/ic/ic_privacy.png'), 
-                    'Privacy Policy', 
+                    t('privacy_policy', 'Privacy Policy'), 
                     'View privacy policy', 
                     false, 
                     null, 
@@ -594,6 +598,12 @@ const SettingsTab = () => {
             <ChangeIconModal
                 visible={showChangeIconModal}
                 onClose={() => setShowChangeIconModal(false)}
+            />
+
+            {/* Change Language Modal */}
+            <ChangeLanguageModal
+                visible={showChangeLanguageModal}
+                onClose={() => setShowChangeLanguageModal(false)}
             />
 
             {/* IAP Modal */}

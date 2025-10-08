@@ -8,10 +8,12 @@ import IAPManager from '../utils/IAPManager';
 import VIPManager from '../utils/VIPManager';
 import NetworkManager from '../utils/NetworkManager';
 import IconManager from '../utils/IconManager';
+import useTranslation from '../hooks/useTranslation';
 
 const LoadingScreen = () => {
+    const { t } = useTranslation();
   // State for loading text and progress
-  const [loadingText, setLoadingText] = useState('Loading...');
+  const [loadingText, setLoadingText] = useState(t('loading', 'Loading...'));
   const [remoteConfigLoaded, setRemoteConfigLoaded] = useState(false);
   const [adManagerLoaded, setAdManagerLoaded] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
@@ -174,7 +176,7 @@ const LoadingScreen = () => {
       <View style={styles.iconBox}>
         <Image source={require('../../assets/loading/icon.png')} style={styles.icon} />
       </View>
-      <Text style={styles.title}>Background Video Recorder</Text>
+      <Text style={styles.title}>{t('appTitle', 'Background Video Recorder')}</Text>
       <View style={styles.progressBarContainer}>
         <Animated.View 
           style={[
@@ -191,7 +193,7 @@ const LoadingScreen = () => {
         <View style={styles.progressBarBg} />
       </View>
       <Text style={styles.loadingText}>{loadingText}</Text>
-      <Text style={styles.adsText}>This action may contain ads</Text>
+      <Text style={styles.adsText}>{t('adsDisclaimer', 'This action may contain ads')}</Text>
     </View>
   );
 };

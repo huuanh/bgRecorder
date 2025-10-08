@@ -13,11 +13,13 @@ import {
 import { NativeModules } from 'react-native';
 import { COLORS } from '../constants';
 import VideoThumbnail from './VideoThumbnail';
+import useTranslation from '../hooks/useTranslation';
 
 const { width: screenWidth } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const MultiVideoSelectorModal = ({ visible, title, onClose, onVideoSelect, minSelection = 2 }) => {
+    const { t } = useTranslation();
     const [videos, setVideos] = useState([]);
     const [selectedVideos, setSelectedVideos] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -91,7 +93,7 @@ const MultiVideoSelectorModal = ({ visible, title, onClose, onVideoSelect, minSe
             setVideos(validVideos);
         } catch (error) {
             console.error('Error loading videos:', error);
-            Alert.alert('Error', 'Failed to load videos');
+            Alert.alert(t('error', 'Error'), 'Failed to load videos');
         } finally {
             setLoading(false);
         }

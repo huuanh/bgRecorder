@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants';
 import IAPManager from '../utils/IAPManager';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const IAPModal = ({ visible, onClose }) => {
+    const { t } = useTranslation(); 
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [subscriptionPlans, setSubscriptionPlans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -102,14 +104,14 @@ const IAPModal = ({ visible, onClose }) => {
             {
                 id: 'year_freetrial',
                 basePlanId: 'year',
-                title: '1 Year',
+                title: t('year', '1 Year'),
                 price: '1.850.000 ₫',
                 originalPrice: null,
                 discount: null,
                 isBestOption: true,
                 hasFreeTrail: true,
-                freeTrialText: 'Free for 3 days',
-                description: 'Best Value',
+                freeTrialText: t('free_for_3_days', 'Free for 3 days'),
+                description: t('best_value', 'Best Value'),
                 offerToken: 'fallback_offer_token',
                 billingPeriod: 'P1Y',
                 priceAmountMicros: '1850000000000',
@@ -118,14 +120,14 @@ const IAPModal = ({ visible, onClose }) => {
             {
                 id: '3months_freetrial',
                 basePlanId: '3months',
-                title: '3 Months',
+                title: t('months', '3 Months'),
                 price: '474.000 ₫',
                 originalPrice: null,
                 discount: null,
                 isBestOption: false,
                 hasFreeTrail: true,
-                freeTrialText: 'Free for 3 days',
-                description: 'Popular Choice',
+                freeTrialText: t('free_for_3_days', 'Free for 3 days'),
+                description: t('popular_choice', 'Popular Choice'),
                 offerToken: 'fallback_offer_token',
                 billingPeriod: 'P3M',
                 priceAmountMicros: '474000000000',
@@ -134,14 +136,14 @@ const IAPModal = ({ visible, onClose }) => {
             {
                 id: '1month_freetrial',
                 basePlanId: '1month',
-                title: '1 Month',
+                title: t('month', '1 Month'),
                 price: '158.000 ₫',
                 originalPrice: null,
                 discount: null,
                 isBestOption: false,
                 hasFreeTrail: true,
-                freeTrialText: 'Free for 3 days',
-                description: 'Try it out',
+                freeTrialText: t('free_for_3_days', 'Free for 3 days'),
+                description: t('try_it_out', 'Try it out'),
                 offerToken: 'fallback_offer_token',
                 billingPeriod: 'P1M',
                 priceAmountMicros: '158000000000',
@@ -191,13 +193,13 @@ const IAPModal = ({ visible, onClose }) => {
                 let title, isBestOption = false;
                 switch (basePlanId) {
                     case '1month':
-                        title = '1 Month';
+                        title = t('month', '1 Month');
                         break;
                     case '3months':
-                        title = '3 Months';
+                        title = t('months', '3 Months');
                         break;
                     case 'year':
-                        title = '1 Year';
+                        title = t('year', '1 Year');
                         isBestOption = true;
                         break;
                     default:
@@ -214,7 +216,7 @@ const IAPModal = ({ visible, onClose }) => {
                     isBestOption: isBestOption,
                     hasFreeTrail: !!freeTrialPhase,
                     freeTrialText: freeTrialPhase ? `${freeTrialPhase.formattedPrice} for ${getPeriodText(freeTrialPhase.billingPeriod)}` : null,
-                    description: isBestOption ? 'Best Value' : 'Popular Choice',
+                    description: isBestOption ? t('best_value', 'Best Value') : t('popular_choice', 'Popular Choice'),
                     offerToken: primaryOffer.offerToken,
                     billingPeriod: mainPhase.billingPeriod,
                     priceAmountMicros: mainPhase.priceAmountMicros,
@@ -374,7 +376,7 @@ const IAPModal = ({ visible, onClose }) => {
             >
                 {plan.isBestOption && (
                     <View style={styles.bestOptionBadge}>
-                        <Text style={styles.bestOptionText}>Best Option</Text>
+                        <Text style={styles.bestOptionText}>{t('bestOption', 'Best Option')}</Text>
                     </View>
                 )}
                 
@@ -387,7 +389,7 @@ const IAPModal = ({ visible, onClose }) => {
                             </View>
                         )}
                         {plan.originalPrice && (
-                            <Text style={styles.originalPrice}>Regular price {plan.originalPrice}</Text>
+                            <Text style={styles.originalPrice}>{t('regularPrice', 'Regular price')} {plan.originalPrice}</Text>
                         )}
                         {plan.hasFreeTrail && plan.freeTrialText && (
                             <Text style={styles.freeTrialDescription}>{plan.freeTrialText}</Text>
@@ -398,7 +400,7 @@ const IAPModal = ({ visible, onClose }) => {
                         <Text style={styles.planPrice}>{plan.price}</Text>
                         {plan.hasFreeTrail && (
                             <View style={styles.freeTrialBadge}>
-                                <Text style={styles.freeTrialText}>FREE TRIAL</Text>
+                                <Text style={styles.freeTrialText}>{t('freeTrial', 'FREE TRIAL')}</Text>
                             </View>
                         )}
                     </View>
@@ -433,9 +435,9 @@ const IAPModal = ({ visible, onClose }) => {
                     >
                         {/* Title Section */}
                         <View style={styles.titleSection}>
-                            <Text style={styles.mainTitle}>Become a Premium member!</Text>
-                            <Text style={styles.subtitle}>Enjoy an ad-free experience.</Text>
-                            <Text style={styles.subtitle}>Unlock the Premium version with unlimited features.</Text>
+                            <Text style={styles.mainTitle}>{t('becomePremiumMember', 'Become a Premium member!')}</Text>
+                            <Text style={styles.subtitle}>{t('enjoyAdFreeExperience', 'Enjoy an ad-free experience.')}</Text>
+                            <Text style={styles.subtitle}>{t('unlockPremiumFeatures', 'Unlock the Premium version with unlimited features.')}</Text>
                             {renderStars()}
                         </View>
 
@@ -443,7 +445,7 @@ const IAPModal = ({ visible, onClose }) => {
                         <View style={styles.plansSection}>
                             {loading ? (
                                 <View style={styles.loadingContainer}>
-                                    <Text style={styles.loadingText}>Loading subscription plans...</Text>
+                                    <Text style={styles.loadingText}>{t('loadingSubscriptionPlans', 'Loading subscription plans...')}</Text>
                                 </View>
                             ) : (
                                 subscriptionPlans.map(plan => renderPlanItem(plan))
@@ -468,10 +470,10 @@ const IAPModal = ({ visible, onClose }) => {
                                 disabled={!selectedPlan || purchasing}
                             >
                                 <Text style={styles.startTrialText}>
-                                    {purchasing ? 'PROCESSING...' : 
+                                    {purchasing ? t('processing', 'PROCESSING...') : 
                                         subscriptionPlans.find(plan => plan.id === selectedPlan)?.hasFreeTrail 
-                                            ? 'START FREE TRIAL ››' 
-                                            : 'BUY NOW ››'
+                                            ? t('startFreeTrial', 'START FREE TRIAL ››') 
+                                            : t('buyNow', 'BUY NOW ››')
                                     }
                                 </Text>
                             </TouchableOpacity>
@@ -480,9 +482,9 @@ const IAPModal = ({ visible, onClose }) => {
                         {/* Footer Text */}
                         <View style={styles.footer}>
                             <Text style={styles.footerText}>
-                                You can cancel your subscription on Google Play Store anytime.{'\n'}
-                                After the free trial period, the subscription will be billed periodically at the price shown above.{'\n'}
-                                Terms & Conditions
+                                {t('cancellationInfo', 'You can cancel your subscription on Google Play Store anytime.')}{'\n'}
+                                {t('billingInfo', 'After the free trial period, the subscription will be billed periodically at the price shown above.')}{'\n'}
+                                {t('termsAndConditions', 'Terms & Conditions')}
                             </Text>
                         </View>
                     </ScrollView>

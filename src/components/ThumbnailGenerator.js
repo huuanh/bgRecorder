@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Video from 'react-native-video';
+import useTranslation from '../hooks/useTranslation';
 
 const ThumbnailGenerator = ({ 
     videoUri, 
@@ -9,6 +10,7 @@ const ThumbnailGenerator = ({
     width = 80,
     height = 80 
 }) => {
+    const { t } = useTranslation();
     const videoRef = useRef(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);

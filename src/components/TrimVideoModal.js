@@ -19,6 +19,7 @@ import { FFmpegKit } from 'ffmpeg-kit-react-native';
 import RNFS from 'react-native-fs';
 import { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -27,6 +28,7 @@ const { VideoRecordingModule } = NativeModules;
 console.log('TrimVideoModal Dimensions:', { width, height });
 
 const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
+    const { t } = useTranslation();
     const videoRef = useRef(null);
     const [paused, setPaused] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -508,12 +510,12 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const handleShare = async () => {
         try {
             if (!trimmedVideoPath) {
-                Alert.alert('Error', 'No video file to share');
+                Alert.alert(t('error', 'Error'), 'No video file to share');
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -523,9 +525,9 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
         } catch (error) {
             console.error('Failed to share video:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
-                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+                Alert.alert(t('no_app_available', 'No App Available'), 'No app found to handle this share type. Please install the required app.');
             } else {
-                Alert.alert('Share Error', 'Failed to share video: ' + error.message);
+                Alert.alert(t('share_error', 'Share Error'), 'Failed to share video: ' + error.message);
             }
         }
     };

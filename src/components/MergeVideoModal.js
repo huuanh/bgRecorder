@@ -17,11 +17,13 @@ import { COLORS } from '../constants';
 import { FFmpegKit, FFmpegKitConfig, ReturnCode } from 'ffmpeg-kit-react-native';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
+import useTranslation from '../hooks/useTranslation';
 
 const { width: screenWidth } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const MergeVideoModal = ({ visible, videos, onClose, onExport }) => {
+    const { t } = useTranslation();
     const [videoList, setVideoList] = useState([]);
     const [isMerging, setIsMerging] = useState(false);
     const [mergeProgress, setMergeProgress] = useState(0);
@@ -50,7 +52,7 @@ const MergeVideoModal = ({ visible, videos, onClose, onExport }) => {
 
     const handleMerge = async () => {
         if (videoList.length < 2) {
-            Alert.alert('Error', 'Please select at least 2 videos to merge');
+            Alert.alert(t('error', 'Error'), 'Please select at least 2 videos to merge');
             return;
         }
 
@@ -206,9 +208,9 @@ const MergeVideoModal = ({ visible, videos, onClose, onExport }) => {
             'Delete Video',
             'Are you sure you want to remove this video from the merge?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('cancel', 'Cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('delete', 'Delete'),
                     style: 'destructive',
                     onPress: () => {
                         const newVideoList = videoList.filter((_, i) => i !== index);

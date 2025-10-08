@@ -22,11 +22,13 @@ import CameraModeModal from '../CameraModeModal';
 import DurationModal from '../DurationModal';
 import ResolutionModal from '../ResolutionModal';
 import IAPModal from '../IAPModal';
+import useTranslation from '../../hooks/useTranslation';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
 
 const RecordTab = () => {
+    const { t } = useTranslation();
     const [recordingSettings, setRecordingSettings] = useState({
         preview: true,
         duration: 3,
@@ -282,7 +284,7 @@ const RecordTab = () => {
             console.log('✅ Camera mode updated:', mode);
         } catch (error) {
             console.error('❌ Failed to save camera mode:', error);
-            Alert.alert('Error', 'Failed to save camera mode');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_camera_mode', 'Failed to save camera mode'));
         }
     };
 
@@ -296,7 +298,7 @@ const RecordTab = () => {
             console.log('✅ Duration updated:', duration);
         } catch (error) {
             console.error('❌ Failed to save duration:', error);
-            Alert.alert('Error', 'Failed to save duration');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_duration', 'Failed to save duration'));
         }
     };
 
@@ -310,7 +312,7 @@ const RecordTab = () => {
             console.log('✅ Resolution updated:', resolution);
         } catch (error) {
             console.error('❌ Failed to save resolution:', error);
-            Alert.alert('Error', 'Failed to save resolution');
+            Alert.alert(t('error', 'Error'), t('failed_to_save_resolution', 'Failed to save resolution'));
         }
     };
 
@@ -437,14 +439,14 @@ const RecordTab = () => {
                             if (!permissionCheck.audioGranted) missingPermissions.push('Microphone');
                             
                             Alert.alert(
-                                'Permissions Required',
+                                t('permission_required', 'Permissions Required'),
                                 `To record video with audio, we need ${missingPermissions.join(' and ')} permission(s). Please grant these permissions in Settings.`,
                                 [
-                                    { text: 'Cancel', style: 'cancel' },
+                                    { text: t('cancel', 'Cancel'), style: 'cancel' },
                                     { 
                                         text: 'Open Settings', 
                                         onPress: () => {
-                                            Alert.alert('Permissions', 'Please go to Settings > Apps > BgRecorder > Permissions and enable Camera and Microphone permissions, then try recording again.');
+                                            Alert.alert(t('permissions', 'Permissions'), t('camera_permission', 'Please go to Settings > Apps > BgRecorder > Permissions and enable Camera and Microphone permissions, then try recording again.'));
                                         }
                                     }
                                 ]
@@ -467,12 +469,12 @@ const RecordTab = () => {
                                 'Overlay Permission Required',
                                 'To show video preview overlay, we need permission to draw over other apps. Please grant this permission.',
                                 [
-                                    { text: 'Cancel', style: 'cancel' },
+                                    { text: t('cancel', 'Cancel'), style: 'cancel' },
                                     { 
                                         text: 'Grant Permission', 
                                         onPress: async () => {
                                             await VideoRecordingModule.requestOverlayPermission();
-                                            Alert.alert('Permission', 'Please go to Settings and enable "Display over other apps" permission, then try recording again.');
+                                            Alert.alert('Permission', t('overlay_permission', 'Please go to Settings and enable "Display over other apps" permission, then try recording again.'));
                                         }
                                     }
                                 ]
@@ -515,7 +517,7 @@ const RecordTab = () => {
                         console.log('❌ Recording failed to start, resetting state');
                         setIsRecording(false);
                         setIsServiceRecording(false);
-                        Alert.alert('Recording Failed', 'Unable to start recording. Please try again.');
+                        Alert.alert(t('recording_failed', 'Recording Failed'), t('unable_to_start_recording', 'Unable to start recording. Please try again.'));
                         return;
                     }
                     
@@ -549,11 +551,11 @@ const RecordTab = () => {
                 
                 // Handle specific error types
                 if (error.message?.includes('ReactContext') || error.message?.includes('JS module')) {
-                    Alert.alert('Initialization Error', 'App is still starting up. Please wait a moment and try again.');
+                    Alert.alert(t('initialization_error', 'Initialization Error'), t('app_starting_up', 'App is still starting up. Please wait a moment and try again.'));
                 } else if (error.message.includes('PERMISSION_ERROR')) {
-                    Alert.alert('Permission Error', 'Please grant Camera and Microphone permissions to record video with audio.');
+                    Alert.alert(t('permission_error', 'Permission Error'), t('grant_permissions', 'Please grant Camera and Microphone permissions to record video with audio.'));
                 } else {
-                    Alert.alert('Error', `Failed to start recording: ${error.message}`);
+                    Alert.alert(t('error', 'Error'), `Failed to start recording: ${error.message}`);
                 }
             }
         }
@@ -568,7 +570,7 @@ const RecordTab = () => {
 
     const handleSettingPress = (setting, currentValue) => {
         if (isRecording) {
-            Alert.alert('Cannot Change Settings', 'Stop recording first to change settings.');
+            Alert.alert(t('cannot_change_settings', 'Cannot Change Settings'), t('stop_recording_first', 'Stop recording first to change settings.'));
             return;
         }
 
@@ -628,9 +630,9 @@ const RecordTab = () => {
     const getSettingDisplayValue = (setting) => {
         switch (setting) {
             case 'preview':
-                return recordingSettings.preview ? 'On' : 'Off';
+                return recordingSettings.preview ? t('on', 'On') : t('off', 'Off');
             case 'duration':
-                return recordingSettings.duration === -1 ? 'Unlimited' : `${recordingSettings.duration} mins`;
+                return recordingSettings.duration === -1 ? t('unlimited', 'Unlimited') : `${recordingSettings.duration} ${t('mins', 'mins')}`;
             default:
                 return recordingSettings[setting];
         }
@@ -658,7 +660,7 @@ const RecordTab = () => {
                             styles.settingLabel,
                             { color: isRecording ? '#9CA3AF' : '#1F2937' }
                         ]}>
-                            {setting.charAt(0).toUpperCase() + setting.slice(1)}
+                            {t(setting, setting.charAt(0).toUpperCase() + setting.slice(1))}
                         </Text>
                         <Text style={[
                             styles.settingValue,
@@ -677,7 +679,7 @@ const RecordTab = () => {
                 </Text>
                 {isRecording && (
                     <View style={styles.recordingIndicator}>
-                        <Text style={styles.recordingBadge}>REC</Text>
+                        <Text style={styles.recordingBadge}>{t('rec', 'REC')}</Text>
                     </View>
                 )}
             </View>

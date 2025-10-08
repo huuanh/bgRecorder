@@ -9,25 +9,27 @@ import {
     Dimensions,
 } from 'react-native';
 import { COLORS } from '../constants';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const VideoActionModal = ({ visible, onClose, video, onAction }) => {
+    const { t } = useTranslation();
     // Define different menu items for video and audio
     const videoMenuItems = [
-        { id: 'rename', icon: require('../../assets/home/ic/action/rename.png'), title: 'Rename', color: COLORS.TERTIARY },
-        { id: 'share', icon: require('../../assets/home/ic/action/share.png'), title: 'Share', color: COLORS.TERTIARY },
-        { id: 'compress', icon: require('../../assets/home/ic/action/compress.png'), title: 'Compress', color: COLORS.TERTIARY },
-        { id: 'video_to_mp3', icon: require('../../assets/home/ic/action/tomp3.png'), title: 'Video to Audio', color: COLORS.TERTIARY },
-        { id: 'trim', icon: require('../../assets/home/ic/action/trim.png'), title: 'Trim', color: COLORS.TERTIARY },
-        { id: 'delete', icon: require('../../assets/home/ic/action/del.png'), title: 'Delete', color: COLORS.ERROR },
+        { id: 'rename', icon: require('../../assets/home/ic/action/rename.png'), title: t('rename', 'Rename'), color: COLORS.TERTIARY },
+        { id: 'share', icon: require('../../assets/home/ic/action/share.png'), title: t('share', 'Share'), color: COLORS.TERTIARY },
+        { id: 'compress', icon: require('../../assets/home/ic/action/compress.png'), title: t('compress', 'Compress'), color: COLORS.TERTIARY },
+        { id: 'video_to_mp3', icon: require('../../assets/home/ic/action/tomp3.png'), title: t('video_to_audio', 'Video to Audio'), color: COLORS.TERTIARY },
+        { id: 'trim', icon: require('../../assets/home/ic/action/trim.png'), title: t('trim', 'Trim'), color: COLORS.TERTIARY },
+        { id: 'delete', icon: require('../../assets/home/ic/action/del.png'), title: t('delete', 'Delete'), color: COLORS.ERROR },
     ];
 
     const audioMenuItems = [
-        { id: 'rename', icon: require('../../assets/home/ic/action/rename.png'), title: 'Rename', color: COLORS.TERTIARY },
-        { id: 'share', icon: require('../../assets/home/ic/action/share.png'), title: 'Share', color: COLORS.TERTIARY },
+        { id: 'rename', icon: require('../../assets/home/ic/action/rename.png'), title: t('rename', 'Rename'), color: COLORS.TERTIARY },
+        { id: 'share', icon: require('../../assets/home/ic/action/share.png'), title: t('share', 'Share'), color: COLORS.TERTIARY },
         { id: 'info', icon: require('../../assets/home/ic/ic_setting.png'), title: 'Info', color: COLORS.TERTIARY },
-        { id: 'delete', icon: require('../../assets/home/ic/action/del.png'), title: 'Delete', color: COLORS.ERROR },
+        { id: 'delete', icon: require('../../assets/home/ic/action/del.png'), title: t('delete', 'Delete'), color: COLORS.ERROR },
     ];
 
     // Determine which menu items to show based on file type

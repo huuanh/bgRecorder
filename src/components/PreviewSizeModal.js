@@ -11,22 +11,24 @@ import {
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const PreviewSizeModal = ({ visible, onClose, currentPreviewSize, onSelect }) => {
+    const { t } = useTranslation();
     const previewSizeOptions = [
         { 
-            id: 'small', 
-            label: 'small', 
+            id: t('small', 'small'), 
+            label: t('small', 'small'), 
         },
         { 
-            id: 'medium', 
-            label: 'medium', 
+            id: t('medium', 'medium'), 
+            label: t('medium', 'medium'), 
         },
         { 
-            id: 'large', 
-            label: 'large', 
+            id: t('large', 'large'), 
+            label: t('large', 'large'), 
             isPro: true
         }
     ];

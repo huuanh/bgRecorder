@@ -4,10 +4,12 @@ import { COLORS } from '../constants';
 import { ADS_UNIT } from '../AdManager';
 import { NativeAdView, NativeMediaView, NativeAsset, NativeAssetType, NativeAd } from 'react-native-google-mobile-ads';
 import { useVipStatus } from '../utils/VipUtils';
+import useTranslation from '../hooks/useTranslation';
 const { width, height } = Dimensions.get('window');
 
 // Native Ad Component
 export const NativeAdComponent = (props) => {
+    const { t } = useTranslation();
     const { isVip, loading } = useVipStatus();
     const [nativeAd, setNativeAd] = useState(null);
     const [isLoading, setIsLoading] = useState(true);

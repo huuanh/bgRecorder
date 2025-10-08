@@ -11,10 +11,12 @@ import {
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
+import useTranslation from '../hooks/useTranslation';
 const { width } = Dimensions.get('window');
 
 
 const CameraModeModal = ({ visible, onClose, currentMode, onSelect }) => {
+    const { t } = useTranslation();
     const modes = [
         {
             id: 'front',
@@ -76,7 +78,7 @@ const CameraModeModal = ({ visible, onClose, currentMode, onSelect }) => {
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Camera Mode Selection</Text>
+                        <Text style={styles.title}>{t('cameraModeSelection', 'Camera Mode Selection')}</Text>
                     </View>
                     
                     <View style={styles.content}>
@@ -89,14 +91,14 @@ const CameraModeModal = ({ visible, onClose, currentMode, onSelect }) => {
                             style={styles.cancelButton}
                             onPress={onClose}
                         >
-                            <Text style={styles.cancelText}>Cancel</Text>
+                            <Text style={styles.cancelText}>{t('cancel', 'Cancel')}</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
                             style={styles.okButton}
                             onPress={onClose}
                         >
-                            <Text style={styles.okText}>OK</Text>
+                            <Text style={styles.okText}>{t('ok', 'OK')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

@@ -18,10 +18,12 @@ import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import AdManager, { ADS_UNIT } from '../AdManager.js';
 import OverlayPermissionModule from '../OverlayPermissionModule';
+import useTranslation from '../hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const PermissionScreen = ({ onNext, onSkip }) => {
+    const { t } = useTranslation();
     const [currentStep, setCurrentStep] = useState(0);
     const [permissions, setPermissions] = useState({
         camera: false,
@@ -163,18 +165,18 @@ const PermissionScreen = ({ onNext, onSkip }) => {
                     } else {
                         console.log('❌ Overlay permission denied');
                         Alert.alert(
-                            'Permission Required',
+                            t('permission_required', 'Permission Required'),
                             'Display over other apps permission is required for video recording overlay. Please enable it in Settings.',
-                            [{ text: 'OK' }]
+                            [{ text: t('ok', 'OK') }]
                         );
                         return false;
                     }
                 } catch (error) {
                     console.error('❌ Native overlay permission request failed:', error);
                     Alert.alert(
-                        'Error',
+                        t('error', 'Error'),
                         'Failed to request overlay permission. Please enable it manually in Settings.',
-                        [{ text: 'OK' }]
+                        [{ text: t('ok', 'OK') }]
                     );
                     return false;
                 }
@@ -186,8 +188,8 @@ const PermissionScreen = ({ onNext, onSkip }) => {
                     title: step.title,
                     message: step.description.replace('\n', ' '),
                     buttonNeutral: 'Ask Me Later',
-                    buttonNegative: 'Cancel',
-                    buttonPositive: 'OK',
+                    buttonNegative: t('cancel', 'Cancel'),
+                    buttonPositive: t('ok', 'OK'),
                 }
             );
 
@@ -208,7 +210,7 @@ const PermissionScreen = ({ onNext, onSkip }) => {
                         'Permission Denied',
                         `${step.title} was permanently denied. Please enable it in Settings.`,
                         [
-                            { text: 'Cancel', style: 'cancel' },
+                            { text: t('cancel', 'Cancel'), style: 'cancel' },
                             { 
                                 text: 'Open Settings', 
                                 onPress: async () => {
@@ -294,9 +296,9 @@ const PermissionScreen = ({ onNext, onSkip }) => {
             if (!granted) {
                 // Permission denied, show message and don't proceed
                 Alert.alert(
-                    'Permission Required',
+                    t('permission_required', 'Permission Required'),
                     `${currentPermission.title} is required to continue. Please grant permission to proceed.`,
-                    [{ text: 'OK' }]
+                    [{ text: t('ok', 'OK') }]
                 );
                 return;
             }
@@ -407,7 +409,7 @@ const PermissionScreen = ({ onNext, onSkip }) => {
                     >
                         <Text style={styles.nextButtonText}>
                             {isRequestingPermission ? 'Requesting...' : 
-                             permissions[permissionSteps[currentStep].id] ? 'Next' : 'Grant Permission'}
+                             permissions[permissionSteps[currentStep].id] ? t('next', 'Next') : 'Grant Permission'}
                         </Text>
                     </TouchableOpacity>
                 </View>

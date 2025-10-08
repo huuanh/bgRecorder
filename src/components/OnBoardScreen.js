@@ -3,8 +3,10 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../constants';
 import AdManager, { ADS_UNIT } from '../AdManager.js';
 import { NativeAdComponent } from './NativeAdComponent';
+import useTranslation from '../hooks/useTranslation';
 
 const OnBoardScreen = ({ onNext }) => {
+  const { t } = useTranslation();
   const [adShown, setAdShown] = useState(false);
 
   useEffect(() => {
@@ -33,10 +35,10 @@ const OnBoardScreen = ({ onNext }) => {
       <Image source={require('../../assets/onboard/bg1.png')} style={styles.bgImage} />
       <Image source={require('../../assets/onboard/1.png')} style={styles.slideImage} />
       <View style={styles.botGroup}>
-        <Text style={styles.slideTitle}>Record video everywhere</Text>
+        <Text style={styles.slideTitle}>{t('recordVideoEverywhere', 'Record video everywhere')}</Text>
         <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
         <TouchableOpacity onPress={onNext} style={styles.nextBtn}>
-          <Text style={styles.nextText}>Next</Text>
+          <Text style={styles.nextText}>{t('next', 'Next')}</Text>
         </TouchableOpacity>
       </View>
     </View>

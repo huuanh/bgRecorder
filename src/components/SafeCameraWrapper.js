@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import useTranslation from '../hooks/useTranslation';
 
 /**
  * SafeCameraWrapper - Delays camera initialization until React context is ready
  * This prevents "Tried to access a JS module before the React instance was fully set up" errors
  */
 const SafeCameraWrapper = ({ children, delay = 1500 }) => {
+    const { t } = useTranslation();
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {

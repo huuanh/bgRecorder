@@ -13,10 +13,12 @@ import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
 import { ADS_UNIT } from '../AdManager';
 import { useVipStatus } from '../utils/VipUtils';
+import useTranslation from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP }) => {
+    const { t } = useTranslation(); 
     const { isVip, loading } = useVipStatus();
     const durationOptions = [
         {
@@ -43,7 +45,7 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
                 'Unlimited recording is available for Premium members only. Upgrade now to unlock this feature!',
                 [
                     {
-                        text: 'Cancel',
+                        text: t('cancel', 'Cancel'),
                         style: 'cancel',
                     },
                     {
@@ -129,10 +131,10 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Recording Duration</Text>
+                        <Text style={styles.title}>{t('recordingDuration', 'Recording Duration')}</Text>
                         {!loading && (
                             <Text style={[styles.vipStatus, isVip ? styles.vipActive : styles.vipInactive]}>
-                                {isVip ? '👑 Premium Member' : '👤 Free User'}
+                                {isVip ? t('premiumMember', '👑 Premium Member') : t('freeUser', '👤 Free User')}
                             </Text>
                         )}
                     </View>
@@ -143,7 +145,7 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
                         {!isVip && !loading && (
                             <View style={styles.upgradeNote}>
                                 <Text style={styles.upgradeNoteText}>
-                                    💡 Upgrade to Premium to unlock unlimited recording and remove ads!
+                                    {t('upgradeToPremiumNote', '💡 Upgrade to Premium to unlock unlimited recording and remove ads!')}
                                 </Text>
                             </View>
                         )}
@@ -161,14 +163,14 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
                             style={styles.cancelButton}
                             onPress={onClose}
                         >
-                            <Text style={styles.cancelText}>Cancel</Text>
+                            <Text style={styles.cancelText}>{t('cancel', 'Cancel')}</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
                             style={styles.okButton}
                             onPress={onClose}
                         >
-                            <Text style={styles.okText}>OK</Text>
+                            <Text style={styles.okText}>{t('ok', 'OK')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

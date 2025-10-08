@@ -3,6 +3,7 @@ import { View, Image, Text, StyleSheet } from 'react-native';
 // import Video from 'react-native-video'; // Temporarily disabled
 import { COLORS } from '../constants';
 import { NativeModules } from 'react-native';
+import useTranslation from '../hooks/useTranslation';
 
 const { VideoRecordingModule } = NativeModules;
 
@@ -12,6 +13,7 @@ const VideoThumbnail = memo(({
     height = 80, 
     onThumbnailLoad 
 }) => {
+    const { t } = useTranslation();
     const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
     const [loadedThumbnail, setLoadedThumbnail] = useState(null);

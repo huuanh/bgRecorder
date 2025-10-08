@@ -21,11 +21,13 @@ import { NativeAdComponent } from '../NativeAdComponent';
 import { COLORS } from '../../constants';
 import { NativeModules } from 'react-native';
 import { ADS_UNIT } from '../../AdManager.js';
+import useTranslation from '../../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const GalleryTab = () => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('video'); // 'video' or 'audio'
     const [videos, setVideos] = useState([]);
     const [audioFiles, setAudioFiles] = useState([]);
@@ -103,7 +105,7 @@ const GalleryTab = () => {
                 console.log('Setting videos in state (quick):', formattedVideos.length);
                 setVideos(formattedVideos);
             } else {
-                console.log('No videos found');
+                console.log(t('no_videos_found', 'No videos found'));
                 setVideos([]);
             }
         } catch (error) {
@@ -227,7 +229,7 @@ const GalleryTab = () => {
                     setSelectedVideo(video);
                     setShowVideoPlayer(true);
                 } else {
-                    Alert.alert('Error', 'Video file path not found. The video file might have been deleted.');
+                    Alert.alert(t('error', 'Error'), 'Video file path not found. The video file might have been deleted.');
                 }
                 break;
             case 'rename':
@@ -269,9 +271,9 @@ const GalleryTab = () => {
                     'Delete Video',
                     `Are you sure you want to delete ${video.title}?`,
                     [
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: t('cancel', 'Cancel'), style: 'cancel' },
                         { 
-                            text: 'Delete', 
+                            text: t('delete', 'Delete'), 
                             style: 'destructive',
                             onPress: () => deleteVideo(videoId)
                         }
@@ -288,12 +290,12 @@ const GalleryTab = () => {
         try {
             const video = videos.find(v => v.id === videoId);
             if (!video || !video.filePath) {
-                Alert.alert('Error', 'Video file not found');
+                Alert.alert(t('error', 'Error'), t('video_file_not_found', 'Video file not found'));
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -302,10 +304,10 @@ const GalleryTab = () => {
             // Refresh the video list after deletion
             await loadRecordedVideos();
             
-            Alert.alert('Success', 'Video deleted successfully');
+            Alert.alert(t('success', 'Success'), t('video_deleted_successfully', 'Video deleted successfully'));
         } catch (error) {
             console.error('Failed to delete video:', error);
-            Alert.alert('Error', 'Failed to delete video: ' + error.message);
+            Alert.alert(t('error', 'Error'), 'Failed to delete video: ' + error.message);
         }
     };
 
@@ -320,7 +322,7 @@ const GalleryTab = () => {
                     setSelectedVideo(audio);
                     setShowVideoPlayer(true);
                 } else {
-                    Alert.alert('Error', 'Audio file path not found. The audio file might have been deleted.');
+                    Alert.alert(t('error', 'Error'), 'Audio file path not found. The audio file might have been deleted.');
                 }
                 break;
             case 'rename':
@@ -341,9 +343,9 @@ const GalleryTab = () => {
                     'Delete Audio',
                     `Are you sure you want to delete ${audio.title}?`,
                     [
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: t('cancel', 'Cancel'), style: 'cancel' },
                         { 
-                            text: 'Delete', 
+                            text: t('delete', 'Delete'), 
                             style: 'destructive',
                             onPress: () => deleteAudio(audioId)
                         }
@@ -360,12 +362,12 @@ const GalleryTab = () => {
         try {
             const audio = audioFiles.find(a => a.id === audioId);
             if (!audio || !audio.filePath) {
-                Alert.alert('Error', 'Audio file not found');
+                Alert.alert(t('error', 'Error'), t('audio_file_not_found', 'Audio file not found'));
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -374,10 +376,10 @@ const GalleryTab = () => {
             // Refresh the audio list after deletion
             await loadAudioFiles();
             
-            Alert.alert('Success', 'Audio deleted successfully');
+            Alert.alert(t('success', 'Success'), t('audio_deleted_successfully', 'Audio deleted successfully'));
         } catch (error) {
             console.error('Failed to delete audio:', error);
-            Alert.alert('Error', 'Failed to delete audio: ' + error.message);
+            Alert.alert(t('error', 'Error'), 'Failed to delete audio: ' + error.message);
         }
     };
 
@@ -385,12 +387,12 @@ const GalleryTab = () => {
         try {
             const audio = audioFiles.find(a => a.id === audioId);
             if (!audio || !audio.filePath) {
-                Alert.alert('Error', 'Audio file not found');
+                Alert.alert(t('error', 'Error'), t('audio_file_not_found', 'Audio file not found'));
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -400,9 +402,9 @@ const GalleryTab = () => {
         } catch (error) {
             console.error('Failed to share audio:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
-                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+                Alert.alert(t('no_app_available', 'No App Available'), 'No app found to handle this share type. Please install the required app.');
             } else {
-                Alert.alert('Share Error', 'Failed to share audio: ' + error.message);
+                Alert.alert(t('share_error', 'Share Error'), 'Failed to share audio: ' + error.message);
             }
         }
     };
@@ -436,12 +438,12 @@ const GalleryTab = () => {
             const isAudio = !!audio;
             
             if (!item || !item.filePath) {
-                Alert.alert('Error', `${isAudio ? 'Audio' : 'Video'} file not found`);
+                Alert.alert(t('error', 'Error'), `${isAudio ? 'Audio' : 'Video'} file not found`);
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -455,18 +457,18 @@ const GalleryTab = () => {
                 // Refresh the audio list after rename
                 await loadAudioFiles();
                 
-                Alert.alert('Success', `Audio renamed to: ${newFileName}`);
+                Alert.alert(t('success', 'Success'), `Audio renamed to: ${newFileName}`);
             } else {
                 await VideoRecordingModule.renameVideo(item.filePath, newFileName);
                 
                 // Refresh the video list after rename
                 await loadRecordedVideosQuick();
                 
-                Alert.alert('Success', `Video renamed to: ${newFileName}`);
+                Alert.alert(t('success', 'Success'), `Video renamed to: ${newFileName}`);
             }
         } catch (error) {
             console.error('Failed to rename file:', error);
-            Alert.alert('Error', 'Failed to rename file: ' + error.message);
+            Alert.alert(t('error', 'Error'), 'Failed to rename file: ' + error.message);
         }
     };
 
@@ -474,12 +476,12 @@ const GalleryTab = () => {
         try {
             const video = videos.find(v => v.id === videoId);
             if (!video || !video.filePath) {
-                Alert.alert('Error', 'Video file not found');
+                Alert.alert(t('error', 'Error'), t('video_file_not_found', 'Video file not found'));
                 return;
             }
 
             if (!VideoRecordingModule) {
-                Alert.alert('Error', 'Video recording module not available');
+                Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
 
@@ -489,9 +491,9 @@ const GalleryTab = () => {
         } catch (error) {
             console.error('Failed to share video:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
-                Alert.alert('No App Available', 'No app found to handle this share type. Please install the required app.');
+                Alert.alert(t('no_app_available', 'No App Available'), 'No app found to handle this share type. Please install the required app.');
             } else {
-                Alert.alert('Share Error', 'Failed to share video: ' + error.message);
+                Alert.alert(t('share_error', 'Share Error'), 'Failed to share video: ' + error.message);
             }
         }
     };
@@ -502,9 +504,9 @@ const GalleryTab = () => {
             await loadRecordedVideosQuick();
             
             // Alert.alert(
-            //     'Success', 
+            //     t('success', 'Success'), 
             //     'Video compressed successfully! You can find it in your video gallery.',
-            //     [{ text: 'OK' }]
+            //     [{ text: t('ok', 'OK') }]
             // );
         } catch (error) {
             console.error('Failed to refresh video list after compression:', error);
@@ -518,9 +520,9 @@ const GalleryTab = () => {
             
             // Show success message
             Alert.alert(
-                'Success', 
+                t('success', 'Success'), 
                 'Video converted to audio successfully! You can find it in your audio gallery.',
-                [{ text: 'OK' }]
+                [{ text: t('ok', 'OK') }]
             );
         } catch (error) {
             console.error('Failed to refresh audio list after conversion:', error);
@@ -554,7 +556,7 @@ const GalleryTab = () => {
                         style={[styles.tabIcon, activeTab === 'video' && styles.activeTabIcon]} 
                     />
                     <Text style={[styles.tabText, activeTab === 'video' && styles.activeTabText]}>
-                        Video
+                        {t('videos', 'Video')}
                     </Text>
                     <View style={styles.tabBadge}>
                         <Text style={styles.tabBadgeText}>{videos.length}</Text>
@@ -570,7 +572,7 @@ const GalleryTab = () => {
                         style={[styles.tabIcon, activeTab === 'audio' && styles.activeTabIcon]} 
                     />
                     <Text style={[styles.tabText, activeTab === 'audio' && styles.activeTabText]}>
-                        Audio
+                        {t('audios', 'Audio')}
                     </Text>
                     <View style={styles.tabBadge}>
                         <Text style={styles.tabBadgeText}>{audioFiles.length}</Text>
@@ -586,7 +588,7 @@ const GalleryTab = () => {
                         onPress={() => setVideoFilter('all')}
                     >
                         <Text style={[styles.filterText, videoFilter === 'all' && styles.activeFilterText]}>
-                            All Videos
+                            {t('allVideos', 'All Videos')}
                         </Text>
                     </TouchableOpacity>
                     
@@ -595,7 +597,7 @@ const GalleryTab = () => {
                         onPress={() => setVideoFilter('app')}
                     >
                         <Text style={[styles.filterText, videoFilter === 'app' && styles.activeFilterText]}>
-                            App Videos
+                            {t('appVideos', 'App Videos')}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -613,7 +615,7 @@ const GalleryTab = () => {
                     setSelectedVideo(video);
                     setShowVideoPlayer(true);
                 } else {
-                    Alert.alert('Error', 'Video file not found');
+                    Alert.alert(t('error', 'Error'), t('video_file_not_found', 'Video file not found'));
                 }
             }}
         >
@@ -627,9 +629,9 @@ const GalleryTab = () => {
                 <Text style={styles.videoTitle} numberOfLines={1}>
                     {video.title}
                 </Text>
-                <Text style={styles.sizeText}>Time: {video.date}</Text>
-                <Text style={styles.sizeText}>Ratio: {video.ratio}</Text>
-                <Text style={styles.sizeText}>Size: {video.size}</Text>
+                <Text style={styles.sizeText}>{t('time', 'Time')}: {video.date}</Text>
+                <Text style={styles.sizeText}>{t('ratio', 'Ratio')}: {video.ratio}</Text>
+                <Text style={styles.sizeText}>{t('size', 'Size')}: {video.size}</Text>
             </View>
             <TouchableOpacity 
                 style={styles.videoActions}
@@ -656,7 +658,7 @@ const GalleryTab = () => {
                     setSelectedVideo(audio);
                     setShowVideoPlayer(true);
                 } else {
-                    Alert.alert('Error', 'Audio file not found');
+                    Alert.alert(t('error', 'Error'), t('audio_file_not_found', 'Audio file not found'));
                 }
             }}
         >
@@ -673,9 +675,9 @@ const GalleryTab = () => {
                 <Text style={styles.videoTitle} numberOfLines={1}>
                     {audio.title}
                 </Text>
-                <Text style={styles.sizeText}>Time: {audio.date}</Text>
-                <Text style={styles.sizeText}>Duration: {audio.duration}</Text>
-                <Text style={styles.sizeText}>Size: {audio.size}</Text>
+                <Text style={styles.sizeText}>{t('time', 'Time')}: {audio.date}</Text>
+                <Text style={styles.sizeText}>{t('duration', 'Duration')}: {audio.duration}</Text>
+                <Text style={styles.sizeText}>{t('size', 'Size')}: {audio.size}</Text>
             </View>
             <TouchableOpacity 
                 style={styles.videoActions}
@@ -709,9 +711,9 @@ const GalleryTab = () => {
                         source={require('../../../assets/home/ic/ic_record.png')} 
                         style={styles.emptyIcon} 
                     />
-                    <Text style={styles.emptyTitle}>No videos yet</Text>
+                    <Text style={styles.emptyTitle}>{t('no_videos_yet', 'No videos yet')}</Text>
                     <Text style={styles.emptyDescription}>
-                        Start recording to see your videos here
+                        {t('startRecordingPrompt', 'Start recording to see your videos here')}
                     </Text>
                 </View>
             )}
@@ -735,9 +737,9 @@ const GalleryTab = () => {
                         source={require('../../../assets/home/ic/ic-music.png')} 
                         style={styles.emptyIcon} 
                     />
-                    <Text style={styles.emptyTitle}>No audio files yet</Text>
+                    <Text style={styles.emptyTitle}>{t('no_audio_files_yet', 'No audio files yet')}</Text>
                     <Text style={styles.emptyDescription}>
-                        Convert videos to audio to see them here
+                        {t('convertVideosPrompt', 'Convert videos to audio to see them here')}
                     </Text>
                 </View>
             )}

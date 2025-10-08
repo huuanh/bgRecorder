@@ -13,10 +13,12 @@ import { COLORS } from '../constants';
 import { NativeAd } from 'react-native-google-mobile-ads';
 import { NativeAdComponent } from './NativeAdComponent';
 import AdManager, { ADS_UNIT } from '../AdManager.js';
+import useTranslation from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 const RenameModal = ({ visible, onClose, video, onRename }) => {
+    const { t } = useTranslation();
     const [newName, setNewName] = useState('');
 
     useEffect(() => {
@@ -29,7 +31,7 @@ const RenameModal = ({ visible, onClose, video, onRename }) => {
 
     const handleRename = () => {
         if (!newName.trim()) {
-            Alert.alert('Error', 'Please enter a valid name');
+            Alert.alert(t('error', 'Error'), t('enter_valid_name', 'Please enter a valid name'));
             return;
         }
 
@@ -63,7 +65,7 @@ const RenameModal = ({ visible, onClose, video, onRename }) => {
                         style={styles.renameContainer}
                     >
                         <View style={styles.header}>
-                            <Text style={styles.title}>Rename</Text>
+                            <Text style={styles.title}>{t('rename', 'Rename')}</Text>
                             {/* <Text style={styles.subtitle}>
                                 {video?.title}
                             </Text> */}
@@ -89,14 +91,14 @@ const RenameModal = ({ visible, onClose, video, onRename }) => {
                                 style={[styles.button, styles.cancelButton]}
                                 onPress={onClose}
                             >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={styles.cancelButtonText}>{t('cancel', 'Cancel')}</Text>
                             </TouchableOpacity>
                             
                             <TouchableOpacity
                                 style={[styles.button, styles.renameButton]}
                                 onPress={handleRename}
                             >
-                                <Text style={styles.renameButtonText}>Rename</Text>
+                                <Text style={styles.renameButtonText}>{t('rename', 'Rename')}</Text>
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
