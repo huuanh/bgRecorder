@@ -7,6 +7,7 @@ import { SmallNativeAd } from './NativeAdComponent';
 import IAPManager from '../utils/IAPManager';
 import VIPManager from '../utils/VIPManager';
 import NetworkManager from '../utils/NetworkManager';
+import IconManager from '../utils/IconManager';
 
 const LoadingScreen = () => {
   // State for loading text and progress
@@ -89,8 +90,15 @@ const LoadingScreen = () => {
         
         if (!isCompleted) {
           setVipManagerLoaded(true);
-          setProgress(95);
+          setProgress(90);
         }
+        
+        // Initialize Icon Manager
+        console.log('🔧 Loading Icon Manager...');
+        setLoadingText('Loading app preferences...');
+        setProgress(95);
+        await IconManager.initialize();
+        console.log('✅ Icon Manager initialized successfully');
         
         // Log final VIP status
         const vipManager = VIPManager.getInstance();

@@ -19,6 +19,7 @@ import ResolutionModal from '../ResolutionModal';
 import PreviewSizeModal from '../PreviewSizeModal';
 import SetPasswordModal from '../SetPasswordModal';
 import IAPModal from '../IAPModal';
+import ChangeIconModal from '../ChangeIconModal';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
 import SecurityManager from '../../utils/SecurityManager';
 import useIAP from '../../hooks/useIAP';
@@ -50,6 +51,7 @@ const SettingsTab = () => {
     const [showResolutionModal, setShowResolutionModal] = useState(false);
     const [showPreviewSizeModal, setShowPreviewSizeModal] = useState(false);
     const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
+    const [showChangeIconModal, setShowChangeIconModal] = useState(false);
     const [biometricsAvailable, setBiometricsAvailable] = useState(false);
 
     // Use IAP hook
@@ -260,7 +262,7 @@ const SettingsTab = () => {
     const handleOptionPress = (option) => {
         switch (option) {
             case 'changeIcon':
-                Alert.alert('Change Icon', 'Feature coming soon!');
+                setShowChangeIconModal(true);
                 break;
             case 'setPassword':
                 handlePasswordSetup();
@@ -586,6 +588,12 @@ const SettingsTab = () => {
                 visible={showSetPasswordModal}
                 onClose={() => setShowSetPasswordModal(false)}
                 onPasswordSet={handlePasswordSet}
+            />
+
+            {/* Change Icon Modal */}
+            <ChangeIconModal
+                visible={showChangeIconModal}
+                onClose={() => setShowChangeIconModal(false)}
             />
 
             {/* IAP Modal */}

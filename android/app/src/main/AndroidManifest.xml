@@ -41,12 +41,143 @@
         android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
-        android:exported="true">
+        android:exported="false">
+        <!-- No intent-filter here - only aliases will have launcher intent-filters -->
+      </activity>
+
+      <!-- Default Icon (enabled by default) -->
+      <activity-alias
+        android:name=".MainActivityDefault"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="true"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
-      </activity>
+      </activity-alias>
+
+      <!-- Browser Icons -->
+      <activity-alias
+        android:name=".MainActivityBr1"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_br1"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".MainActivityBr2"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_br2"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".MainActivityBr3"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_br3"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <!-- Computer Icons -->
+      <activity-alias
+        android:name=".MainActivityCac1"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_cac1"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".MainActivityCac2"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_cac2"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".MainActivityCac3"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_cac3"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <!-- Weather Icons -->
+      <activity-alias
+        android:name=".MainActivityWe1"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_we1"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".MainActivityWe2"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_we2"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".MainActivityWe3"
+        android:targetActivity="boom.bvr.recorder.pro.MainActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_we3"
+        android:label="BG Recorder">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
       
       <!-- Background Video Recording Service -->
       <service
