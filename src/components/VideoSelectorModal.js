@@ -9,11 +9,14 @@ import {
     Alert,
     ActivityIndicator,
     Dimensions,
+    Image,
 } from 'react-native';
 import { COLORS } from '../constants';
 import VideoThumbnail from './VideoThumbnail';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
+import { NativeAdComponent } from './NativeAdComponent';
+import AdManager, { ADS_UNIT } from '../AdManager.js';
 
 const { width } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -83,13 +86,13 @@ const VideoSelectorModal = ({
                     style={styles.videoThumbnail}
                 />
             </View>
-            <View style={styles.videoInfo}>
-                <Text style={styles.videoTitle} numberOfLines={1}>
+            {/* <View style={styles.videoInfo}> */}
+                {/* <Text style={styles.videoTitle} numberOfLines={1}>
                     {item.title}
-                </Text>
+                </Text> */}
                 {/* <Text style={styles.videoDuration}>{item.duration}</Text> */}
-                <Text style={styles.videoRatio}>{item.ratio}</Text>
-            </View>
+                {/* <Text style={styles.videoRatio}>{item.ratio}</Text> */}
+            {/* </View> */}
         </TouchableOpacity>
     );
 
@@ -102,13 +105,14 @@ const VideoSelectorModal = ({
         >
             <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>{title}</Text>
                     <TouchableOpacity
                         style={styles.closeButton}
                         onPress={onClose}
                     >
-                        <Text style={styles.closeButtonText}>✕</Text>
+                        <Image source={require('../../assets/home/ic/ic_back.png')} style={styles.closeButtonText}/>
                     </TouchableOpacity>
+
+                    <Text style={styles.modalTitle}>{title}</Text>
                 </View>
                 
                 {isLoading ? (
@@ -126,11 +130,14 @@ const VideoSelectorModal = ({
                         data={videos}
                         renderItem={renderVideoItem}
                         keyExtractor={(item) => item.id}
-                        numColumns={2}
+                        numColumns={3}
                         contentContainerStyle={styles.videosList}
                         columnWrapperStyle={styles.videoRow}
                     />
                 )}
+            </View>
+            <View style={styles.adContainer}>
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} hasToggleMedia={true}/>
             </View>
         </Modal>
     );
@@ -143,7 +150,7 @@ const styles = StyleSheet.create({
     },
     modalHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
@@ -157,29 +164,30 @@ const styles = StyleSheet.create({
     closeButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
-        backgroundColor: COLORS.SECONDARY,
+        // borderRadius: 20,
+        // backgroundColor: COLORS.SECONDARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
     closeButtonText: {
-        fontSize: 18,
+        fontSize: 25,
         color: COLORS.TERTIARY,
-        fontWeight: '600',
+        fontWeight: '900',
     },
     videosList: {
-        padding: 10,
+        // padding: 10,
     },
     videoRow: {
         justifyContent: 'space-between',
         paddingHorizontal: 5,
     },
     videoItem: {
-        width: (width - 40) / 2,
-        backgroundColor: COLORS.SECONDARY,
+        width: (width - 40) / 3,
+        height: (width - 40) / 3,
+        // backgroundColor: COLORS.SECONDARY,
         borderRadius: 8,
         margin: 5,
-        padding: 5,
+        // padding: 5,
         // height: 10,
         // overflow: 'hidden',
         // shadowColor: '#000',
@@ -190,6 +198,7 @@ const styles = StyleSheet.create({
     },
     videoThumbnailContainer: {
         width: '100%',
+        height: '100%',
         
         // backgroundColor: '#000',
         textAlign: 'center',
@@ -199,9 +208,10 @@ const styles = StyleSheet.create({
     videoThumbnail: {
         width: '100%',
         height: '100%',
+        backgroundColor: '#ff0000ff',
     },
     videoInfo: {
-        paddingHorizontal: 10,
+        // paddingHorizontal: 10,
     },
     videoTitle: {
         fontSize: 12,
@@ -250,6 +260,10 @@ const styles = StyleSheet.create({
         color: COLORS.TERTIARY,
         opacity: 0.7,
         textAlign: 'center',
+    },
+    adContainer: {
+        paddingHorizontal: 10,
+        paddingBottom: 10,
     },
 });
 

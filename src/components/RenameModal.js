@@ -84,7 +84,9 @@ const RenameModal = ({ visible, onClose, video, onRename }) => {
                             />
                         </View>
 
-                        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
+                        <View style={{ paddingHorizontal: 10 }}>
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
+                        </View>
 
                         <View style={styles.buttonContainer}>
                             <TouchableOpacity
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContainer: {
-        width: width * 0.85,
+        width: width * 0.95,
         maxWidth: 400,
     },
     renameContainer: {
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         flexDirection: 'row',
-        padding: 20,
+        padding: 10,
         paddingTop: 10,
         gap: 12,
     },

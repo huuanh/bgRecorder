@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.Base64
 import android.util.Log
 import androidx.compose.ui.text.intl.Locale
@@ -1192,6 +1193,66 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning video file", e)
             promise.reject("SCAN_ERROR", "Failed to scan video file: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun openAllFilesAccessSettings(promise: Promise) {
+        try {
+            val activity = reactApplicationContext.currentActivity
+            if (activity == null) {
+                promise.reject("NO_ACTIVITY", "No current activity available")
+                return
+            }
+            
+            val packageName = reactApplicationContext.packageName
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Android 11+ - Open specific app permission page
+                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = Uri.parse("package:$packageName")
+                activity.startActivity(intent)
+                promise.resolve("Opened all files access settings")
+            } else {
+                // Android 10 and below - Open general manage all files access
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    activity.startActivity(intent)
+                    promise.resolve("Opened manage all files access settings")
+                } catch (e: Exception) {
+                    // Fallback to general app settings
+                    val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    intent.data = Uri.parse("package:$packageName")
+                    activity.startActivity(intent)
+                    promise.resolve("Opened app settings (fallback)")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening all files access settings", e)
+            promise.reject("SETTINGS_ERROR", "Cannot open settings: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
+    fun checkManageExternalStoragePermission(promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Android 11+ - Check MANAGE_EXTERNAL_STORAGE permission
+                val hasPermission = Environment.isExternalStorageManager()
+                Log.d(TAG, "MANAGE_EXTERNAL_STORAGE permission check (Android 11+): $hasPermission")
+                promise.resolve(hasPermission)
+            } else {
+                // Android 10 and below - Check WRITE_EXTERNAL_STORAGE permission
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    reactApplicationContext,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+                Log.d(TAG, "WRITE_EXTERNAL_STORAGE permission check (Android 10-): $hasPermission")
+                promise.resolve(hasPermission)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking manage external storage permission", e)
+            promise.reject("PERMISSION_CHECK_ERROR", "Cannot check permission: ${e.message}")
         }
     }
     

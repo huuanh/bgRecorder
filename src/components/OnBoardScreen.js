@@ -36,7 +36,7 @@ const OnBoardScreen = ({ onNext }) => {
       <Image source={require('../../assets/onboard/1.png')} style={styles.slideImage} />
       <View style={styles.botGroup}>
         <Text style={styles.slideTitle}>{t('recordVideoEverywhere', 'Record video everywhere')}</Text>
-        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
+        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
         <TouchableOpacity onPress={onNext} style={styles.nextBtn}>
           <Text style={styles.nextText}>{t('next', 'Next')}</Text>
         </TouchableOpacity>
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   slideImage: {
     width: 190,
     height: 190,
-    marginBottom: 160,
+    marginBottom: 180,
     resizeMode: 'contain',
   },
 
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   nextBtn: {
     backgroundColor: COLORS.TERTIARY,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,

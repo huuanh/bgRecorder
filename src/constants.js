@@ -20,4 +20,5 @@ export const COLORS = {
   GRAY_300: '#d1d5db',
   LIGHT_GRAY: '#f5f5f5',
   ACCENT: '#ff6b35',
+  ITEM: '#F1E6D9'
 };

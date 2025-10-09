@@ -429,6 +429,7 @@ const SettingsTab = () => {
     );
 
     return (
+        <View style={styles.settingView}>
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             {/* VIP Banner */}
             {!isVip && renderVIPBanner()}
@@ -479,11 +480,6 @@ const SettingsTab = () => {
                     settings.previewSize
                 ),
             ])}
-
-            {/* Native Ad */}
-            <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
-            </View>
 
             {/* Security Section */}
             {renderSection('Security & Privacy', [
@@ -612,15 +608,26 @@ const SettingsTab = () => {
                 onClose={hideIAP}
             />
         </ScrollView>
+
+        
+            {/* Native Ad */}
+            <View style={styles.adContainer}>
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+            </View>
+
+            </View>
     );
 };
 
 const styles = StyleSheet.create({
+    settingView: {
+        flex: 1,
+        backgroundColor: COLORS.BACKGROUND,
+    },
     container: {
         flex: 1,
         backgroundColor: COLORS.BACKGROUND,
         paddingHorizontal: 16,
-        paddingTop: 16,
     },
     vipBanner: {
         backgroundColor: COLORS.PRIMARY,
@@ -667,8 +674,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     adContainer: {
-        marginBottom: 16,
+        // marginBottom: 16,
         overflow: 'hidden',
+        paddingHorizontal: 15,
     },
     section: {
         marginBottom: 24,

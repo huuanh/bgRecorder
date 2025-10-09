@@ -422,17 +422,12 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                         {/* Success Icon */}
                         <View style={styles.successIconContainer}>
                             <View style={styles.successIcon}>
-                                <Text style={styles.checkIcon}>♪</Text>
+                                <Text style={styles.checkIcon}>✓</Text>
                             </View>
                         </View>
                         
                         {/* Success Title */}
                         <Text style={styles.successTitle}>Your audio has been exported</Text>
-                        
-                        {/* Ad Banner */}
-                        <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
-                        </View>
                         
                         {/* Back to Home Button */}
                         <TouchableOpacity 
@@ -448,6 +443,12 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                         >
                             <Text style={styles.backHomeText}>Back to Home</Text>
                         </TouchableOpacity>
+
+                        
+                        {/* Ad Banner */}
+                        <View style={styles.successAdBanner}>
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                        </View>
                         
                         {/* Share Button */}
                         <TouchableOpacity 
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#FF6B00',
+        backgroundColor: COLORS.SUCCESS,
         justifyContent: 'center',
         alignItems: 'center',
     },

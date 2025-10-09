@@ -321,8 +321,6 @@ const RecordTab = () => {
         setShowIAPModal(true);
     };
 
-
-
     const saveVideoToStorage = async (videoData) => {
         try {
             // Create video with app identifier prefix
@@ -642,7 +640,7 @@ const RecordTab = () => {
         <View style={styles.container}>
             {/* Settings Row */}
             <View style={styles.settingsRow}>
-                {['preview', 'duration', 'quality', 'camera'].map((setting) => (
+                {['duration', 'quality', 'camera'].map((setting) => (
                     <TouchableOpacity
                         key={setting}
                         style={styles.settingButton}
@@ -688,7 +686,7 @@ const RecordTab = () => {
             <View style={styles.adContainer}>
                 <NativeAdComponent
                     adUnitId={ADS_UNIT.NATIVE}
-                    hasMedia={false}
+                    hasMedia={true}
                 />
             </View>
 
@@ -700,25 +698,12 @@ const RecordTab = () => {
                 ]}
                 onPress={handleRecordPress}
             >
-                <Text style={styles.recordButtonIcon}>
-                    {isRecording ? '⏹️' : '▶️'}
-                </Text>
-            </TouchableOpacity>
-
-            {/* Storage Info */}
-            <View style={styles.storageContainer}>
-                <View style={styles.storageBar}>
-                    <View
-                        style={[
-                            styles.storageUsed,
-                            { width: `${(availableStorage.used / availableStorage.total) * 100}%` }
-                        ]}
-                    />
+                <View style={styles.recordButtonIcon}>
+                    <Text style={isRecording ? styles.recordButtonInnerStop : styles.recordButtonInnerStart}>
+                        {isRecording ? '' : ''}
+                    </Text>
                 </View>
-                <Text style={styles.storageText}>
-                    {availableStorage.used} GB/ {availableStorage.total} GB
-                </Text>
-            </View>
+            </TouchableOpacity>
 
             {/* Camera Mode Selection Modal */}
             <CameraModeModal
@@ -773,19 +758,20 @@ const getSettingIcon = (setting) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
-        backgroundColor: '#F8F9FA',
+        // padding: 10,
+        backgroundColor: COLORS.BACKGROUND,
     },
     settingsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 30,
+        // marginBottom: 10,
     },
     settingButton: {
         alignItems: 'center',
         flex: 1,
         paddingVertical: 10,
         paddingHorizontal: 5,
+        
     },
     settingIconImage: {
         width: 24,
@@ -795,9 +781,10 @@ const styles = StyleSheet.create({
     },
     settingLabel: {
         fontSize: 12,
-        fontWeight: '600',
+        fontWeight: '900',
         marginBottom: 2,
         textAlign: 'center',
+        fontFamily: 'notosans',
     },
     settingValue: {
         fontSize: 10,
@@ -806,36 +793,37 @@ const styles = StyleSheet.create({
     },
     timerContainer: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: 10,
         position: 'relative',
     },
     timerText: {
-        fontSize: 48,
-        fontWeight: 'bold',
+        fontSize: 60,
+        fontWeight: 900,
         color: '#1E3A8A',
-        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+        fontFamily: 'notosans',
     },
     recordingIndicator: {
         position: 'absolute',
-        top: -10,
-        right: width * 0.25,
+        top: 10,
+        right: 20
     },
     recordingBadge: {
         backgroundColor: '#EF4444',
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 2,
+        paddingVertical: 2,
         borderRadius: 4,
     },
     adContainer: {
         alignItems: 'center',
         marginBottom: 30,
+        paddingHorizontal: 10,
     },
     recordButton: {
-        width: 120,
-        height: 120,
+        width: 110,
+        height: 110,
         borderRadius: 60,
         justifyContent: 'center',
         alignItems: 'center',
@@ -849,28 +837,19 @@ const styles = StyleSheet.create({
     },
     recordButtonIcon: {
         fontSize: 40,
-        color: '#FFFFFF',
+        color: COLORS.TERTIARY,
     },
-    storageContainer: {
-        alignItems: 'center',
+    recordButtonInnerStop: {
+        width: 40,
+        height: 40,
+        backgroundColor: COLORS.GRAY_100,
+        borderRadius: 8,
     },
-    storageBar: {
-        width: width * 0.6,
-        height: 6,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 3,
-        marginBottom: 8,
-        overflow: 'hidden',
-    },
-    storageUsed: {
-        height: '100%',
-        backgroundColor: '#1E3A8A',
-        borderRadius: 3,
-    },
-    storageText: {
-        fontSize: 14,
-        color: '#6B7280',
-        fontWeight: '500',
+    recordButtonInnerStart: {
+        width: 40,
+        height: 40,
+        backgroundColor: COLORS.ACTIVE,
+        borderRadius: 20,
     },
     backgroundStatus: {
         marginTop: 20,

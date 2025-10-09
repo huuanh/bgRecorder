@@ -23,21 +23,21 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShow
         {
             id: 'SD',
             title: t('sd_quality', 'SD Quality'),
-            description: '640x360 • Standard Definition',
+            description: '640x360',
             size: '640x360',
             icon: require('../../assets/home/ic/quality.png')
         },
         {
             id: 'HD',
             title: t('hd_quality', 'HD Quality'), 
-            description: '720x480 • High Definition (Default)',
+            description: '720x480',
             size: '720x480',
             icon: require('../../assets/home/ic/quality.png')
         },
         {
             id: 'Full HD',
             title: t('full_hd_quality', 'Full HD Quality'),
-            description: '1280x720 • Full High Definition (PRO)',
+            description: '1280x720',
             size: '1280x720',
             icon: require('../../assets/home/ic/quality.png'),
             isPro: true
@@ -92,17 +92,12 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShow
                         ]}>
                             {option.description}
                         </Text>
-                        {isLocked && (
-                            <Text style={styles.upgradeText}>
-                                Tap to upgrade to VIP
-                            </Text>
-                        )}
                     </View>
                 </View>
                 {option.isPro && (
                     <View style={[styles.proTag]}>
                         <Text style={[styles.proText, isLocked && styles.lockedProText]}>
-                            {isLocked ? '🔒 VIP' : 'VIP'}
+                            {isLocked ? '🔒 PRO' : 'PRO'}
                         </Text>
                     </View>
                 )}
@@ -163,7 +158,7 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         backgroundColor: COLORS.WHITE,
-        borderRadius: 16,
+        borderRadius: 8,
         width: width - 40,
         maxWidth: 400,
         overflow: 'hidden',
@@ -181,7 +176,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     content: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingVertical: 16,
     },
     resolutionItem: {
@@ -203,8 +198,8 @@ const styles = StyleSheet.create({
     },
     lockedItem: {
         backgroundColor: COLORS.GRAY_100,
-        borderColor: COLORS.TERTIARY,
-        opacity: 0.7,
+        // borderColor: COLORS.TERTIARY,
+        // opacity: 0.7,
     },
     resolutionLeft: {
         flexDirection: 'row',
@@ -285,32 +280,49 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: 'row',
-        borderTopWidth: 1,
-        borderTopColor: COLORS.PRIMARY,
-    },
-    cancelButton: {
-        flex: 1,
-        paddingVertical: 16,
+        // borderTopWidth: 1,
+        // borderTopColor: COLORS.PRIMARY,
+        paddingBottom: 10,
+    },cancelButton: {
+        // flex: 1,
+        // padding: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRightWidth: 1,
-        backgroundColor: COLORS.SECONDARY,
+        // borderRightWidth: 1,
+        width: '50%',
+        // height: 48,
+        // backgroundColor: COLORS.SECONDARY,
     },
     cancelText: {
         fontSize: 16,
-        color: COLORS.TEXT_SECONDARY,
+        color: COLORS.WHITE,
+        backgroundColor: COLORS.SECONDARY,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        borderRadius: 8,
+        width: '90%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
     okButton: {
         flex: 1,
-        paddingVertical: 16,
+        // paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.TERTIARY,
+        // backgroundColor: COLORS.TERTIARY,
     },
     okText: {
         fontSize: 16,
-        fontWeight: '600',
         color: COLORS.WHITE,
+        backgroundColor: COLORS.TERTIARY,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        borderRadius: 8,
+        width: '90%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
 });
 

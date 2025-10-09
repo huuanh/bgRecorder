@@ -83,7 +83,7 @@ const CameraModeModal = ({ visible, onClose, currentMode, onSelect }) => {
                     
                     <View style={styles.content}>
                         {modes.map(renderModeItem)}
-                        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
+                        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
                     </View>
                     
                     <View style={styles.footer}>
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         backgroundColor: COLORS.WHITE,
-        borderRadius: 16,
+        borderRadius: 8,
         width: width - 40,
         maxWidth: 400,
         overflow: 'hidden',
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     content: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingVertical: 16,
     },
     modeItem: {
@@ -209,32 +209,49 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: 'row',
-        borderTopWidth: 1,
-        borderTopColor: COLORS.GRAY_100,
-    },
-    cancelButton: {
-        flex: 1,
-        paddingVertical: 16,
+        // borderTopWidth: 1,
+        // borderTopColor: COLORS.GRAY_100,
+        paddingBottom: 10,
+    },cancelButton: {
+        // flex: 1,
+        // padding: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRightWidth: 1,
-        borderRightColor: COLORS.GRAY_100,
+        // borderRightWidth: 1,
+        width: '50%',
+        // height: 48,
+        // backgroundColor: COLORS.SECONDARY,
     },
     cancelText: {
         fontSize: 16,
-        color: COLORS.TEXT_SECONDARY,
+        color: COLORS.WHITE,
+        backgroundColor: COLORS.SECONDARY,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        borderRadius: 8,
+        width: '90%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
     okButton: {
         flex: 1,
-        paddingVertical: 16,
+        // paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.TERTIARY,
+        // backgroundColor: COLORS.TERTIARY,
     },
     okText: {
         fontSize: 16,
-        fontWeight: '600',
         color: COLORS.WHITE,
+        backgroundColor: COLORS.TERTIARY,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        borderRadius: 8,
+        width: '90%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
 });
 

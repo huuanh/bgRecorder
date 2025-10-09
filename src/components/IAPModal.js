@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     Dimensions,
     Image,
     ScrollView,
+    Animated,
 } from 'react-native';
 import { COLORS } from '../constants';
 import IAPManager from '../utils/IAPManager';
@@ -21,20 +22,55 @@ const IAPModal = ({ visible, onClose }) => {
     const [subscriptionPlans, setSubscriptionPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState(false);
+    
+    // Animation for start trial button
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         if (visible) {
             loadSubscriptionData();
             setupPurchaseListeners();
+            startButtonAnimation();
+        } else {
+            stopButtonAnimation();
         }
         
         return () => {
             // Cleanup listeners when modal closes
             if (!visible) {
                 cleanupPurchaseListeners();
+                stopButtonAnimation();
             }
         };
     }, [visible]);
+
+    // Button animation functions
+    const startButtonAnimation = () => {
+        const animateScale = () => {
+            Animated.sequence([
+                Animated.timing(scaleAnim, {
+                    toValue: 1.02,
+                    duration: 800,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(scaleAnim, {
+                    toValue: 1,
+                    duration: 800,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => {
+                if (visible) {
+                    animateScale();
+                }
+            });
+        };
+        animateScale();
+    };
+
+    const stopButtonAnimation = () => {
+        scaleAnim.stopAnimation();
+        scaleAnim.setValue(1);
+    };
 
     const loadSubscriptionData = async () => {
         try {
@@ -193,13 +229,13 @@ const IAPModal = ({ visible, onClose }) => {
                 let title, isBestOption = false;
                 switch (basePlanId) {
                     case '1month':
-                        title = t('month', '1 Month');
+                        title = '1 ' + t('month', '1 Month');
                         break;
                     case '3months':
-                        title = t('months', '3 Months');
+                        title = '3 ' + t('months', '3 Months');
                         break;
                     case 'year':
-                        title = t('year', '1 Year');
+                        title = '1 ' + t('year', '1 Year');
                         isBestOption = true;
                         break;
                     default:
@@ -461,22 +497,28 @@ const IAPModal = ({ visible, onClose }) => {
 
                         {/* Start Free Trial Button */}
                         {!loading && subscriptionPlans.length > 0 && (
-                            <TouchableOpacity 
+                            <Animated.View
                                 style={[
-                                    styles.startTrialButton,
-                                    (purchasing || !selectedPlan) && styles.disabledButton
+                                    { transform: [{ scale: scaleAnim }] }
                                 ]}
-                                onPress={handleStartFreeTrial}
-                                disabled={!selectedPlan || purchasing}
                             >
-                                <Text style={styles.startTrialText}>
-                                    {purchasing ? t('processing', 'PROCESSING...') : 
-                                        subscriptionPlans.find(plan => plan.id === selectedPlan)?.hasFreeTrail 
-                                            ? t('startFreeTrial', 'START FREE TRIAL ››') 
-                                            : t('buyNow', 'BUY NOW ››')
-                                    }
-                                </Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.startTrialButton,
+                                        (purchasing || !selectedPlan) && styles.disabledButton
+                                    ]}
+                                    onPress={handleStartFreeTrial}
+                                    disabled={!selectedPlan || purchasing}
+                                >
+                                    <Text style={styles.startTrialText}>
+                                        {purchasing ? t('processing', 'PROCESSING...') : 
+                                            subscriptionPlans.find(plan => plan.id === selectedPlan)?.hasFreeTrail 
+                                                ? t('startFreeTrial', 'START FREE TRIAL ››') 
+                                                : t('buyNow', 'BUY NOW ››')
+                                        }
+                                    </Text>
+                                </TouchableOpacity>
+                            </Animated.View>
                         )}
 
                         {/* Footer Text */}
@@ -541,14 +583,15 @@ const styles = StyleSheet.create({
     },
     mainTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
-        color: '#FF6B35',
+        fontWeight: '900',
+        color: COLORS.ACTIVE,
         textAlign: 'center',
         marginBottom: 12,
     },
     subtitle: {
         fontSize: 16,
-        color: '#374151',
+        color: COLORS.TERTIARY,
+        fontWeight: '900',
         textAlign: 'center',
         marginBottom: 4,
     },
@@ -564,7 +607,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     planItem: {
-        backgroundColor: COLORS.SECONDARY,
+        backgroundColor: COLORS.ITEM,
         borderRadius: 12,
         marginBottom: 12,
         borderWidth: 2,
@@ -574,11 +617,11 @@ const styles = StyleSheet.create({
     },
     selectedPlan: {
         borderColor: '#FF6B35',
-        backgroundColor: COLORS.SECONDARY,
+        backgroundColor: COLORS.ITEM,
     },
     bestOptionPlan: {
         // borderColor: '#FF6B35',
-        backgroundColor: COLORS.SECONDARY,
+        backgroundColor: COLORS.ITEM,
     },
     bestOptionBadge: {
         position: 'absolute',

@@ -29,38 +29,20 @@ class IconManager {
         try {
             if (Platform.OS === 'android') {
                 // Show warning about app restart
-                return new Promise((resolve) => {
-                    Alert.alert(
-                        'Change App Icon',
-                        `This will change the app icon to "${this.getIconName(iconId)}".\n\nNote: The app will close and you'll need to reopen it from the launcher with the new icon.`,
-                        [
-                            {
-                                text: 'Cancel',
-                                style: 'cancel',
-                                onPress: () => resolve(false)
-                            },
-                            {
-                                text: 'Change Icon',
-                                onPress: async () => {
-                                    try {
-                                        // Save preference first
-                                        await AsyncStorage.setItem('@selected_app_icon', iconId);
-                                        this.selectedIcon = iconId;
-                                        
-                                        // Use native Android module
-                                        const result = await NativeIconModule.changeIcon(iconId);
-                                        console.log('✅ Android icon changed:', result);
-                                        resolve(true);
-                                    } catch (error) {
-                                        console.error('❌ Error in icon change:', error);
-                                        Alert.alert('Error', 'Failed to change icon: ' + error.message);
-                                        resolve(false);
-                                    }
-                                }
-                            }
-                        ]
-                    );
-                });
+                try {
+                    // Save preference first
+                    await AsyncStorage.setItem('@selected_app_icon', iconId);
+                    this.selectedIcon = iconId;
+                    
+                    // Use native Android module
+                    const result = await NativeIconModule.changeIcon(iconId);
+                    console.log('✅ Android icon changed:', result);
+                    // resolve(true);
+                } catch (error) {
+                    console.error('❌ Error in icon change:', error);
+                    Alert.alert('Error', 'Failed to change icon: ' + error.message);
+                    // resolve(false);
+                }
                 
             } else if (Platform.OS === 'ios') {
                 // For iOS - would use react-native-alternate-icons or show message

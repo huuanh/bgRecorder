@@ -12,6 +12,8 @@
     <!-- Storage permissions for saving videos -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
     <!-- Android 13+ media permissions -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
@@ -30,7 +32,8 @@
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
       android:theme="@style/AppTheme"
-      android:supportsRtl="true">
+      android:supportsRtl="true"
+      android:requestLegacyExternalStorage="true">
       <!-- AdMob App ID test -->
       <meta-data
         android:name="com.google.android.gms.ads.APPLICATION_ID"
@@ -66,7 +69,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_br1"
-        android:label="BG Recorder">
+        android:label="Browser">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -79,7 +82,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_br2"
-        android:label="BG Recorder">
+        android:label="Browser">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -92,7 +95,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_br3"
-        android:label="BG Recorder">
+        android:label="Browser">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -106,7 +109,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_cac1"
-        android:label="BG Recorder">
+        android:label="Calculator">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -119,7 +122,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_cac2"
-        android:label="BG Recorder">
+        android:label="Calculator">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -132,7 +135,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_cac3"
-        android:label="BG Recorder">
+        android:label="Calculator">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -146,7 +149,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_we1"
-        android:label="BG Recorder">
+        android:label="Weather">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -159,7 +162,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_we2"
-        android:label="BG Recorder">
+        android:label="Weather">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -172,7 +175,7 @@
         android:enabled="false"
         android:exported="true"
         android:icon="@mipmap/ic_launcher_we3"
-        android:label="BG Recorder">
+        android:label="Weather">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

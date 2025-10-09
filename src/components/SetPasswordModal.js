@@ -96,7 +96,7 @@ const SetPasswordModal = ({ visible, onClose, onPasswordSet }) => {
                             onPress={handleClose}
                             style={styles.closeButton}
                         >
-                            <Icon name="close" size={24} color={COLORS.textSecondary} />
+                            <Icon name="close" size={24} color={COLORS.TEXT_SECONDARY} />
                         </TouchableOpacity>
                     </View>
 

@@ -5,6 +5,8 @@ import { ADS_UNIT } from '../AdManager';
 import { NativeAdView, NativeMediaView, NativeAsset, NativeAssetType, NativeAd } from 'react-native-google-mobile-ads';
 import { useVipStatus } from '../utils/VipUtils';
 import useTranslation from '../hooks/useTranslation';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
 const { width, height } = Dimensions.get('window');
 
 // Native Ad Component
@@ -71,16 +73,19 @@ export const NativeAdComponent = (props) => {
         );
     }
 
+    console.log('🌟 Rendering Native Ad:', this.props, hasToggle);
+
     return (
         <View style={styles.nativeAdContainer}>
             {/* Sponsored Label with Toggle Button */}
             <View style={styles.sponsoredLabelContainer}>
-                {hasToggle && <TouchableOpacity
+                {hasToggle && 
+                <TouchableOpacity
                     style={styles.toggleMediaButton}
                     onPress={() => setIsMediaVisible(!isMediaVisible)}
                 >
                     <Text style={styles.toggleMediaButtonText}>
-                        {isMediaVisible ? '📺' : '👁️'}
+                        {isMediaVisible && <Icon name="expand-circle-down" size={20} color={COLORS.SUCCESS} />}
                     </Text>
                 </TouchableOpacity>}
                 <View style={styles.sponsoredLabel}>
@@ -233,25 +238,27 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
-        opacity: 0.6,
+        opacity: 0.3,
     },
     sponsoredText: {
         fontSize: 9,
         color: COLORS.WHITE,
-        fontWeight: '600',
+        fontWeight: '900',
     },
     toggleMediaButton: {
         backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
+        // paddingHorizontal: 6,
+        // paddingVertical: 2,
         borderRadius: 4,
-        marginRight: 8,
+        // marginRight: 8,
         justifyContent: 'center',
         alignItems: 'center',
+        // width: 30,
+        // height: 30,
     },
     toggleMediaButtonText: {
-        fontSize: 12,
-        color: '#ffffff',
+        // fontSize: 50,
+        color: '#ff0000ff',
         textAlign: 'center',
     },
     nativeAdHeader: {
@@ -311,7 +318,7 @@ const styles = StyleSheet.create({
     },
     nativeAdMedia: {
         width: '100%',
-        height: (height / width <= 16 / 9) ? height * 0.19 : height * 0.24,
+        height: (height / width <= 16 / 9) ? height * 0.16 : height * 0.20,
         borderRadius: 8,
         justifyContent: 'center',
         alignItems: 'center',

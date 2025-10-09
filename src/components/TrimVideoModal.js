@@ -283,9 +283,10 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     };
 
     const handlePlayPause = () => {
+        console.log('Play/Pause toggled. Current paused state:', paused, currentTime, trimStartTime, trimEndTime);
         if (paused) {
             // When starting to play, seek to trim start if current time is outside trim range
-            if (currentTime < trimStartTime || currentTime >= trimEndTime) {
+            if (currentTime < trimStartTime || currentTime >= (trimEndTime - 0.1)) {
                 seekToTime(trimStartTime);
             }
         }
@@ -567,17 +568,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                     />
                     {/* Video Info */}
                     <View style={styles.videoInfo}>
-                        <Text style={styles.videoTitle}>{video.title}</Text>
-                        <Text style={styles.videoDuration}>
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Timeline */}
-                <View style={styles.timelineContainer}>
-                    {/* Timeline Header Row */}
-                    <View style={styles.timelineHeader}>
+                        {/* <Text style={styles.videoTitle}>{video.title}</Text> */}
                         {/* Play/Pause Button */}
                         <TouchableOpacity
                             style={styles.playOverlay}
@@ -595,7 +586,18 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                 />
                             </View>
                         </TouchableOpacity>
-                        <Text style={styles.timelineTitle}>Timeline</Text>
+                        <Text style={styles.videoDuration}>
+                            {formatTime(currentTime)} / {formatTime(duration)}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Timeline */}
+                <View style={styles.timelineContainer}>
+                    {/* Timeline Header Row */}
+                    <View style={styles.timelineHeader}>
+                        
+                        {/* <Text style={styles.timelineTitle}>Timeline</Text> */}
                     </View>
 
                     {/* Thumbnail Timeline */}
@@ -737,7 +739,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 
                 {/* Native Ad */}
                 <View style={styles.adContainer}>
-                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
                 </View>
 
                 {/* Action Buttons */}
@@ -812,10 +814,6 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                         {/* Success Title */}
                         <Text style={styles.successTitle}>Your video has been trimmed</Text>
                         
-                        {/* Ad Banner */}
-                        <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
-                        </View>
                         
                         {/* Back to Home Button */}
                         <TouchableOpacity 
@@ -830,6 +828,11 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                             <Text style={styles.backHomeText}>Back to Home</Text>
                         </TouchableOpacity>
                         
+                        {/* Ad Banner */}
+                        <View style={styles.successAdBanner}>
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                        </View>
+
                         {/* Share Button */}
                         <TouchableOpacity 
                             style={styles.shareButton}
@@ -895,10 +898,11 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     playButton: {
-        width: 40,
-        height: 40,
+        // width: 40,
+        // height: 40,
+        // padding: 10,
         borderRadius: 20,
-        backgroundColor: '#1E3A8A',
+        // backgroundColor: '#1E3A8A',
         justifyContent: 'center',
         alignItems: 'center',
         // shadowColor: '#000',
@@ -917,7 +921,11 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 10,
         left: 10,
-        right: 10,
+        // right: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        // width: width - 20,
     },
     videoTitle: {
         color: '#FFFFFF',
@@ -931,14 +939,14 @@ const styles = StyleSheet.create({
         opacity: 0.8,
     },
     timelineContainer: {
-        padding: 20,
+        paddingHorizontal: 10,
         // backgroundColor: '#FFFFFF',
     },
     timelineHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 15,
+        // marginBottom: 15,
     },
     timelineTitle: {
         fontSize: 16,
@@ -947,7 +955,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     thumbnailTimeline: {
-        marginBottom: 20,
+        // marginBottom: 20,
         backgroundColor: '#F8F9FA',
         borderRadius: 12,
         padding: 8,
@@ -1098,7 +1106,7 @@ const styles = StyleSheet.create({
     trimSelection: {
         position: 'absolute',
         height: '100%',
-        backgroundColor: '#10B981',
+        backgroundColor: COLORS.ACTIVE,
         opacity: 0.25,
         zIndex: 5,
         borderRadius: 4,
@@ -1121,7 +1129,7 @@ const styles = StyleSheet.create({
     handleBackground: {
         width: 20,
         height: '90%',
-        backgroundColor: '#10B981',
+        backgroundColor: COLORS.ACTIVE,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
@@ -1171,12 +1179,13 @@ const styles = StyleSheet.create({
         transition: 'all 0.2s ease-in-out',
     },
     adContainer: {
-        marginVertical: 10,
-        paddingHorizontal: 20,
+        // marginVertical: 10,
+        paddingHorizontal: 10,
+        paddingBottom: 5,
     },
     actionButtons: {
         flexDirection: 'row',
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingBottom: 30,
         gap: 10,
     },
@@ -1311,6 +1320,7 @@ const styles = StyleSheet.create({
     successAdBanner: {
         borderRadius: 8,
         marginBottom: 16,
+        marginTop: 16,
         width: '100%',
     },
     backHomeButton: {

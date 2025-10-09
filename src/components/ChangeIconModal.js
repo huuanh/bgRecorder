@@ -74,31 +74,21 @@ const ChangeIconModal = ({ visible, onClose }) => {
     };
 
     const handleIconSelect = async (iconId) => {
+        setSelectedIcon(iconId);
+    };
+
+    const handleDoneClick = async () => {
         try {
-            setSelectedIcon(iconId);
-            const success = await IconManager.changeIcon(iconId);
-            
+            const success = await IconManager.changeIcon(selectedIcon);
+
             if (success) {
-                const iconName = getIconName(iconId);
-                const isSupported = IconManager.isIconChangeSupported();
-                
-                if (isSupported) {
-                    Alert.alert(
-                        'Icon Changed Successfully',
-                        `App icon changed to "${iconName}"!`,
-                        [{ text: t('ok', 'OK') }]
-                    );
-                } else {
-                    // Android message is handled by IconManager
-                }
-                
-                console.log('✅ App icon changed to:', iconId);
+                console.log('✅ App icon changed to:', selectedIcon);
             }
         } catch (error) {
             console.log('❌ Error changing app icon:', error);
-            Alert.alert(t('error', 'Error'), 'Failed to change app icon');
+            // Alert.alert(t('error', 'Error'), 'Failed to change app icon');
         }
-    };
+    }
 
     const getIconName = (iconId) => {
         if (iconId === 'default') return defaultIcon.name;
@@ -159,10 +149,10 @@ const ChangeIconModal = ({ visible, onClose }) => {
                 <View style={styles.modalContainer}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Change App Icon</Text>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                            <Text style={styles.closeButtonText}>✕</Text>
+                            <Image style={styles.closeButtonText} source={require('../../assets/home/ic/ic_back.png')} />
                         </TouchableOpacity>
+                        <Text style={styles.title}>Change App Icon</Text>
                     </View>
                     
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -177,33 +167,13 @@ const ChangeIconModal = ({ visible, onClose }) => {
                         {/* Icon Categories */}
                         {iconCategories.map(renderCategory)}
                         
-                        {/* Platform Support Info */}
-                        <View style={styles.instructionsContainer}>
-                            <Text style={styles.instructionsTitle}>Platform Support:</Text>
-                            <Text style={styles.instructionsText}>
-                                {Platform.OS === 'android' 
-                                    ? '✅ Android: Dynamic icon changing supported\n• Tap to change instantly\n• Icon will appear in your launcher\n• No app restart required'
-                                    : '⚠️ iOS: Limited support\n• Your preference will be saved\n• Dynamic changing requires additional setup'
-                                }
-                            </Text>
-                        </View>
-
-                        {/* Instructions */}
-                        <View style={styles.instructionsContainer}>
-                            <Text style={styles.instructionsTitle}>Instructions:</Text>
-                            <Text style={styles.instructionsText}>
-                                • Tap any icon to select it{'\n'}
-                                • Selected icon will be highlighted{'\n'}
-                                • You can always return to the default icon
-                            </Text>
-                        </View>
                     </ScrollView>
                     
                     {/* Footer */}
                     <View style={styles.footer}>
                         <TouchableOpacity 
                             style={styles.doneButton}
-                            onPress={onClose}
+                            onPress={handleDoneClick}
                         >
                             <Text style={styles.doneButtonText}>Done</Text>
                         </TouchableOpacity>
@@ -223,17 +193,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     modalContainer: {
-        backgroundColor: COLORS.WHITE,
-        borderRadius: 16,
-        width: width - 40,
-        maxWidth: 400,
-        maxHeight: '80%',
+        backgroundColor: COLORS.BACKGROUND,
+        // borderRadius: 16,
+        width: width,
+        // width: 400,
+        height: '100%',
         overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
@@ -248,13 +218,14 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 15,
-        backgroundColor: COLORS.GRAY_100,
+        paddingRight: 10,
+        // backgroundColor: COLORS.GRAY_100,
         alignItems: 'center',
         justifyContent: 'center',
     },
     closeButtonText: {
         fontSize: 16,
-        color: COLORS.TEXT_SECONDARY,
+        // color: COLORS.TEXT_SECONDARY,
         fontWeight: 'bold',
     },
     content: {

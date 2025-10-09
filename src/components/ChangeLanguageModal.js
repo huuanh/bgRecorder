@@ -52,47 +52,16 @@ const ChangeLanguageModal = ({ visible, onClose }) => {
 
     try {
       // Show confirmation dialog
-      Alert.alert(
-        t('change_language', 'Thay đổi ngôn ngữ'),
-        t('restart_required', 'Ứng dụng sẽ khởi động lại để áp dụng ngôn ngữ mới. Bạn có muốn tiếp tục?'),
-        [
-          {
-            text: t('cancel', 'Hủy'),
-            style: 'cancel'
-          },
-          {
-            text: t('apply', 'Áp dụng'),
-            onPress: async () => {
-              // Change language using LanguageManager
-              const result = await languageManager.setLanguage(selectedLanguage);
-              
-              if (result.error) {
-                Alert.alert(
-                  t('error', 'Lỗi'), 
-                  result.error
-                );
-                return;
-              }
-
-              // Show restart message
-              Alert.alert(
-                t('language_changed', 'Ngôn ngữ đã thay đổi'),
-                t('restart_message', 'Vui lòng khởi động lại ứng dụng để áp dụng ngôn ngữ mới.'),
-                [
-                  {
-                    text: t('ok', 'OK'),
-                    onPress: () => {
-                      onClose();
-                      // Optional: Force app restart
-                      // RNRestart?.Restart();
-                    }
-                  }
-                ]
-              );
-            }
-          }
-        ]
-      );
+      const result = await languageManager.setLanguage(selectedLanguage);
+        if (result.error) {
+          Alert.alert(
+            t('error', 'Lỗi'), 
+            result.error
+          );
+          return;
+        } else {
+          onClose();
+        }
     } catch (error) {
       console.log('Error changing language:', error);
       Alert.alert(
@@ -232,7 +201,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginVertical: 2,
     borderRadius: 12,
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: COLORS.ITEM,
   },
   selectedLanguageItem: {
     backgroundColor: COLORS.SECONDARY,

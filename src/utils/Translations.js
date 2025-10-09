@@ -10,6 +10,16 @@ export const TRANSLATIONS = {
     'no_internet': 'Không có kết nối mạng',
     'try_again': 'Thử lại',
     'coming_soon': 'Tính năng sắp ra mắt!',
+    'permission_denied': 'Từ chối quyền',
+    'open_settings': 'Mở Cài đặt',
+    'ask_me_later': 'Hỏi lại sau',
+    
+    // Storage Permissions
+    'manage_storage_permission_explanation': 'Ứng dụng này cần quyền "Truy cập tất cả file" để xóa video khỏi thiết bị của bạn. Bạn sẽ được chuyển đến Cài đặt để cấp quyền này.',
+    'storage_permission_title': 'Quyền Lưu trữ',
+    'storage_permission_message': 'Ứng dụng này cần truy cập vào bộ nhớ của bạn để xóa file video.',
+    'storage_permission_required_for_deletion': 'Cần quyền lưu trữ để xóa video. Vui lòng cấp quyền và thử lại.',
+    'cannot_open_settings': 'Không thể mở cài đặt. Vui lòng tự tay vào Cài đặt > Ứng dụng > BgRecorder > Quyền và bật "Truy cập tất cả file".',
     
     // Language
     'language': 'Ngôn ngữ',
@@ -196,13 +206,13 @@ export const TRANSLATIONS = {
     // IAP Modal
     'bestOption': 'Lựa chọn tốt nhất',
     'regularPrice': 'Giá thường',
-    'freeTrial': 'DÙ THỬ MIỄN PHÍ',
+    'freeTrial': 'DÙNG THỬ MIỄN PHÍ',
     'becomePremiumMember': 'Trở thành thành viên Premium!',
     'enjoyAdFreeExperience': 'Trải nghiệm không quảng cáo.',
     'unlockPremiumFeatures': 'Mở khóa phiên bản Premium với tính năng không giới hạn.',
     'loadingSubscriptionPlans': 'Đang tải gói đăng ký...',
     'processing': 'ĐANG XỬ LÝ...',
-    'startFreeTrial': 'BẮT ĐẦU DÙ THỬ MIỄN PHÍ ››',
+    'startFreeTrial': 'BẮT ĐẦU DÙNG THỬ MIỄN PHÍ ››',
     'buyNow': 'MUA NGAY ››',
     'cancellationInfo': 'Bạn có thể hủy đăng ký bất cứ lúc nào trên Google Play Store.',
     'billingInfo': 'Sau thời gian dùng thử miễn phí, đăng ký sẽ được tính phí định kỳ theo mức giá hiển thị ở trên.',
@@ -288,6 +298,16 @@ export const TRANSLATIONS = {
     'no_internet': 'No Internet',
     'try_again': 'Try Again',
     'coming_soon': 'Feature coming soon!',
+    'permission_denied': 'Permission Denied',
+    'open_settings': 'Open Settings',
+    'ask_me_later': 'Ask Me Later',
+    
+    // Storage Permissions
+    'manage_storage_permission_explanation': 'This app needs "All files access" permission to delete videos from your device. You will be redirected to Settings to grant this permission.',
+    'storage_permission_title': 'Storage Permission',
+    'storage_permission_message': 'This app needs access to your storage to delete video files.',
+    'storage_permission_required_for_deletion': 'Storage permission is required to delete videos. Please grant the permission and try again.',
+    'cannot_open_settings': 'Cannot open settings. Please manually go to Settings > Apps > BgRecorder > Permissions and enable "All files access".',
     
     // Language
     'language': 'Language',

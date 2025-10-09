@@ -373,7 +373,7 @@ const PermissionScreen = ({ onNext, onSkip }) => {
                 <View style={styles.adContainer}>
                     <NativeAdComponent
                         adUnitId={ADS_UNIT.NATIVE}
-                        hasMedia={false}
+                        hasMedia={true}
                     />
                 </View>
                 
@@ -493,8 +493,8 @@ const styles = StyleSheet.create({
     },
     botContainer: {
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 20,
+        paddingHorizontal: 10,
+        paddingBottom: 10,
     },
     bottomNav: {
         flexDirection: 'row',

@@ -11,12 +11,13 @@ import RecordTab from './tabs/RecordTab';
 import GalleryTab from './tabs/GalleryTab';
 import EditTab from './tabs/EditTab';
 import SettingsTab from './tabs/SettingsTab';
-// import IAPTestButton from './IAPTestButton';
 import useTranslation from '../hooks/useTranslation';
+import IAPModal from './IAPModal';
 
 const HomeScreen = () => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('record');
+    const [showIAPModal, setShowIAPModal] = useState(false);
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -33,6 +34,11 @@ const HomeScreen = () => {
         }
     };
 
+    const handleShowIAP = () => {
+        console.log('🛒 Opening IAP Modal from RecordTab');
+        setShowIAPModal(true);
+    };
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -41,16 +47,13 @@ const HomeScreen = () => {
                     <Text style={styles.headerTitlePrimary}>Background Video </Text>
                     <Text style={styles.headerTitleSecondary}>Recorder</Text>
                 </Text>
-                <TouchableOpacity style={styles.premiumIcon}>
+                <TouchableOpacity style={styles.premiumIcon} onPress={handleShowIAP}>
                     <Text style={styles.premiumIconText}>💎</Text>
                 </TouchableOpacity>
             </View>
 
             {/* Tab Content */}
             {renderTabContent()}
-
-            {/* IAP Test Button (Development Only) */}
-            {/* <IAPTestButton /> */}
 
             {/* Bottom Tabs */}
             <View style={styles.bottomTabs}>
@@ -126,6 +129,12 @@ const HomeScreen = () => {
                     </Text>
                 </TouchableOpacity>
             </View>
+            
+            {/* IAP Modal */}
+            <IAPModal
+                visible={showIAPModal}
+                onClose={() => setShowIAPModal(false)}
+            />
         </View>
     );
 };

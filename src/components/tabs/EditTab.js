@@ -76,7 +76,12 @@ const EditTab = () => {
     };
 
     const handleMergeVideo = () => {
-        setShowMultiVideoSelector(true);
+        // setShowMultiVideoSelector(true);
+                Alert.alert(
+            t('notify', 'Notify'),
+            'Coming Soon!',
+            [{ text: t('ok', 'OK') }]
+        );
     };
 
     const handleMp3ConvertVideo = () => {
@@ -88,36 +93,36 @@ const EditTab = () => {
     // Export handlers
     const handleTrimExport = (exportedVideoPath) => {
         console.log('Video trimmed successfully:', exportedVideoPath);
-        Alert.alert(
-            t('success', 'Success'),
-            'Video has been trimmed successfully!',
-            [{ text: t('ok', 'OK') }]
-        );
-        setShowTrimModal(false);
-        setTrimModalVideo(null);
+        // Alert.alert(
+        //     t('success', 'Success'),
+        //     'Video has been trimmed successfully!',
+        //     [{ text: t('ok', 'OK') }]
+        // );
+        // setShowTrimModal(false);
+        // setTrimModalVideo(null);
     };
 
     const handleCompressExport = (result) => {
         console.log('Video compressed successfully:', result);
-        const { inputSize, outputSize, compressionRatio } = result;
-        Alert.alert(
-            'Compression Complete',
-            `Original: ${inputSize}\nCompressed: ${outputSize}\nReduction: ${compressionRatio}%`,
-            [{ text: t('ok', 'OK') }]
-        );
-        setShowCompressModal(false);
-        setCompressModalVideo(null);
+        // const { inputSize, outputSize, compressionRatio } = result;
+        // Alert.alert(
+        //     'Compression Complete',
+        //     `Original: ${inputSize}\nCompressed: ${outputSize}\nReduction: ${compressionRatio}%`,
+        //     [{ text: t('ok', 'OK') }]
+        // );
+        // setShowCompressModal(false);
+        // setCompressModalVideo(null);
     };
 
     const handleMp3ConvertExport = (convertedAudioPath) => {
         console.log('Audio converted successfully:', convertedAudioPath);
-        Alert.alert(
-            t('success', 'Success'),
-            `Audio file created: ${convertedAudioPath}`,
-            [{ text: t('ok', 'OK') }]
-        );
-        setShowMp3ConvertModal(false);
-        setMp3ConvertModalVideo(null);
+        // Alert.alert(
+        //     t('success', 'Success'),
+        //     `Audio file created: ${convertedAudioPath}`,
+        //     [{ text: t('ok', 'OK') }]
+        // );
+        // setShowMp3ConvertModal(false);
+        // setMp3ConvertModalVideo(null);
     };
 
     const handleMergeExport = (mergedVideoPath) => {
@@ -170,7 +175,7 @@ const EditTab = () => {
 
             {/* Ad Banner */}
             <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
             </View>
 
             {/* Single Video Selector Modal */}
@@ -237,6 +242,7 @@ const EditTab = () => {
 const styles = StyleSheet.create({
     tabContent: {
         flex: 1,
+        justifyContent: 'space-between',
     },
     
     editGrid: {
@@ -252,7 +258,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        backgroundColor: COLORS.SECONDARY,
+        backgroundColor: COLORS.ITEM,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 4,

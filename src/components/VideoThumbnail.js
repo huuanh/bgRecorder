@@ -67,10 +67,10 @@ const VideoThumbnail = memo(({
     // Show loaded thumbnail
     if (loadedThumbnail && loadedThumbnail.startsWith('data:image')) {
         return (
-            <View style={[styles.container, { width, height }]}>
+            <View style={[styles.container]}>
                 <Image 
                     source={{ uri: loadedThumbnail }} 
-                    style={[styles.thumbnailImage, { width, height }]}
+                    style={[styles.thumbnailImage]}
                     resizeMode="cover"
                 />
                 <View style={styles.durationBadge}>
@@ -81,7 +81,7 @@ const VideoThumbnail = memo(({
     }
 
     return (
-        <View style={[styles.container, { width, height }]}>
+        <View style={[styles.container]}>
             {/* Show placeholder icon */}
             <Image 
                 source={require('../../assets/home/ic/ic_record.png')} 
@@ -107,12 +107,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         position: 'relative',
         overflow: 'hidden',
+        width: '100%',
+        height: '100%',
+        // elevation: 2,
     },
     video: {
         backgroundColor: 'transparent',
     },
     thumbnailImage: {
         borderRadius: 8,
+        width: '100%',
+        height: '100%',
     },
     placeholderIcon: {
         width: 24,

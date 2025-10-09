@@ -465,11 +465,6 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                         {/* Success Title */}
                         <Text style={styles.successTitle}>{t('videoExported', 'Your video has been exported')}</Text>
                         
-                        {/* Ad Banner */}
-                        <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
-                        </View>
-                        
                         {/* Back to Home Button */}
                         <TouchableOpacity 
                             style={styles.backHomeButton}
@@ -484,6 +479,11 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                         >
                             <Text style={styles.backHomeText}>{t('backToHome', 'Back to Home')}</Text>
                         </TouchableOpacity>
+
+                        {/* Ad Banner */}
+                        <View style={styles.successAdBanner}>
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                        </View>
                         
                         {/* Share Button */}
                         <TouchableOpacity 
@@ -794,6 +794,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         // padding: 12,
         marginBottom: 16,
+        marginTop: 16,
         width: '100%',
     },
     backHomeButton: {

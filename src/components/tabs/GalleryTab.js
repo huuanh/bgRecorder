@@ -8,6 +8,9 @@ import {
     Dimensions,
     Image,
     Alert,
+    PermissionsAndroid,
+    Platform,
+    Linking,
 } from 'react-native';
 import VideoPlayer from '../VideoPlayer';
 import VideoThumbnail from '../VideoThumbnail';
@@ -22,6 +25,7 @@ import { COLORS } from '../../constants';
 import { NativeModules } from 'react-native';
 import { ADS_UNIT } from '../../AdManager.js';
 import useTranslation from '../../hooks/useTranslation';
+import RNFS from 'react-native-fs';
 
 const { width } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -47,17 +51,96 @@ const GalleryTab = () => {
     const [trimModalVideo, setTrimModalVideo] = useState(null);
     const [videoFilter, setVideoFilter] = useState('all'); // 'all' or 'app'
 
+    // Helper function to request MANAGE_EXTERNAL_STORAGE permission
+    const requestManageExternalStoragePermission = async () => {
+        if (Platform.OS !== 'android') {
+            return true;
+        }
+
+        if (Platform.Version >= 30) { // Android 11+
+            try {
+                // Use native method to check MANAGE_EXTERNAL_STORAGE permission correctly
+                const hasPermission = await VideoRecordingModule.checkManageExternalStoragePermission();
+                console.log('🔐 MANAGE_EXTERNAL_STORAGE permission check result:', hasPermission);
+                if (hasPermission) return true;
+
+                // Show explanation dialog before redirecting to settings
+                Alert.alert(
+                    t('storage_permission_title'),
+                    t('manage_storage_permission_explanation'),
+                    [
+                        {
+                            text: t('ask_me_later'),
+                            style: 'cancel',
+                            onPress: () => false
+                        },
+                        {
+                            text: t('open_settings'),
+                            onPress: async () => {
+                                try {
+                                    // Use native method to open settings
+                                    await VideoRecordingModule.openAllFilesAccessSettings();
+                                } catch (error) {
+                                    console.warn('Failed to open settings via native method:', error);
+                                    // Fallback to Linking
+                                    try {
+                                        await Linking.openSettings();
+                                    } catch (linkingError) {
+                                        Alert.alert(t('error'), t('cannot_open_settings'));
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                );
+
+                return false;
+            } catch (e) {
+                console.warn('Permission error:', e);
+                return false;
+            }
+        } else {
+            // For Android 10 and below, check WRITE_EXTERNAL_STORAGE
+            try {
+                // First check if we already have permission
+                const hasExistingPermission = await VideoRecordingModule.checkManageExternalStoragePermission();
+                console.log('🔐 WRITE_EXTERNAL_STORAGE permission check result:', hasExistingPermission);
+
+                if (hasExistingPermission) {
+                    return true;
+                }
+
+                // If not, request permission
+                const permission = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                    {
+                        title: t('storage_permission_title'),
+                        message: t('storage_permission_message'),
+                        buttonPositive: t('ok'),
+                        buttonNegative: t('cancel'),
+                    }
+                );
+                const granted = permission === PermissionsAndroid.RESULTS.GRANTED;
+                console.log('🔐 WRITE_EXTERNAL_STORAGE permission request result:', granted);
+                return granted;
+            } catch (e) {
+                console.warn('Storage permission error:', e);
+                return false;
+            }
+        }
+    };
+
     useEffect(() => {
         // Load videos and audio files quickly
         loadRecordedVideosQuick();
         loadAudioFiles();
-        
+
         // Set up periodic refresh (reduced frequency)
         const interval = setInterval(() => {
             loadRecordedVideosQuick(); // Quick refresh without thumbnails
             loadAudioFiles(); // Refresh audio files
         }, 30000);
-        
+
         return () => clearInterval(interval);
     }, [videoFilter]); // Reload when filter changes
 
@@ -71,7 +154,7 @@ const GalleryTab = () => {
             }
 
             setIsLoading(true);
-            
+
             // Use different methods based on filter
             let result;
             if (videoFilter === 'app') {
@@ -81,9 +164,9 @@ const GalleryTab = () => {
                 // Get all videos from gallery
                 result = await VideoRecordingModule.getAllVideosFromGallery();
             }
-                
+
             console.log(`${videoFilter === 'app' ? 'App' : 'All'} videos from gallery:`, result ? result.length : 0);
-            
+
             if (result && result.length > 0) {
                 // Format videos without thumbnails for fast display
                 const formattedVideos = result.map(video => ({
@@ -101,7 +184,7 @@ const GalleryTab = () => {
                     width: video.width || 720,
                     height: video.height || 1280
                 }));
-                
+
                 console.log('Setting videos in state (quick):', formattedVideos.length);
                 setVideos(formattedVideos);
             } else {
@@ -128,13 +211,13 @@ const GalleryTab = () => {
             setIsLoading(true);
 
             // Use full load to get thumbnails if not quick mode
-            const result = quick 
+            const result = quick
                 ? await VideoRecordingModule.getRecordedVideosQuick()
                 : await VideoRecordingModule.getRecordedVideos();
-                
+
             console.log('Videos directory from native:', result.directory);
             console.log('Videos from native module:', result.videos ? result.videos.length : 0);
-            
+
             if (result.videos && result.videos.length > 0) {
                 // Convert native video data to match our UI format
                 const formattedVideos = result.videos.map(video => ({
@@ -150,7 +233,7 @@ const GalleryTab = () => {
                     width: video.width || 720,
                     height: video.height || 1280
                 }));
-                
+
                 console.log('Setting videos in state:', formattedVideos.length);
                 setVideos(formattedVideos);
             } else {
@@ -175,9 +258,9 @@ const GalleryTab = () => {
             }
 
             const result = await VideoRecordingModule.getAudioFiles();
-                
+
             console.log('Audio files from native module:', result.audios ? result.audios.length : 0);
-            
+
             if (result.audios && result.audios.length > 0) {
                 // Format audio files for UI
                 const formattedAudios = result.audios.map(audio => ({
@@ -190,7 +273,7 @@ const GalleryTab = () => {
                     format: audio.format,
                     lastModified: audio.lastModified
                 }));
-                
+
                 console.log('Setting audio files in state:', formattedAudios.length);
                 setAudioFiles(formattedAudios);
             } else {
@@ -214,8 +297,8 @@ const GalleryTab = () => {
         const now = Date.now();
         const diff = Math.floor((now - timestamp) / 1000);
         if (diff < 60) return '00:00:30'; // Default short duration
-        if (diff < 3600) return `00:${Math.floor(diff/60).toString().padStart(2, '0')}:00`;
-        return `${Math.floor(diff/3600).toString().padStart(2, '0')}:00:00`;
+        if (diff < 3600) return `00:${Math.floor(diff / 60).toString().padStart(2, '0')}:00`;
+        return `${Math.floor(diff / 3600).toString().padStart(2, '0')}:00:00`;
     };
 
     const handleVideoAction = (videoId, action) => {
@@ -272,8 +355,8 @@ const GalleryTab = () => {
                     `Are you sure you want to delete ${video.title}?`,
                     [
                         { text: t('cancel', 'Cancel'), style: 'cancel' },
-                        { 
-                            text: t('delete', 'Delete'), 
+                        {
+                            text: t('delete', 'Delete'),
                             style: 'destructive',
                             onPress: () => deleteVideo(videoId)
                         }
@@ -290,6 +373,7 @@ const GalleryTab = () => {
         try {
             const video = videos.find(v => v.id === videoId);
             if (!video || !video.filePath) {
+                console.error('Video not found or no filePath:', { video, videoId });
                 Alert.alert(t('error', 'Error'), t('video_file_not_found', 'Video file not found'));
                 return;
             }
@@ -299,14 +383,139 @@ const GalleryTab = () => {
                 return;
             }
 
-            await VideoRecordingModule.deleteVideo(video.filePath);
-            
-            // Refresh the video list after deletion
-            await loadRecordedVideos();
-            
-            Alert.alert(t('success', 'Success'), t('video_deleted_successfully', 'Video deleted successfully'));
+            const stat = await RNFS.stat(video.filePath);
+            console.log('Path:', video.filePath, 'Inode:', stat);
+
+
+            // Request storage permission before deletion
+            console.log('🔐 Requesting storage permission before video deletion...');
+            const hasPermission = await requestManageExternalStoragePermission();
+
+            if (!hasPermission) {
+                console.log('❌ Storage permission denied, cannot delete video');
+                Alert.alert(
+                    t('permission_denied', 'Permission Denied'),
+                    t('storage_permission_required_for_deletion', 'Storage permission is required to delete videos. Please grant the permission and try again.')
+                );
+                return;
+            }
+
+            console.log('✅ Storage permission granted, proceeding with deletion...');
+
+            console.log('Attempting to delete video:', {
+                id: video.id,
+                title: video.title,
+                filePath: video.filePath
+            });
+
+            // Check if file exists using multiple methods
+            const existsRNFS = await RNFS.exists(video.filePath);
+            console.log('File exists (RNFS):', existsRNFS);
+
+            // Try different path formats if the original doesn't work
+            let pathToDelete = video.filePath;
+
+            // If RNFS can't find it, try to construct the path differently
+            if (!existsRNFS) {
+                console.log('File not found with RNFS, trying alternative paths...');
+
+                // Try with just filename if it's a full path
+                if (video.filePath.includes('/')) {
+                    const filename = video.filePath.split('/').pop();
+                    console.log('Trying with filename only:', filename);
+                    pathToDelete = filename;
+                }
+
+                // Try with file:// prefix removed if present
+                if (video.filePath.startsWith('file://')) {
+                    pathToDelete = video.filePath.replace('file://', '');
+                    console.log('Trying without file:// prefix:', pathToDelete);
+                }
+            }
+
+            console.log('Final path for deletion:', pathToDelete);
+
+            // Try native module first
+            try {
+                await VideoRecordingModule.deleteVideo(pathToDelete);
+                console.log('✅ Video deleted successfully via native module');
+            } catch (nativeError) {
+                console.log('❌ Native module deletion failed:', {
+                    message: nativeError.message,
+                    code: nativeError.code,
+                    name: nativeError.name
+                });
+
+                // Try different path formats for native module
+                let nativeSuccess = false;
+                const pathVariants = [
+                    pathToDelete,
+                    pathToDelete.replace('/storage/emulated/0/', '/sdcard/'),
+                    pathToDelete.replace('file://', ''),
+                    video.filePath // Original path from video object
+                ];
+
+                for (const variant of pathVariants) {
+                    if (variant !== pathToDelete) { // Skip already tried path
+                        try {
+                            console.log('🔄 Trying native deletion with variant:', variant);
+                            await VideoRecordingModule.deleteVideo(variant);
+                            console.log('✅ Video deleted successfully via native module (variant)');
+                            nativeSuccess = true;
+                            break;
+                        } catch (variantError) {
+                            console.log('❌ Native variant failed:', variant, variantError.message);
+                        }
+                    }
+                }
+
+                // If all native attempts failed, skip to RNFS fallback for now
+                if (!nativeSuccess) {
+                    console.log('🔄 All native attempts failed, using RNFS fallback...');
+                    console.log('💡 To fix native deletion, see NATIVE_DELETION_IMPLEMENTATION.md');
+
+                    // Skip advanced strategies until native methods are implemented
+                    // const advancedSuccess = await tryAdvancedDeletion(pathToDelete, false);
+
+                    // Try RNFS deletion with MediaStore cleanup
+                    if (await RNFS.exists(pathToDelete)) {
+                        try {
+                            await RNFS.unlink(pathToDelete);
+                            console.log('✅ Video file deleted successfully via RNFS');
+
+                            // Try to notify MediaStore about the deletion
+                            try {
+                                if (VideoRecordingModule.notifyMediaStoreDelete) {
+                                    await VideoRecordingModule.notifyMediaStoreDelete(pathToDelete);
+                                    console.log('✅ MediaStore notified of deletion');
+                                }
+                            } catch (mediaStoreError) {
+                                console.log('⚠️ MediaStore notification failed (non-critical):', mediaStoreError.message);
+                            }
+
+                        } catch (rnfsError) {
+                            console.error('❌ RNFS deletion also failed:', rnfsError.message);
+
+                            // Check if it's a permission issue
+                            if (rnfsError.message?.includes('EACCES') || rnfsError.message?.includes('permission')) {
+                                throw new Error('Permission denied. File may be protected by Android scoped storage.');
+                            } else {
+                                throw new Error('Failed to delete file: ' + rnfsError.message);
+                            }
+                        }
+                    } else {
+                        throw new Error('File not found for deletion: ' + pathToDelete);
+                    }
+                }
+            }
+
         } catch (error) {
             console.error('Failed to delete video:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                nativeStackAndroid: error.nativeStackAndroid
+            });
             Alert.alert(t('error', 'Error'), 'Failed to delete video: ' + error.message);
         }
     };
@@ -344,8 +553,8 @@ const GalleryTab = () => {
                     `Are you sure you want to delete ${audio.title}?`,
                     [
                         { text: t('cancel', 'Cancel'), style: 'cancel' },
-                        { 
-                            text: t('delete', 'Delete'), 
+                        {
+                            text: t('delete', 'Delete'),
                             style: 'destructive',
                             onPress: () => deleteAudio(audioId)
                         }
@@ -362,6 +571,7 @@ const GalleryTab = () => {
         try {
             const audio = audioFiles.find(a => a.id === audioId);
             if (!audio || !audio.filePath) {
+                console.error('Audio not found or no filePath:', { audio, audioId });
                 Alert.alert(t('error', 'Error'), t('audio_file_not_found', 'Audio file not found'));
                 return;
             }
@@ -371,14 +581,142 @@ const GalleryTab = () => {
                 return;
             }
 
-            await VideoRecordingModule.deleteAudio(audio.filePath);
-            
-            // Refresh the audio list after deletion
-            await loadAudioFiles();
-            
+            // Request storage permission before deletion
+            console.log('🔐 Requesting storage permission before audio deletion...');
+            const hasPermission = await requestManageExternalStoragePermission();
+
+            if (!hasPermission) {
+                console.log('❌ Storage permission denied, cannot delete audio');
+                Alert.alert(
+                    t('permission_denied', 'Permission Denied'),
+                    t('storage_permission_required_for_deletion', 'Storage permission is required to delete audio files. Please grant the permission and try again.')
+                );
+                return;
+            }
+
+            console.log('✅ Storage permission granted, proceeding with audio deletion...');
+
+            console.log('Attempting to delete audio:', {
+                id: audio.id,
+                title: audio.title,
+                filePath: audio.filePath
+            });
+
+            // Check if file exists using multiple methods
+            const existsRNFS = await RNFS.exists(audio.filePath);
+            console.log('Audio file exists (RNFS):', existsRNFS);
+
+            // Try different path formats if the original doesn't work
+            let pathToDelete = audio.filePath;
+
+            // If RNFS can't find it, try to construct the path differently
+            if (!existsRNFS) {
+                console.log('Audio file not found with RNFS, trying alternative paths...');
+
+                // Try with just filename if it's a full path
+                if (audio.filePath.includes('/')) {
+                    const filename = audio.filePath.split('/').pop();
+                    console.log('Trying with filename only:', filename);
+                    pathToDelete = filename;
+                }
+
+                // Try with file:// prefix removed if present
+                if (audio.filePath.startsWith('file://')) {
+                    pathToDelete = audio.filePath.replace('file://', '');
+                    console.log('Trying without file:// prefix:', pathToDelete);
+                }
+            }
+
+            console.log('Final path for audio deletion:', pathToDelete);
+
+            // Try native module first
+            try {
+                await VideoRecordingModule.deleteAudio(pathToDelete);
+                console.log('✅ Audio deleted successfully via native module');
+            } catch (nativeError) {
+                console.log('❌ Native module audio deletion failed:', {
+                    message: nativeError.message,
+                    code: nativeError.code,
+                    name: nativeError.name
+                });
+
+                // Try different path formats for native module
+                let nativeSuccess = false;
+                const pathVariants = [
+                    pathToDelete,
+                    pathToDelete.replace('/storage/emulated/0/', '/sdcard/'),
+                    pathToDelete.replace('file://', ''),
+                    audio.filePath // Original path from audio object
+                ];
+
+                for (const variant of pathVariants) {
+                    if (variant !== pathToDelete) { // Skip already tried path
+                        try {
+                            console.log('🔄 Trying native audio deletion with variant:', variant);
+                            await VideoRecordingModule.deleteAudio(variant);
+                            console.log('✅ Audio deleted successfully via native module (variant)');
+                            nativeSuccess = true;
+                            break;
+                        } catch (variantError) {
+                            console.log('❌ Native audio variant failed:', variant, variantError.message);
+                        }
+                    }
+                }
+
+                // If all native attempts failed, skip to RNFS fallback for now
+                if (!nativeSuccess) {
+                    console.log('🔄 All native audio attempts failed, using RNFS fallback...');
+                    console.log('💡 To fix native deletion, see NATIVE_DELETION_IMPLEMENTATION.md');
+
+                    // Skip advanced strategies until native methods are implemented
+                    // const advancedSuccess = await tryAdvancedDeletion(pathToDelete, true);
+
+                    // Try RNFS deletion with MediaStore cleanup
+                    if (await RNFS.exists(pathToDelete)) {
+                        try {
+                            await RNFS.unlink(pathToDelete);
+                            console.log('✅ Audio file deleted successfully via RNFS');
+
+                            // Try to notify MediaStore about the deletion
+                            try {
+                                if (VideoRecordingModule.notifyMediaStoreDelete) {
+                                    await VideoRecordingModule.notifyMediaStoreDelete(pathToDelete);
+                                    console.log('✅ MediaStore notified of audio deletion');
+                                }
+                            } catch (mediaStoreError) {
+                                console.log('⚠️ MediaStore notification failed (non-critical):', mediaStoreError.message);
+                            }
+
+                        } catch (rnfsError) {
+                            console.error('❌ RNFS audio deletion also failed:', rnfsError.message);
+
+                            // Check if it's a permission issue
+                            if (rnfsError.message?.includes('EACCES') || rnfsError.message?.includes('permission')) {
+                                throw new Error('Permission denied. Audio file may be protected by Android scoped storage.');
+                            } else {
+                                throw new Error('Failed to delete audio file: ' + rnfsError.message);
+                            }
+                        }
+                    } else {
+                        throw new Error('Audio file not found for deletion: ' + pathToDelete);
+                    }
+                }
+            }
+
+            // Optimistic update: remove audio from state immediately for instant UI feedback
+            setAudioFiles(prevAudios => prevAudios.filter(a => a.id !== audioId));
+
+            // Refresh the audio list after deletion in background
+            loadAudioFiles(); // No await - run in background
+
             Alert.alert(t('success', 'Success'), t('audio_deleted_successfully', 'Audio deleted successfully'));
         } catch (error) {
             console.error('Failed to delete audio:', error);
+            console.error('Audio deletion error details:', {
+                message: error.message,
+                code: error.code,
+                nativeStackAndroid: error.nativeStackAndroid
+            });
             Alert.alert(t('error', 'Error'), 'Failed to delete audio: ' + error.message);
         }
     };
@@ -398,7 +736,7 @@ const GalleryTab = () => {
 
             // Use native module to share audio file
             await VideoRecordingModule.shareVideo(audio.filePath, 'share_general');
-            
+
         } catch (error) {
             console.error('Failed to share audio:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
@@ -433,10 +771,10 @@ const GalleryTab = () => {
             // Check if it's audio or video
             const video = videos.find(v => v.id === itemId);
             const audio = audioFiles.find(a => a.id === itemId);
-            
+
             const item = video || audio;
             const isAudio = !!audio;
-            
+
             if (!item || !item.filePath) {
                 Alert.alert(t('error', 'Error'), `${isAudio ? 'Audio' : 'Video'} file not found`);
                 return;
@@ -453,17 +791,31 @@ const GalleryTab = () => {
 
             if (isAudio) {
                 await VideoRecordingModule.renameAudio(item.filePath, newFileName);
-                
-                // Refresh the audio list after rename
-                await loadAudioFiles();
-                
+
+                // Optimistic update: update audio title immediately
+                setAudioFiles(prevAudios =>
+                    prevAudios.map(a =>
+                        a.id === itemId ? { ...a, title: newFileName } : a
+                    )
+                );
+
+                // Refresh the audio list after rename in background
+                loadAudioFiles(); // No await
+
                 Alert.alert(t('success', 'Success'), `Audio renamed to: ${newFileName}`);
             } else {
                 await VideoRecordingModule.renameVideo(item.filePath, newFileName);
-                
-                // Refresh the video list after rename
-                await loadRecordedVideosQuick();
-                
+
+                // Optimistic update: update video title immediately
+                setVideos(prevVideos =>
+                    prevVideos.map(v =>
+                        v.id === itemId ? { ...v, title: newFileName } : v
+                    )
+                );
+
+                // Refresh the video list after rename in background
+                loadRecordedVideosQuick(); // No await
+
                 Alert.alert(t('success', 'Success'), `Video renamed to: ${newFileName}`);
             }
         } catch (error) {
@@ -487,7 +839,7 @@ const GalleryTab = () => {
 
             // Use native module to share video file
             await VideoRecordingModule.shareVideo(video.filePath, 'share_general');
-            
+
         } catch (error) {
             console.error('Failed to share video:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
@@ -502,7 +854,7 @@ const GalleryTab = () => {
         try {
             // Refresh video list to include the new compressed video
             await loadRecordedVideosQuick();
-            
+
             // Alert.alert(
             //     t('success', 'Success'), 
             //     'Video compressed successfully! You can find it in your video gallery.',
@@ -517,10 +869,10 @@ const GalleryTab = () => {
         try {
             // Refresh audio list to include the new converted audio
             await loadAudioFiles();
-            
+
             // Show success message
             Alert.alert(
-                t('success', 'Success'), 
+                t('success', 'Success'),
                 'Video converted to audio successfully! You can find it in your audio gallery.',
                 [{ text: t('ok', 'OK') }]
             );
@@ -532,12 +884,12 @@ const GalleryTab = () => {
     const handleTrimExport = async (trimData) => {
         try {
             console.log('Trim export completed:', trimData);
-            
+
             // Refresh video list to show the new trimmed video
             await loadRecordedVideosQuick();
-            
+
             console.log('Video list refreshed after trim');
-            
+
         } catch (error) {
             console.error('Failed to refresh video list after trim:', error);
             throw error; // Re-throw to be handled by TrimVideoModal
@@ -547,13 +899,13 @@ const GalleryTab = () => {
     const renderTabBar = () => (
         <View style={styles.tabBarContainer}>
             <View style={styles.tabBar}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tabButton, activeTab === 'video' && styles.activeTabButton]}
                     onPress={() => setActiveTab('video')}
                 >
-                    <Image 
-                        source={require('../../../assets/home/ic/ic_record.png')} 
-                        style={[styles.tabIcon, activeTab === 'video' && styles.activeTabIcon]} 
+                    <Image
+                        source={require('../../../assets/home/ic/ic_record.png')}
+                        style={[styles.tabIcon, activeTab === 'video' && styles.activeTabIcon]}
                     />
                     <Text style={[styles.tabText, activeTab === 'video' && styles.activeTabText]}>
                         {t('videos', 'Video')}
@@ -562,14 +914,14 @@ const GalleryTab = () => {
                         <Text style={styles.tabBadgeText}>{videos.length}</Text>
                     </View>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                     style={[styles.tabButton, activeTab === 'audio' && styles.activeTabButton]}
                     onPress={() => setActiveTab('audio')}
                 >
-                    <Image 
-                        source={require('../../../assets/home/ic/ic-music.png')} 
-                        style={[styles.tabIcon, activeTab === 'audio' && styles.activeTabIcon]} 
+                    <Image
+                        source={require('../../../assets/home/ic/ic-music.png')}
+                        style={[styles.tabIcon, activeTab === 'audio' && styles.activeTabIcon]}
                     />
                     <Text style={[styles.tabText, activeTab === 'audio' && styles.activeTabText]}>
                         {t('audios', 'Audio')}
@@ -579,11 +931,11 @@ const GalleryTab = () => {
                     </View>
                 </TouchableOpacity>
             </View>
-            
+
             {/* Video Filter Bar */}
             {activeTab === 'video' && (
                 <View style={styles.filterBar}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.filterButton, videoFilter === 'all' && styles.activeFilterButton]}
                         onPress={() => setVideoFilter('all')}
                     >
@@ -591,8 +943,8 @@ const GalleryTab = () => {
                             {t('allVideos', 'All Videos')}
                         </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                         style={[styles.filterButton, videoFilter === 'app' && styles.activeFilterButton]}
                         onPress={() => setVideoFilter('app')}
                     >
@@ -606,8 +958,8 @@ const GalleryTab = () => {
     );
 
     const renderVideoItem = (video) => (
-        <TouchableOpacity 
-            key={video.id} 
+        <TouchableOpacity
+            key={video.id}
             style={styles.videoItem}
             onPress={() => {
                 // Quick play on tap
@@ -619,12 +971,15 @@ const GalleryTab = () => {
                 }
             }}
         >
-            <VideoThumbnail 
-                video={video}
-                width={80}
-                height={80}
-                onThumbnailLoad={handleThumbnailLoaded}
-            />
+            <View style={styles.videoItemThumnail}>
+                <VideoThumbnail
+                    video={video}
+                    width={80}
+                    height={80}
+                    onThumbnailLoad={handleThumbnailLoaded}
+                />
+            </View>
+
             <View style={styles.videoInfo}>
                 <Text style={styles.videoTitle} numberOfLines={1}>
                     {video.title}
@@ -633,24 +988,24 @@ const GalleryTab = () => {
                 <Text style={styles.sizeText}>{t('ratio', 'Ratio')}: {video.ratio}</Text>
                 <Text style={styles.sizeText}>{t('size', 'Size')}: {video.size}</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.videoActions}
                 onPress={() => {
                     setActionModalVideo(video);
                     setShowActionModal(true);
                 }}
             >
-                <Image 
-                    source={require('../../../assets/home/ic/ic_3dot.png')} 
-                    style={styles.actionIcon} 
+                <Image
+                    source={require('../../../assets/home/ic/ic_3dot.png')}
+                    style={styles.actionIcon}
                 />
             </TouchableOpacity>
         </TouchableOpacity>
     );
 
     const renderAudioItem = (audio) => (
-        <TouchableOpacity 
-            key={audio.id} 
+        <TouchableOpacity
+            key={audio.id}
             style={styles.videoItem}
             onPress={() => {
                 // Play audio on tap
@@ -663,9 +1018,9 @@ const GalleryTab = () => {
             }}
         >
             <View style={styles.audioThumbnail}>
-                <Image 
-                    source={require('../../../assets/home/ic/ic-music.png')} 
-                    style={styles.audioIcon} 
+                <Image
+                    source={require('../../../assets/home/ic/ic-music.png')}
+                    style={styles.audioIcon}
                 />
                 <View style={styles.audioBadge}>
                     <Text style={styles.audioBadgeText}>{audio.format}</Text>
@@ -679,16 +1034,16 @@ const GalleryTab = () => {
                 <Text style={styles.sizeText}>{t('duration', 'Duration')}: {audio.duration}</Text>
                 <Text style={styles.sizeText}>{t('size', 'Size')}: {audio.size}</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.videoActions}
                 onPress={() => {
-                    setActionModalVideo({...audio, isAudio: true});
+                    setActionModalVideo({ ...audio, isAudio: true });
                     setShowActionModal(true);
                 }}
             >
-                <Image 
-                    source={require('../../../assets/home/ic/ic_3dot.png')} 
-                    style={styles.actionIcon} 
+                <Image
+                    source={require('../../../assets/home/ic/ic_3dot.png')}
+                    style={styles.actionIcon}
                 />
             </TouchableOpacity>
         </TouchableOpacity>
@@ -707,9 +1062,9 @@ const GalleryTab = () => {
                 />
             ) : (
                 <View style={styles.emptyState}>
-                    <Image 
-                        source={require('../../../assets/home/ic/ic_record.png')} 
-                        style={styles.emptyIcon} 
+                    <Image
+                        source={require('../../../assets/home/ic/ic_record.png')}
+                        style={styles.emptyIcon}
                     />
                     <Text style={styles.emptyTitle}>{t('no_videos_yet', 'No videos yet')}</Text>
                     <Text style={styles.emptyDescription}>
@@ -733,9 +1088,9 @@ const GalleryTab = () => {
                 />
             ) : (
                 <View style={styles.emptyState}>
-                    <Image 
-                        source={require('../../../assets/home/ic/ic-music.png')} 
-                        style={styles.emptyIcon} 
+                    <Image
+                        source={require('../../../assets/home/ic/ic-music.png')}
+                        style={styles.emptyIcon}
                     />
                     <Text style={styles.emptyTitle}>{t('no_audio_files_yet', 'No audio files yet')}</Text>
                     <Text style={styles.emptyDescription}>
@@ -749,11 +1104,11 @@ const GalleryTab = () => {
     return (
         <View style={styles.tabContent}>
             {renderTabBar()}
-            
+
             {activeTab === 'video' ? renderVideoTab() : renderAudioTab()}
-            
-            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false}/>
-            
+
+            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} hasToggleMedia={true} />
+
             <VideoPlayer
                 visible={showVideoPlayer}
                 video={selectedVideo}
@@ -762,7 +1117,7 @@ const GalleryTab = () => {
                     setSelectedVideo(null);
                 }}
             />
-            
+
             <VideoActionModal
                 visible={showActionModal}
                 video={actionModalVideo}
@@ -780,7 +1135,7 @@ const GalleryTab = () => {
                     }
                 }}
             />
-            
+
             <RenameModal
                 visible={showRenameModal}
                 video={renameModalVideo}
@@ -790,7 +1145,7 @@ const GalleryTab = () => {
                 }}
                 onRename={handleRename}
             />
-            
+
             <CompressModal
                 visible={showCompressModal}
                 video={compressModalVideo}
@@ -800,7 +1155,7 @@ const GalleryTab = () => {
                 }}
                 onCompress={handleCompress}
             />
-            
+
             <Mp3ConvertModal
                 visible={showMp3ConvertModal}
                 video={mp3ConvertModalVideo}
@@ -810,7 +1165,7 @@ const GalleryTab = () => {
                 }}
                 onConvert={handleMp3Convert}
             />
-            
+
             <TrimVideoModal
                 visible={showTrimModal}
                 video={trimModalVideo}
@@ -920,6 +1275,8 @@ const styles = StyleSheet.create({
         // borderRadius: 12,
         paddingVertical: 3,
         marginBottom: 0,
+        // height: 80,
+        // width: 80,
         // elevation: 2,
         // shadowColor: '#000',
         // shadowOffset: { width: 0, height: 1 },
@@ -959,6 +1316,10 @@ const styles = StyleSheet.create({
         color: COLORS.TERTIARY,
         fontSize: 10,
         fontWeight: '900',
+    },
+    videoItemThumnail: {
+        width: 80,
+        height: 80,
     },
     videoInfo: {
         flex: 1,

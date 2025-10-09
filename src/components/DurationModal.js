@@ -39,26 +39,9 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
     const handleSelect = (duration) => {
         // Check if trying to select unlimited duration
         if (duration === -1 && !isVip) {
-            // Show upgrade prompt for non-VIP users
-            Alert.alert(
-                'Premium Feature',
-                'Unlimited recording is available for Premium members only. Upgrade now to unlock this feature!',
-                [
-                    {
-                        text: t('cancel', 'Cancel'),
-                        style: 'cancel',
-                    },
-                    {
-                        text: 'Upgrade',
-                        onPress: () => {
-                            onClose();
-                            if (onShowIAP) {
-                                onShowIAP();
-                            }
-                        },
-                    },
-                ]
-            );
+            if (onShowIAP) {
+                onShowIAP();
+            }
             return;
         }
         
@@ -112,11 +95,6 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
                         <Text style={styles.proText}>{isVip ? '✓ PRO' : 'PRO'}</Text>
                     </View>
                 )}
-                {isDisabled && (
-                    <View style={styles.lockIcon}>
-                        <Text style={styles.lockText}>🔒</Text>
-                    </View>
-                )}
             </TouchableOpacity>
         );
     };
@@ -132,28 +110,15 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
                         <Text style={styles.title}>{t('recordingDuration', 'Recording Duration')}</Text>
-                        {!loading && (
-                            <Text style={[styles.vipStatus, isVip ? styles.vipActive : styles.vipInactive]}>
-                                {isVip ? t('premiumMember', '👑 Premium Member') : t('freeUser', '👤 Free User')}
-                            </Text>
-                        )}
                     </View>
                     
                     <View style={styles.content}>
                         {durationOptions.map(renderDurationItem)}
                         
-                        {!isVip && !loading && (
-                            <View style={styles.upgradeNote}>
-                                <Text style={styles.upgradeNoteText}>
-                                    {t('upgradeToPremiumNote', '💡 Upgrade to Premium to unlock unlimited recording and remove ads!')}
-                                </Text>
-                            </View>
-                        )}
-                        
                         {/* Native Ad - Only show for non-VIP users */}
                         {!isVip && !loading && (
                             <View style={styles.adContainer}>
-                                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_AD} />
+                                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
                             </View>
                         )}
                     </View>
@@ -185,12 +150,12 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        // paddingHorizontal: 10,
     },
     modalContainer: {
         backgroundColor: COLORS.WHITE,
-        borderRadius: 16,
-        width: width - 40,
+        borderRadius: 8,
+        width: width - 20,
         maxWidth: 400,
         overflow: 'hidden',
     },
@@ -219,7 +184,7 @@ const styles = StyleSheet.create({
         color: COLORS.TEXT_SECONDARY,
     },
     content: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingVertical: 16,
     },
     durationItem: {
@@ -240,9 +205,9 @@ const styles = StyleSheet.create({
         borderColor: COLORS.ACTIVE,
     },
     disabledItem: {
-        backgroundColor: COLORS.GRAY_50,
-        borderColor: COLORS.GRAY_100,
-        opacity: 0.6,
+        // backgroundColor: COLORS.GRAY_50,
+        // borderColor: COLORS.GRAY_100,
+        // opacity: 0.6,
     },
     durationLeft: {
         flexDirection: 'row',
@@ -263,8 +228,8 @@ const styles = StyleSheet.create({
         borderColor: COLORS.ACTIVE,
     },
     radioButtonDisabled: {
-        borderColor: COLORS.GRAY_200,
-        backgroundColor: COLORS.GRAY_100,
+        // borderColor: COLORS.GRAY_200,
+        // backgroundColor: COLORS.GRAY_100,
     },
     radioButtonInner: {
         width: 10,
@@ -299,7 +264,7 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     proTag: {
-        backgroundColor: COLORS.ACCENT,
+        backgroundColor: COLORS.ACTIVE,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
@@ -336,32 +301,51 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: 'row',
-        borderTopWidth: 1,
-        borderTopColor: COLORS.GRAY_100,
+        // borderTopWidth: 1,
+        // borderTopColor: COLORS.GRAY_100,
+        paddingBottom: 20,
+        paddingHorizontal: 8,
     },
     cancelButton: {
-        flex: 1,
-        paddingVertical: 16,
+        // flex: 1,
+        // padding: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRightWidth: 1,
-        backgroundColor: COLORS.SECONDARY,
+        // borderRightWidth: 1,
+        width: '50%',
+        // height: 48,
+        // backgroundColor: COLORS.SECONDARY,
     },
     cancelText: {
         fontSize: 16,
-        color: COLORS.TEXT_SECONDARY,
+        color: COLORS.WHITE,
+        backgroundColor: COLORS.SECONDARY,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        borderRadius: 8,
+        width: '90%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
     okButton: {
         flex: 1,
-        paddingVertical: 16,
+        // paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.TERTIARY,
+        // backgroundColor: COLORS.TERTIARY,
     },
     okText: {
         fontSize: 16,
-        fontWeight: '600',
         color: COLORS.WHITE,
+        backgroundColor: COLORS.TERTIARY,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        borderRadius: 8,
+        width: '90%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
 });
 
