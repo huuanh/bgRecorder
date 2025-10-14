@@ -137,7 +137,7 @@ const VideoSelectorModal = ({
                 )}
             </View>
             <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} hasToggleMedia={true}/>
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_SELECT_VIDEO} hasMedia={true} hasToggleMedia={true}/>
             </View>
         </Modal>
     );
@@ -173,6 +173,11 @@ const styles = StyleSheet.create({
         fontSize: 25,
         color: COLORS.TERTIARY,
         fontWeight: '900',
+        width: 20,
+        height: 20,
+        // tintColor: COLORS.TERTIARY,
+        // textAlign: 'center',
+        // lineHeight: 20,
     },
     videosList: {
         // padding: 10,

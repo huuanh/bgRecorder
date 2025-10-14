@@ -13,6 +13,8 @@ import {
 import { COLORS } from '../constants';
 import IAPManager from '../utils/IAPManager';
 import useTranslation from '../hooks/useTranslation';
+import remoteConfigManager from '../RemoteConfigManager';
+import AdManager, {ADS_UNIT} from '../AdManager';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +24,7 @@ const IAPModal = ({ visible, onClose }) => {
     const [subscriptionPlans, setSubscriptionPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState(false);
+    const [showCloseButton, setShowCloseButton] = useState(false);
     
     // Animation for start trial button
     const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -31,8 +34,21 @@ const IAPModal = ({ visible, onClose }) => {
             loadSubscriptionData();
             setupPurchaseListeners();
             startButtonAnimation();
+            
+            // Reset close button visibility
+            setShowCloseButton(false);
+            
+            // Show close button after 3 seconds delay with fade-in animation
+            const closeButtonTimer = setTimeout(() => {
+                setShowCloseButton(true);
+            }, 3000);
+            
+            return () => {
+                clearTimeout(closeButtonTimer);
+            };
         } else {
             stopButtonAnimation();
+            setShowCloseButton(false);
         }
         
         return () => {
@@ -397,9 +413,37 @@ const IAPModal = ({ visible, onClose }) => {
         );
     };
 
+    const calculateOriginalPrice = (currentPriceNumeric, discountPercent, displayPrice) => {
+        if (currentPriceNumeric === 0) return '';
+
+        const discountDecimal = discountPercent / 100;
+        const originalNumeric = currentPriceNumeric / (1 - discountDecimal);
+
+        const formattedOriginal = Math.round(originalNumeric).toLocaleString();
+
+        const currencyMatch = displayPrice.match(/[^\d\s.,]+/g);
+        const currencySymbol = currencyMatch ? currencyMatch.join('').trim() : '';
+
+        if (displayPrice.includes(currencySymbol) && displayPrice.indexOf(currencySymbol) > displayPrice.indexOf(' ')) {
+        return `${formattedOriginal} ${currencySymbol}`;
+        } else {
+        return `${currencySymbol}${formattedOriginal}`;
+        }
+    };
+
     const renderPlanItem = (plan) => {
         const isSelected = selectedPlan === plan.id;
         
+        if(plan.basePlanId == 'year') {
+            plan.discount = '- 60%';
+            plan.originalPrice = calculateOriginalPrice(plan.priceAmountMicros/1000000, 60, plan.price);
+        } 
+        if(plan.basePlanId == '3months') {
+            plan.discount = '- 30%';
+            plan.originalPrice = calculateOriginalPrice(plan.priceAmountMicros/1000000, 30, plan.price);
+        }
+
+        console.log('renderPlanItem', plan);
         return (
             <TouchableOpacity
                 key={plan.id}
@@ -419,25 +463,24 @@ const IAPModal = ({ visible, onClose }) => {
                 <View style={styles.planContent}>
                     <View style={styles.planLeft}>
                         <Text style={styles.planTitle}>{plan.title}</Text>
-                        {plan.discount && (
-                            <View style={styles.discountBadge}>
-                                <Text style={styles.discountText}>{plan.discount}</Text>
-                            </View>
-                        )}
-                        {plan.originalPrice && (
-                            <Text style={styles.originalPrice}>{t('regularPrice', 'Regular price')} {plan.originalPrice}</Text>
-                        )}
-                        {plan.hasFreeTrail && plan.freeTrialText && (
-                            <Text style={styles.freeTrialDescription}>{plan.freeTrialText}</Text>
-                        )}
+                        
+                        <Text style={styles.planPrice}>{plan.price}</Text>
                     </View>
                     
                     <View style={styles.planRight}>
-                        <Text style={styles.planPrice}>{plan.price}</Text>
-                        {plan.hasFreeTrail && (
-                            <View style={styles.freeTrialBadge}>
-                                <Text style={styles.freeTrialText}>{t('freeTrial', 'FREE TRIAL')}</Text>
-                            </View>
+                        
+                        {/* <View style={styles.freeTrialBadge}>
+                            <Text style={styles.freeTrialText}>{t('freeTrial', 'FREE TRIAL')}</Text>
+                        </View> */}
+
+                        <View style={styles.discountBadge}>
+                            {plan.discount && (
+                                <Text style={styles.discountText}>{plan.discount}</Text>
+                            )}
+                        </View>
+                        
+                        {plan.originalPrice && (
+                            <Text style={styles.originalPrice}>{t('regularPrice', 'Regular price')} {plan.originalPrice}</Text>
                         )}
                     </View>
                 </View>
@@ -450,18 +493,24 @@ const IAPModal = ({ visible, onClose }) => {
             visible={visible}
             animationType="slide"
             transparent={true}
-            statusBarTranslucent={true}
+            // statusBarTranslucent={true}
         >
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity 
-                            style={styles.closeButton}
-                            onPress={onClose}
-                        >
-                            <Text style={styles.closeButtonText}>✕</Text>
-                        </TouchableOpacity>
+                        {showCloseButton && (
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => {
+                                    console.log('remoteConfigManager', remoteConfigManager.isShowIntCloseIAP());
+                                     remoteConfigManager.isShowIntCloseIAP() && AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_IAP);
+                                     onClose(); 
+                                }}
+                            >
+                                <Text style={styles.closeButtonText}>✕</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     <ScrollView 
@@ -561,7 +610,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: '#F3F4F6',
+        // backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -602,6 +651,7 @@ const styles = StyleSheet.create({
     },
     star: {
         fontSize: 24,
+        color: '#ff0000ff',
     },
     plansSection: {
         marginBottom: 20,
@@ -613,7 +663,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: 'transparent',
         position: 'relative',
-        overflow: 'hidden',
+        // overflow: 'hidden',
     },
     selectedPlan: {
         borderColor: '#FF6B35',
@@ -625,14 +675,18 @@ const styles = StyleSheet.create({
     },
     bestOptionBadge: {
         position: 'absolute',
-        top: 0,
-        right: 20,
+        top: -13,
+        left: 120,
+        right: 120,
         backgroundColor: '#FF6B35',
         paddingHorizontal: 12,
         paddingVertical: 4,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 8,
+        // borderBottomLeftRadius: 8,
+        // borderBottomRightRadius: 8,
+        borderRadius: 12,
         zIndex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     bestOptionText: {
         color: '#FFFFFF',
@@ -640,14 +694,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     planContent: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flex: 1,
         padding: 16,
-        paddingTop: 20,
     },
     planLeft: {
-        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        // flex: 1,
     },
     planTitle: {
         fontSize: 20,
@@ -657,15 +710,15 @@ const styles = StyleSheet.create({
     },
     discountBadge: {
         backgroundColor: '#FF6B35',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
         borderRadius: 12,
         alignSelf: 'flex-start',
-        marginBottom: 4,
+        // marginBottom: 4,
     },
     discountText: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 16,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
         fontWeight: 'bold',
     },
     originalPrice: {
@@ -674,7 +727,9 @@ const styles = StyleSheet.create({
         textDecorationLine: 'line-through',
     },
     planRight: {
-        alignItems: 'flex-end',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingTop: 2,
     },
     planPrice: {
         fontSize: 24,
@@ -685,8 +740,11 @@ const styles = StyleSheet.create({
     freeTrialBadge: {
         backgroundColor: '#FF6B35',
         paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
+        paddingVertical: 2,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        // marginRight: 8,
     },
     freeTrialText: {
         color: '#FFFFFF',

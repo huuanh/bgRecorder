@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Video from 'react-native-video';
 import { NativeAdComponent } from './NativeAdComponent';
 import useTranslation from '../hooks/useTranslation';
+import { ADS_UNIT } from '../AdManager';
 
 const { width, height } = Dimensions.get('window');
 
@@ -150,7 +151,7 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
                     {/* Native Ad - Show when paused */}
                     {paused && (
                         <View style={styles.nativeAdContainer}>
-                            <NativeAdComponent />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_PLAY_SCENE} />
                         </View>
                     )}
                     

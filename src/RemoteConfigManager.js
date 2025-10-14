@@ -13,6 +13,10 @@ class RemoteConfigManager {
         this.defaultValues = {
             // Ads configuration
             ads_enabled: true,
+            show_int_stop_record: true,
+            show_int_close_iap: true,
+            distance_time_to_show_interstitial: 60, // in seconds
+            
         };
     }
 
@@ -132,6 +136,18 @@ class RemoteConfigManager {
     // Ads configuration
     isAdsEnabled() {
         return this.getLocalValue('ads_enabled');
+    }
+
+    isShowIntStopRecord() {
+        return this.getLocalValue('show_int_stop_record');
+    }
+
+    isShowIntCloseIAP() {
+        return this.getLocalValue('show_int_close_iap');
+    }
+    
+    distanceTimeToShowInterstitial() {
+        return this.getLocalValue('distance_time_to_show_interstitial');
     }
 
     // Get all current values (for debugging)

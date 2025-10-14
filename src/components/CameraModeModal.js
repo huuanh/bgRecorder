@@ -83,7 +83,7 @@ const CameraModeModal = ({ visible, onClose, currentMode, onSelect }) => {
                     
                     <View style={styles.content}>
                         {modes.map(renderModeItem)}
-                        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                        <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_CAMERA} hasMedia={true} />
                     </View>
                     
                     <View style={styles.footer}>

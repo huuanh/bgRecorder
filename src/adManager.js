@@ -5,6 +5,7 @@ import { View, StyleSheet } from 'react-native';
 import mobileAds from 'react-native-google-mobile-ads';
 import { checkVipStatus } from './utils/VipUtils';
 // import AnalyticsManager from './AnalyticsManager';
+import remoteConfigManager from './RemoteConfigManager';
 
 let AnalyticsManager = null;
 try {
@@ -12,21 +13,77 @@ try {
 } catch (error) {
     console.log('Managers not available in AdManager');
 }
-// Quản lý các ad unit cho từng môi trường
+
 export const ADS_UNIT_VALUES = {
   DEV: {
-    BANNER: TestIds.BANNER,
-    INTERSTITIAL: TestIds.INTERSTITIAL,
+    // App Open Ads
     APP_OPEN: TestIds.APP_OPEN,
-    NATIVE: TestIds.NATIVE,
-    REWARDED: TestIds.REWARDED,
+    
+    // Native Ads
+    NATIVE_LANGUAGE: TestIds.NATIVE,
+    NATIVE_ONBOARDING: TestIds.NATIVE,
+    NATIVE_RECORDING_TAB: TestIds.NATIVE,
+    NATIVE_DURATION: TestIds.NATIVE,
+    NATIVE_QUALITY: TestIds.NATIVE,
+    NATIVE_CAMERA: TestIds.NATIVE,
+    NATIVE_GALLERY_TAB: TestIds.NATIVE,
+    NATIVE_RENAME: TestIds.NATIVE,
+    NATIVE_PLAY_SCENE: TestIds.NATIVE,
+    NATIVE_EDIT_TAB: TestIds.NATIVE,
+    NATIVE_SELECT_VIDEO: TestIds.NATIVE,
+    NATIVE_TRIM_VIDEO: TestIds.NATIVE,
+    NATIVE_TRIM_VIDEO_SUCCESS: TestIds.NATIVE,
+    NATIVE_COMPRESS_VIDEO: TestIds.NATIVE,
+    NATIVE_COMPRESS_VIDEO_SUCCESS: TestIds.NATIVE,
+    NATIVE_TOMP3_VIDEO: TestIds.NATIVE,
+    NATIVE_TOMP3_VIDEO_SUCCESS: TestIds.NATIVE,
+    NATIVE_SETTING: TestIds.NATIVE,
+    NATIVE_PREVIEW_SIZE: TestIds.NATIVE,
+    
+    // Interstitial Ads
+    INTERSTITIAL_IAP: TestIds.INTERSTITIAL,
+    INTERSTITIAL_STOP_RECORD: TestIds.INTERSTITIAL,
+    INTERSTITIAL_SWITCH_TAB: TestIds.INTERSTITIAL,
+    INTERSTITIAL_SELECT_TOOL: TestIds.INTERSTITIAL,
+    INTERSTITIAL_SELECT_TOOL_EDIT: TestIds.INTERSTITIAL,
+    INTERSTITIAL_EXPORT_TRIM: TestIds.INTERSTITIAL,
+    INTERSTITIAL_EXPORT_COMPRESS: TestIds.INTERSTITIAL,
+    INTERSTITIAL_EXPORT_TOMP3: TestIds.INTERSTITIAL,
   },
   PROD: {
-    BANNER: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
-    INTERSTITIAL: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
-    APP_OPEN: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
-    NATIVE: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
-    REWARDED: 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx',
+    // App Open Ads
+    APP_OPEN: 'ca-app-pub-7156273402668618/4990381145',
+    
+    // Native Ads
+    NATIVE_LANGUAGE: 'ca-app-pub-7156273402668618/6042365091',
+    NATIVE_ONBOARDING: 'ca-app-pub-7156273402668618/6042365091',
+    NATIVE_RECORDING_TAB: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_DURATION: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_QUALITY: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_CAMERA: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_GALLERY_TAB: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_RENAME: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_PLAY_SCENE: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_EDIT_TAB: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_SELECT_VIDEO: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_TRIM_VIDEO: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_TRIM_VIDEO_SUCCESS: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_COMPRESS_VIDEO: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_COMPRESS_VIDEO_SUCCESS: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_TOMP3_VIDEO: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_TOMP3_VIDEO_SUCCESS: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_SETTING: 'ca-app-pub-7156273402668618/1171389785',
+    NATIVE_PREVIEW_SIZE: 'ca-app-pub-7156273402668618/1171389785',
+    
+    // Interstitial Ads
+    INTERSTITIAL_IAP: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_STOP_RECORD: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_SWITCH_TAB: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_SELECT_TOOL: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_SELECT_TOOL_EDIT: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_EXPORT_TRIM: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_EXPORT_COMPRESS: 'ca-app-pub-7156273402668618/7328043520',
+    INTERSTITIAL_EXPORT_TOMP3: 'ca-app-pub-7156273402668618/7328043520',
   },
 };
 
@@ -44,10 +101,14 @@ class AdManager {
         this.isAppOpenAdLoading = false; // Add flag to prevent multiple app open ads
         this.lastAppOpenAdTime = 0; // Track last app open ad time
         this.APP_OPEN_AD_COOLDOWN = 30000; // 30 seconds cooldown between app open ads
+        
+        // Interstitial ads timing control
+        this.lastInterstitialAdTime = 0; // Track last interstitial ad show time
+        this.INTERSTITIAL_AD_COOLDOWN = 60000; // Default 60 seconds, will be overridden by Remote Config
 
         // Preloaded ads cache
         this.preloadedAds = {
-            interstitial: null,
+            interstitial: {},
             rewarded: null,
             appOpen: null,
         };
@@ -166,24 +227,24 @@ class AdManager {
         
         console.log('🔄 Starting to preload all ads...');
         this.preloadInterstitialAd();
-        this.preloadRewardedAd();
+        // this.preloadRewardedAd();
         this.preloadAppOpenAd();
     }
 
     
     // Preload interstitial ad
-    preloadInterstitialAd() {
+    preloadInterstitialAd(adId = ADS_UNIT.INTERSTITIAL_IAP) {
         // Don't preload ads for VIP users
         if (checkVipStatus()) {
             console.log('👑 VIP user - skipping interstitial ad preload');
             return;
         }
-        
-        if (!this.isModuleLoaded || this.adLoadingStates.interstitial || this.preloadedAds.interstitial) {
+
+        if (!this.isModuleLoaded || this.adLoadingStates.interstitial || this.preloadedAds.interstitial[adId]) {
             return;
         }
 
-        const adUnitId = ADS_UNIT.INTERSTITIAL;
+        const adUnitId = adId; // Use the provided ad ID
 
         try {
             console.log('🔄 Preloading interstitial ad...');
@@ -193,7 +254,7 @@ class AdManager {
 
             const unsubscribeLoaded = interstitial.addAdEventListener(this.AdEventType.LOADED, () => {
                 console.log('✅ Interstitial ad preloaded successfully');
-                this.preloadedAds.interstitial = interstitial;
+                this.preloadedAds.interstitial[adId] = interstitial;
                 this.adLoadingStates.interstitial = false;
                 unsubscribeLoaded();
                 unsubscribeError();
@@ -228,7 +289,7 @@ class AdManager {
             return;
         }
 
-        const adUnitId = ADS_UNIT.REWARDED
+        const adUnitId = '';
 
         try {
             console.log('🔄 Preloading rewarded ad...');
@@ -315,6 +376,37 @@ class AdManager {
     isGoogleMobileAdsAvailable() {
         return this.isModuleLoaded;
     }
+
+    // Get interstitial ad cooldown from Remote Config
+    getInterstitialCooldown() {
+        try {
+            if (remoteConfigManager && remoteConfigManager.isInitialized) {
+                const configValue = remoteConfigManager.distanceTimeToShowInterstitial();
+                const cooldown = parseInt(configValue);
+                return isNaN(cooldown) ? this.INTERSTITIAL_AD_COOLDOWN : cooldown;
+            }
+        } catch (error) {
+            console.log('⚠️ Error getting interstitial cooldown from Remote Config:', error);
+        }
+        return this.INTERSTITIAL_AD_COOLDOWN; // Fallback to default
+    }
+
+    // Check if interstitial ad can be shown based on cooldown
+    canShowInterstitialAd() {
+        const currentTime = Date.now();
+        const cooldown = this.getInterstitialCooldown();
+        const timeSinceLastAd = currentTime - this.lastInterstitialAdTime;
+        
+        console.log('🕒 Interstitial ad timing check:');
+        console.log('  Current time:', currentTime);
+        console.log('  Last ad time:', this.lastInterstitialAdTime);
+        console.log('  Time since last ad:', timeSinceLastAd, 'ms');
+        console.log('  Required cooldown:', cooldown, 'ms');
+        console.log('  Can show:', timeSinceLastAd >= cooldown);
+        
+        return timeSinceLastAd >= cooldown;
+    }
+
     // Get banner component
     getBannerComponent() {
         return this.BannerAd;
@@ -326,12 +418,22 @@ class AdManager {
     }
 
     // Load and show interstitial ad
-    async showInterstitialAd(onAdClosed, onAdError, usePreloaded = true) {
+    async showInterstitialAd(adId, onAdClosed, onAdError, usePreloaded = true) {
         // Don't show ads for VIP users
         if (checkVipStatus()) {
             console.log('👑 VIP user - skipping interstitial ad');
             if (onAdClosed) onAdClosed();
             return true;
+        }
+        
+        // Check cooldown period for interstitial ads
+        if (!this.canShowInterstitialAd()) {
+            const cooldown = this.getInterstitialCooldown();
+            const timeSinceLastAd = Date.now() - this.lastInterstitialAdTime;
+            const remainingTime = cooldown - timeSinceLastAd;
+            console.log('⏰ Interstitial ad on cooldown, skipping (remaining:', Math.ceil(remainingTime / 1000), 'seconds)');
+            if (onAdClosed) onAdClosed(); // Still call callback to not break flow
+            return false;
         }
         
         if (!this.isAdsInitialized()) {
@@ -341,8 +443,9 @@ class AdManager {
         }
 
         if (!this.isModuleLoaded) {
-            // Mock interstitial ad
+            // Mock interstitial ad - also record timestamp
             console.log('🎯 Mock Interstitial Ad: Gun Simulator Pro - Unlock more weapons!');
+            this.lastInterstitialAdTime = Date.now(); // Record timestamp for mock ad too
             return new Promise((resolve) => {
                 setTimeout(() => {
                     console.log('📱 Mock interstitial ad closed');
@@ -353,31 +456,38 @@ class AdManager {
         }
 
         // Try to use preloaded ad first
-        if (usePreloaded && this.preloadedAds.interstitial) {
+        if (usePreloaded && this.preloadedAds.interstitial && this.preloadedAds.interstitial[adId]) {
             console.log('📺 Showing preloaded interstitial ad');
-            const preloadedAd = this.preloadedAds.interstitial;
-            this.preloadedAds.interstitial = null; // Clear preloaded ad
+            const preloadedAd = this.preloadedAds.interstitial[adId];
+            this.preloadedAds.interstitial[adId] = null; // Clear preloaded ad
 
             return new Promise((resolve, reject) => {
+                const unsubscribeOpened = preloadedAd.addAdEventListener(this.AdEventType.OPENED, () => {
+                    console.log('📺 Preloaded interstitial ad opened - recording timestamp');
+                    this.lastInterstitialAdTime = Date.now(); // Record the time when ad is shown
+                });
+
                 const unsubscribeClosed = preloadedAd.addAdEventListener(this.AdEventType.CLOSED, () => {
                     console.log('✅ Preloaded interstitial ad closed');
+                    unsubscribeOpened();
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdClosed) onAdClosed();
                     
                     // Preload next ad
-                    setTimeout(() => this.preloadInterstitialAd(), 1000);
+                    setTimeout(() => this.preloadInterstitialAd(adId), 1000);
                     resolve(true);
                 });
 
                 const unsubscribeError = preloadedAd.addAdEventListener(this.AdEventType.ERROR, (error) => {
                     console.log('❌ Preloaded interstitial ad error:', error);
+                    unsubscribeOpened();
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdError) onAdError(error);
                     
                     // Preload next ad
-                    setTimeout(() => this.preloadInterstitialAd(), 1000);
+                    setTimeout(() => this.preloadInterstitialAd(adId), 1000);
                     reject(error);
                 });
 
@@ -385,12 +495,13 @@ class AdManager {
                     preloadedAd.show();
                 } catch (error) {
                     console.log('❌ Error showing preloaded interstitial ad:', error);
+                    unsubscribeOpened();
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdError) onAdError(error);
                     
                     // Preload next ad
-                    setTimeout(() => this.preloadInterstitialAd(), 1000);
+                    setTimeout(() => this.preloadInterstitialAd(adId), 1000);
                     reject(error);
                 }
             });
@@ -407,9 +518,15 @@ class AdManager {
                     interstitial.show();
                 });
 
+                const unsubscribeOpened = interstitial.addAdEventListener(this.AdEventType.OPENED, () => {
+                    console.log('📺 Fallback interstitial ad opened - recording timestamp');
+                    this.lastInterstitialAdTime = Date.now(); // Record the time when ad is shown
+                });
+
                 const unsubscribeClosed = interstitial.addAdEventListener(this.AdEventType.CLOSED, () => {
                     console.log('✅ Interstitial ad closed');
                     unsubscribeLoaded();
+                    unsubscribeOpened();
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdClosed) onAdClosed();
@@ -422,6 +539,7 @@ class AdManager {
                 const unsubscribeError = interstitial.addAdEventListener(this.AdEventType.ERROR, (error) => {
                     console.log('❌ Interstitial ad error:', error);
                     unsubscribeLoaded();
+                    unsubscribeOpened();
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdError) onAdError(error);
@@ -724,144 +842,6 @@ class AdManager {
             this.isAppOpenAdLoading = false; // Reset loading flag on error
             return false;
         }
-    }
-    // Check if a specific ad type is preloaded
-    isAdPreloaded(adType) {
-        return !!this.preloadedAds[adType];
-    }
-
-    // Check if a specific ad type is currently loading
-    isAdLoading(adType) {
-        return !!this.adLoadingStates[adType];
-    }
-
-    // Get preload status for all ad types
-    getPreloadStatus() {
-        return {
-            interstitial: {
-                preloaded: this.isAdPreloaded('interstitial'),
-                loading: this.isAdLoading('interstitial')
-            },
-            rewarded: {
-                preloaded: this.isAdPreloaded('rewarded'),
-                loading: this.isAdLoading('rewarded')
-            },
-            appOpen: {
-                preloaded: this.isAdPreloaded('appOpen'),
-                loading: this.isAdLoading('appOpen')
-            }
-        };
-    }
-
-    // Force reload a specific ad type
-    forceReloadAd(adType) {
-        // Clear existing preloaded ad
-        if (this.preloadedAds[adType]) {
-            this.preloadedAds[adType] = null;
-        }
-        
-        // Reset loading state
-        this.adLoadingStates[adType] = false;
-        
-        // Start preloading based on ad type
-        switch (adType) {
-            case 'interstitial':
-                this.preloadInterstitialAd();
-                break;
-            case 'rewarded':
-                this.preloadRewardedAd();
-                break;
-            case 'appOpen':
-                this.preloadAppOpenAd();
-                break;
-            default:
-                console.log('❌ Unknown ad type for force reload:', adType);
-        }
-    }
-
-    // Force reload all ads
-    forceReloadAllAds() {
-        console.log('🔄 Force reloading all ads...');
-        this.forceReloadAd('interstitial');
-        this.forceReloadAd('rewarded');
-        this.forceReloadAd('appOpen');
-    }
-
-    // Clear all preloaded ads (useful for memory management)
-    clearAllPreloadedAds() {
-        console.log('🗑️ Clearing all preloaded ads...');
-        this.preloadedAds = {
-            interstitial: null,
-            rewarded: null,
-            appOpen: null,
-        };
-    }
-
-    // Get debug info about ad manager state
-    getDebugInfo() {
-        return {
-            isInitialized: this.isInitialized,
-            isModuleLoaded: this.isModuleLoaded,
-            isTestMode: this.isTestMode(),
-            cooldownRemaining: Math.max(0, this.APP_OPEN_AD_COOLDOWN - (Date.now() - this.lastAppOpenAdTime)),
-            preloadStatus: this.getPreloadStatus(),
-            adUnitIds: {
-                banner: ADS_UNIT.BANNER,
-                interstitial: ADS_UNIT.INTERSTITIAL,
-                rewarded: ADS_UNIT.REWARDED,
-                appOpen: ADS_UNIT.APP_OPEN
-            }
-        };
-    }
-
-    // Development/Debug methods
-
-    // Log current preload status to console
-    logPreloadStatus() {
-        const status = this.getPreloadStatus();
-        console.log('📊 Ad Preload Status:');
-        console.log('  📺 Interstitial:', status.interstitial.preloaded ? '✅ Ready' : (status.interstitial.loading ? '🔄 Loading' : '❌ Not loaded'));
-        console.log('  🎁 Rewarded:', status.rewarded.preloaded ? '✅ Ready' : (status.rewarded.loading ? '🔄 Loading' : '❌ Not loaded'));
-        console.log('  📂 App Open:', status.appOpen.preloaded ? '✅ Ready' : (status.appOpen.loading ? '🔄 Loading' : '❌ Not loaded'));
-    }
-
-    // Test method to verify preload functionality
-    async testPreloadFunctionality() {
-        console.log('🧪 Testing preload functionality...');
-        
-        // Log initial status
-        this.logPreloadStatus();
-        
-        // Test each ad type
-        const tests = [
-            { type: 'interstitial', method: () => this.showInterstitialAd(null, null, true) },
-            { type: 'rewarded', method: () => this.showRewardedAd(true) },
-            { type: 'appOpen', method: () => this.showAppOpenAd(true) }
-        ];
-        
-        for (const test of tests) {
-            console.log(`🔬 Testing ${test.type} ad...`);
-            const wasPreloaded = this.isAdPreloaded(test.type);
-            
-            if (wasPreloaded) {
-                console.log(`✅ ${test.type} was preloaded, testing show...`);
-                try {
-                    await test.method();
-                    console.log(`✅ ${test.type} showed successfully`);
-                } catch (error) {
-                    console.log(`❌ ${test.type} failed to show:`, error);
-                }
-            } else {
-                console.log(`⚠️ ${test.type} was not preloaded`);
-            }
-            
-            // Wait a bit between tests
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        // Log final status
-        console.log('🏁 Final preload status:');
-        this.logPreloadStatus();
     }
 }
 

@@ -126,6 +126,7 @@ class LanguageManager {
 
       // Save to storage
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode);
+      console.log(`Language changed from ${oldLanguage} to ${languageCode}`);
 
       // Load new translations
       await this.loadTranslations(languageCode);
@@ -152,8 +153,19 @@ class LanguageManager {
     return this.currentLanguage;
   }
 
+  async isFirstTimeUser() {
+    try {
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+      console.log('Saved language:', savedLanguage);
+      return !savedLanguage; // First time if no language saved
+    } catch (error) {
+      console.log('Error checking first time user:', error);
+      return false;
+    }
+  }
+
   getCurrentLanguageInfo() {
-    return SUPPORTED_LANGUAGES[this.currentLanguage] || SUPPORTED_LANGUAGES['vi'];
+    return SUPPORTED_LANGUAGES[this.currentLanguage] || SUPPORTED_LANGUAGES['en'];
   }
 
   getSupportedLanguages() {
@@ -166,11 +178,11 @@ class LanguageManager {
   async loadTranslations(languageCode) {
     try {
       // Load translations from the comprehensive translations file
-      this.translations = TRANSLATIONS[languageCode] || TRANSLATIONS['vi'];
+      this.translations = TRANSLATIONS[languageCode] || TRANSLATIONS['en'];
     } catch (error) {
       console.log('Error loading translations:', error);
       // Fallback to Vietnamese
-      this.translations = TRANSLATIONS['vi'];
+      this.translations = TRANSLATIONS['en'];
     }
   }
 

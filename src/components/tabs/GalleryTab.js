@@ -21,13 +21,14 @@ import Mp3ConvertModal from '../Mp3ConvertModal';
 import TrimVideoModal from '../TrimVideoModal';
 import LazyLoadScrollView from '../LazyLoadScrollView';
 import { NativeAdComponent } from '../NativeAdComponent';
+
 import { COLORS } from '../../constants';
 import { NativeModules } from 'react-native';
-import { ADS_UNIT } from '../../AdManager.js';
+import AdManager, { ADS_UNIT } from '../../AdManager.js';
 import useTranslation from '../../hooks/useTranslation';
 import RNFS from 'react-native-fs';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
 
 const GalleryTab = () => {
@@ -72,7 +73,7 @@ const GalleryTab = () => {
                         {
                             text: t('ask_me_later'),
                             style: 'cancel',
-                            onPress: () => false
+                            onPress: async() => false
                         },
                         {
                             text: t('open_settings'),
@@ -94,7 +95,7 @@ const GalleryTab = () => {
                     ]
                 );
 
-                return false;
+                // return false;
             } catch (e) {
                 console.warn('Permission error:', e);
                 return false;
@@ -329,6 +330,7 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'compress':
+                AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
                 setShowActionModal(false);
                 setTimeout(() => {
                     setCompressModalVideo(video);
@@ -336,6 +338,7 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'video_to_mp3':
+                AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
                 setShowActionModal(false);
                 setTimeout(() => {
                     setMp3ConvertModalVideo(video);
@@ -343,6 +346,7 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'trim':
+                AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
                 setShowActionModal(false);
                 setTimeout(() => {
                     setTrimModalVideo(video);
@@ -392,11 +396,11 @@ const GalleryTab = () => {
             const hasPermission = await requestManageExternalStoragePermission();
 
             if (!hasPermission) {
-                console.log('❌ Storage permission denied, cannot delete video');
-                Alert.alert(
-                    t('permission_denied', 'Permission Denied'),
-                    t('storage_permission_required_for_deletion', 'Storage permission is required to delete videos. Please grant the permission and try again.')
-                );
+                // console.log('❌ Storage permission denied, cannot delete video');
+                // Alert.alert(
+                //     t('permission_denied', 'Permission Denied'),
+                //     t('storage_permission_required_for_deletion', 'Storage permission is required to delete videos. Please grant the permission and try again.')
+                // );
                 return;
             }
 
@@ -439,6 +443,7 @@ const GalleryTab = () => {
             try {
                 await VideoRecordingModule.deleteVideo(pathToDelete);
                 console.log('✅ Video deleted successfully via native module');
+                loadRecordedVideosQuick(); // Refresh list
             } catch (nativeError) {
                 console.log('❌ Native module deletion failed:', {
                     message: nativeError.message,
@@ -460,6 +465,7 @@ const GalleryTab = () => {
                         try {
                             console.log('🔄 Trying native deletion with variant:', variant);
                             await VideoRecordingModule.deleteVideo(variant);
+                            loadRecordedVideosQuick(); // Refresh list
                             console.log('✅ Video deleted successfully via native module (variant)');
                             nativeSuccess = true;
                             break;
@@ -481,6 +487,7 @@ const GalleryTab = () => {
                     if (await RNFS.exists(pathToDelete)) {
                         try {
                             await RNFS.unlink(pathToDelete);
+                            loadRecordedVideosQuick(); // Refresh list
                             console.log('✅ Video file deleted successfully via RNFS');
 
                             // Try to notify MediaStore about the deletion
@@ -896,6 +903,8 @@ const GalleryTab = () => {
         }
     };
 
+
+
     const renderTabBar = () => (
         <View style={styles.tabBarContainer}>
             <View style={styles.tabBar}>
@@ -1107,7 +1116,7 @@ const GalleryTab = () => {
 
             {activeTab === 'video' ? renderVideoTab() : renderAudioTab()}
 
-            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} hasToggleMedia={true} />
+            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_GALLERY_TAB} hasMedia={true} hasToggleMedia={true} />
 
             <VideoPlayer
                 visible={showVideoPlayer}

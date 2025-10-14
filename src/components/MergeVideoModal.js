@@ -405,7 +405,7 @@ const MergeVideoModal = ({ visible, videos, onClose, onExport }) => {
 
                 {/* Ad Banner */}
                 <View style={styles.adContainer}>
-                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_COMPRESS_VIDEO} />
                 </View>
 
                 {/* Export Button */}
@@ -481,7 +481,7 @@ const MergeVideoModal = ({ visible, videos, onClose, onExport }) => {
                         </Text>
                         
                         <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_COMPRESS_VIDEO_SUCCESS} />
                         </View>
                         
                         <TouchableOpacity 

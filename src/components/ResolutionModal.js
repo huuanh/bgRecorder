@@ -123,7 +123,7 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShow
                         
                         {/* Native Ad */}
                         <View style={styles.adContainer}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_QUALITY} />
                         </View>
                     </View>
                     

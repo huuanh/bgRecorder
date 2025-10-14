@@ -17,9 +17,10 @@ import { NativeAdComponent } from './NativeAdComponent';
 import { COLORS } from '../constants';
 import { FFmpegKit } from 'ffmpeg-kit-react-native';
 import RNFS from 'react-native-fs';
-import { ADS_UNIT } from '../AdManager';
+import AdManager, { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
+import BackConfirmModal from './BackConfirmModal';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -45,6 +46,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const [trimmedVideoPath, setTrimmedVideoPath] = useState('');
     const [loadingMessage, setLoadingMessage] = useState('');
     const [exportProgress, setExportProgress] = useState(0);
+    const [showBackConfirm, setShowBackConfirm] = useState(false);
 
     useEffect(() => {
         if (visible && video && duration > 0) {
@@ -343,6 +345,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
             // Perform the actual video trimming
             await trimVideoWithFFmpeg();
             
+            AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_TRIM);
             // Show success modal instead of alert
             setShowSuccessModal(true);
         } catch (error) {
@@ -508,6 +511,29 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
         onClose();
     };
 
+    // Handle back confirmation
+    const handleBackPress = () => {
+        if (isExporting) {
+            Alert.alert(
+                'Export in Progress',
+                'Please wait for the export to complete before closing.',
+                [{ text: t('ok', 'OK') }]
+            );
+        } else {
+            setShowBackConfirm(true);
+        }
+    };
+
+    const handleBackConfirm = async () => {
+        setShowBackConfirm(false);
+        await cleanupTempFrames();
+        onClose();
+    };
+
+    const handleBackCancel = () => {
+        setShowBackConfirm(false);
+    };
+
     const handleShare = async () => {
         try {
             if (!trimmedVideoPath) {
@@ -539,12 +565,12 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
         <Modal
             visible={visible}
             animationType="slide"
-            onRequestClose={handleClose}
+            onRequestClose={handleBackPress}
         >
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.backButton} onPress={handleClose}>
+                    <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
                         <Image
                             source={require('../../assets/home/ic/ic_back.png')}
                             style={styles.backIcon}
@@ -739,7 +765,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 
                 {/* Native Ad */}
                 <View style={styles.adContainer}>
-                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_TRIM_VIDEO} hasMedia={true} />
                 </View>
 
                 {/* Action Buttons */}
@@ -830,7 +856,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                         
                         {/* Ad Banner */}
                         <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_TRIM_VIDEO_SUCCESS} hasMedia={true} />
                         </View>
 
                         {/* Share Button */}
@@ -843,6 +869,16 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Back Confirmation Modal */}
+            <BackConfirmModal
+                visible={showBackConfirm}
+                onConfirm={handleBackConfirm}
+                onCancel={handleBackCancel}
+                title={t('unsaved_changes_title', 'You did not saved your changes.')}
+                message={t('trim_exit_confirmation', 'Are you sure you want to exit trimming?')}
+                adUnitId={ADS_UNIT.NATIVE_TRIM_VIDEO}
+            />
         </Modal>
     );
 };

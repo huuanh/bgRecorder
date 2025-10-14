@@ -21,9 +21,15 @@ export const TRANSLATIONS = {
     'storage_permission_required_for_deletion': 'Cần quyền lưu trữ để xóa video. Vui lòng cấp quyền và thử lại.',
     'cannot_open_settings': 'Không thể mở cài đặt. Vui lòng tự tay vào Cài đặt > Ứng dụng > BgRecorder > Quyền và bật "Truy cập tất cả file".',
     
+    // Back Confirmation
+    'unsaved_changes_title': 'Bạn chưa lưu thay đổi.',
+    'unsaved_changes_message': 'Bạn có chắc chắn muốn thoát?',
+    
     // Language
     'language': 'Ngôn ngữ',
     'select_language': 'Chọn ngôn ngữ',
+    'choose_your_preferred_language': 'Chọn ngôn ngữ ưa thích của bạn',
+    'confirm': 'Xác nhận',
     'change_language': 'Thay đổi ngôn ngữ',
     'language_changed': 'Ngôn ngữ đã thay đổi',
     'restart_required': 'Ứng dụng sẽ khởi động lại để áp dụng ngôn ngữ mới. Bạn có muốn tiếp tục?',
@@ -309,9 +315,15 @@ export const TRANSLATIONS = {
     'storage_permission_required_for_deletion': 'Storage permission is required to delete videos. Please grant the permission and try again.',
     'cannot_open_settings': 'Cannot open settings. Please manually go to Settings > Apps > BgRecorder > Permissions and enable "All files access".',
     
+    // Back Confirmation
+    'unsaved_changes_title': 'You did not saved your changes.',
+    'unsaved_changes_message': 'Are you sure want to exit?',
+    
     // Language
     'language': 'Language',
     'select_language': 'Select Language',
+    'choose_your_preferred_language': 'Choose your preferred language',
+    'confirm': 'Confirm',
     'change_language': 'Change Language',
     'language_changed': 'Language Changed',
     'restart_required': 'The app will restart to apply the new language. Do you want to continue?',

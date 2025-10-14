@@ -14,9 +14,10 @@ import Video from 'react-native-video';
 import { FFmpegKit, FFmpegKitConfig, ReturnCode } from 'ffmpeg-kit-react-native';
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
-import { ADS_UNIT } from '../AdManager';
+import AdManager, { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
+import BackConfirmModal from './BackConfirmModal';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -35,6 +36,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
     const videoRef = useRef(null);
     const progressRef = useRef(0);
     const isConvertingRef = useRef(false);
+    const [showBackConfirm, setShowBackConfirm] = useState(false);
 
     useEffect(() => {
         if (visible) {
@@ -68,6 +70,28 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
 
     const handleProgress = (data) => {
         setCurrentTime(data.currentTime);
+    };
+
+    // Handle back confirmation
+    const handleBackPress = () => {
+        if (isConverting) {
+            Alert.alert(
+                'Conversion in Progress',
+                'Please wait for the conversion to complete before closing.',
+                [{ text: t('ok', 'OK') }]
+            );
+        } else {
+            setShowBackConfirm(true);
+        }
+    };
+
+    const handleBackConfirm = () => {
+        setShowBackConfirm(false);
+        onClose();
+    };
+
+    const handleBackCancel = () => {
+        setShowBackConfirm(false);
     };
 
     const handleConvert = async () => {
@@ -214,6 +238,8 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                             // Don't show error to user as the conversion was successful
                         }
                         
+                        AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_TOMP3);
+                        
                         setShowSuccessModal(true);
                     } else {
                         try {
@@ -292,22 +318,12 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
             visible={visible}
             animationType="slide"
             presentationStyle="pageSheet"
-            onRequestClose={() => {
-                if (!isConverting) {
-                    onClose();
-                } else {
-                    Alert.alert(
-                        'Conversion in Progress',
-                        'Please wait for the conversion to complete before closing.',
-                        [{ text: t('ok', 'OK') }]
-                    );
-                }
-            }}
+            onRequestClose={handleBackPress}
         >
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                    <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
                         <Image source={require('../../assets/home/ic/ic_back.png')} style={styles.backIcon} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Video to Audio</Text>
@@ -337,7 +353,8 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                         >
                             <View style={styles.playButtonInner}>
                                 <Text style={styles.playIcon}>
-                                    {isPlaying ? '⏸️' : '▶️'}
+                                    {isPlaying ? 
+                                '❚❚' : '▶'}
                                 </Text>
                             </View>
                         </TouchableOpacity>
@@ -356,7 +373,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
 
                 {/* Ad Placeholder */}
                 <View style={styles.adContainer}>
-                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_TOMP3_VIDEO} hasMedia={true} />
                 </View>
 
                 {/* Convert Button */}
@@ -447,7 +464,7 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                         
                         {/* Ad Banner */}
                         <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_TOMP3_VIDEO_SUCCESS} hasMedia={true} />
                         </View>
                         
                         {/* Share Button */}
@@ -460,6 +477,16 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Back Confirmation Modal */}
+            <BackConfirmModal
+                visible={showBackConfirm}
+                onConfirm={handleBackConfirm}
+                onCancel={handleBackCancel}
+                title={t('unsaved_changes_title', 'You did not saved your changes.')}
+                message={t('convert_exit_confirmation', 'Are you sure you want to exit conversion?')}
+                adUnitId={ADS_UNIT.NATIVE_TOMP3_VIDEO}
+            />
         </Modal>
     );
 };
@@ -486,6 +513,8 @@ const styles = StyleSheet.create({
     },
     backIcon: {
         fontSize: 20,
+        width: 25, height: 25,
+        resizeMode: 'contain',
     },
     headerTitle: {
         fontSize: 18,
@@ -514,11 +543,14 @@ const styles = StyleSheet.create({
     videoControls: {
         position: 'absolute',
         bottom: 0,
-        left: 15,
-        right: 15,
+        left: 0,
+        right: 0,
         height: 40,
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        // borderRadius: 20,
+        paddingHorizontal: 20,
     },
     playButton: {
         bottom: -25,
@@ -551,7 +583,7 @@ const styles = StyleSheet.create({
     adContainer: {
         width: width - 32,
         marginHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 8,
         borderRadius: 8,
         overflow: 'hidden',
         position: 'relative',

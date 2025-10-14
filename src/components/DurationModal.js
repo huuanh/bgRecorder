@@ -118,7 +118,7 @@ const DurationModal = ({ visible, onClose, currentDuration, onSelect, onShowIAP 
                         {/* Native Ad - Only show for non-VIP users */}
                         {!isVip && !loading && (
                             <View style={styles.adContainer}>
-                                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_DURATION} hasMedia={true} />
                             </View>
                         )}
                     </View>

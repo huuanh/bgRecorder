@@ -13,6 +13,7 @@ import EditTab from './tabs/EditTab';
 import SettingsTab from './tabs/SettingsTab';
 import useTranslation from '../hooks/useTranslation';
 import IAPModal from './IAPModal';
+import AdManager, {ADS_UNIT} from '../AdManager';
 
 const HomeScreen = () => {
     const { t } = useTranslation();
@@ -39,6 +40,11 @@ const HomeScreen = () => {
         setShowIAPModal(true);
     };
 
+    handleTabPress = (tab) => {
+        AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SWITCH_TAB);
+        setActiveTab(tab);
+    }
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -48,7 +54,7 @@ const HomeScreen = () => {
                     <Text style={styles.headerTitleSecondary}>Recorder</Text>
                 </Text>
                 <TouchableOpacity style={styles.premiumIcon} onPress={handleShowIAP}>
-                    <Text style={styles.premiumIconText}>💎</Text>
+                    <Image style={styles.premiumIconText} source={require('../../assets/setting/diamond.png')} />
                 </TouchableOpacity>
             </View>
 
@@ -59,7 +65,7 @@ const HomeScreen = () => {
             <View style={styles.bottomTabs}>
                 <TouchableOpacity 
                     style={[styles.tab, activeTab === 'record' && styles.activeTab]}
-                    onPress={() => setActiveTab('record')}
+                    onPress={() => handleTabPress('record')}
                 >
                     <View style={styles.tabIcon}>
                         <Image 
@@ -77,7 +83,7 @@ const HomeScreen = () => {
 
                 <TouchableOpacity 
                     style={[styles.tab, activeTab === 'gallery' && styles.activeTab]}
-                    onPress={() => setActiveTab('gallery')}
+                    onPress={() => handleTabPress('gallery')}
                 >
                     <View style={styles.tabIcon}>
                         <Image 
@@ -95,7 +101,7 @@ const HomeScreen = () => {
 
                 <TouchableOpacity 
                     style={[styles.tab, activeTab === 'edit' && styles.activeTab]}
-                    onPress={() => setActiveTab('edit')}
+                    onPress={() => handleTabPress('edit')}
                 >
                     <View style={styles.tabIcon}>
                         <Image 
@@ -113,7 +119,7 @@ const HomeScreen = () => {
 
                 <TouchableOpacity 
                     style={[styles.tab, activeTab === 'settings' && styles.activeTab]}
-                    onPress={() => setActiveTab('settings')}
+                    onPress={() => handleTabPress('settings')}
                 >
                     <View style={styles.tabIcon}>
                         <Image 
@@ -174,7 +180,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     premiumIconText: {
-        fontSize: 16,
+        // fontSize: 16,
+        width: 20,
+        height: 20,
+        resizeMode: 'contain',
     },
     bottomTabs: {
         flexDirection: 'row',

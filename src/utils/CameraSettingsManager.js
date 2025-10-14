@@ -79,7 +79,7 @@ class CameraSettingsManager {
                 autoSplit: false,
                 duration: 3, // Default to 3 minutes
                 resolution: 'HD', // Default to HD
-                previewSize: 'medium',
+                previewSize: 'large',
             };
         } catch (error) {
             console.error('❌ Failed to get settings:', error);
@@ -88,7 +88,7 @@ class CameraSettingsManager {
                 autoSplit: false, 
                 duration: 3, // Default to 3 minutes
                 resolution: 'HD', // Default to HD
-                previewSize: 'medium',
+                previewSize: 'large',
             };
         }
     }

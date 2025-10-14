@@ -32,7 +32,7 @@ const { width } = Dimensions.get('window');
 const SettingsTab = () => {
     const { t } = useTranslation();
     const { isVip, loading } = useVipStatus();
-    
+
     const [settings, setSettings] = useState({
         // Video Settings
         cameraMode: 'back',
@@ -48,7 +48,7 @@ const SettingsTab = () => {
         appLockEnabled: false,
         autoLockDelay: 5,
     });
-    
+
     const [showCameraModeModal, setShowCameraModeModal] = useState(false);
     const [showDurationModal, setShowDurationModal] = useState(false);
     const [showResolutionModal, setShowResolutionModal] = useState(false);
@@ -109,7 +109,7 @@ const SettingsTab = () => {
     const handleCameraModeSelect = async (mode) => {
         try {
             await CameraSettingsManager.saveCameraMode(mode);
-            setSettings(prev => ({...prev, cameraMode: mode}));
+            setSettings(prev => ({ ...prev, cameraMode: mode }));
         } catch (error) {
             console.error('Failed to save camera mode:', error);
             Alert.alert(t('error', 'Error'), t('failed_to_save_camera_mode', 'Failed to save camera mode'));
@@ -123,7 +123,7 @@ const SettingsTab = () => {
     const handleDurationSelect = async (duration) => {
         try {
             await CameraSettingsManager.saveDuration(duration);
-            setSettings(prev => ({...prev, duration: duration}));
+            setSettings(prev => ({ ...prev, duration: duration }));
         } catch (error) {
             console.error('Failed to save duration:', error);
             Alert.alert(t('error', 'Error'), t('failed_to_save_duration', 'Failed to save duration'));
@@ -137,7 +137,7 @@ const SettingsTab = () => {
     const handleResolutionSelect = async (resolution) => {
         try {
             await CameraSettingsManager.saveResolution(resolution);
-            setSettings(prev => ({...prev, resolution: resolution}));
+            setSettings(prev => ({ ...prev, resolution: resolution }));
         } catch (error) {
             console.error('Failed to save resolution:', error);
             Alert.alert(t('error', 'Error'), t('failed_to_save_resolution', 'Failed to save resolution'));
@@ -151,7 +151,7 @@ const SettingsTab = () => {
     const handlePreviewSizeSelect = async (previewSize) => {
         try {
             await CameraSettingsManager.savePreviewSize(previewSize);
-            setSettings(prev => ({...prev, previewSize: previewSize}));
+            setSettings(prev => ({ ...prev, previewSize: previewSize }));
         } catch (error) {
             console.error('Failed to save preview size:', error);
             Alert.alert(t('error', 'Error'), t('failed_to_save_preview_size', 'Failed to save preview size'));
@@ -221,23 +221,23 @@ const SettingsTab = () => {
                     onPress: async () => {
                         try {
                             console.log('🔄 Starting password removal process...');
-                            
+
                             // Show loading state
                             // setLoading(true);
-                            
+
                             // Add small delay to prevent race conditions
                             await new Promise(resolve => setTimeout(resolve, 100));
-                            
+
                             // Remove password with detailed error catching
                             const result = await SecurityManager.removePassword();
                             console.log('📋 Password removal result:', result);
-                            
+
                             // Reload settings to reflect changes
                             await loadSecuritySettings();
-                            
+
                             // Hide loading
                             // setLoading(false);
-                            
+
                             // Alert.alert(
                             //     t('success', 'Success'), 
                             //     'Password removed successfully. All security features have been disabled.',
@@ -250,9 +250,9 @@ const SettingsTab = () => {
                                 stack: error.stack,
                                 name: error.name
                             });
-                            
+
                             Alert.alert(
-                                t('error', 'Error'), 
+                                t('error', 'Error'),
                                 `Unable to remove password.\n\nDetails: ${error.message || 'Unknown error occurred'}`,
                                 [{ text: t('ok', 'OK') }]
                             );
@@ -292,8 +292,8 @@ const SettingsTab = () => {
     };
 
     const renderSettingItem = (icon, title, subtitle, hasSwitch = false, switchKey = null, onPress = null) => (
-        <TouchableOpacity 
-            style={styles.settingItem} 
+        <TouchableOpacity
+            style={styles.settingItem}
             onPress={onPress}
             disabled={hasSwitch}
         >
@@ -328,7 +328,7 @@ const SettingsTab = () => {
     );
 
     const renderVIPBanner = () => (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={styles.vipBanner}
             onPress={() => handleOptionPress('upgrade')}
         >
@@ -336,12 +336,12 @@ const SettingsTab = () => {
                 <View style={styles.vipLeft}>
                     <Text style={styles.vipTitle}>{t('becomeVipMember', 'BECOME A VIP MEMBER')}</Text>
                     <Text style={styles.vipSubtitle}>{t('enjoyPremiumPackage', 'Enjoy Premium Package with exclusive features.')}</Text>
-                    <Text style={styles.vipButton}>{t('upgrade', 'Upgrade')}</Text>
+                    {/* <Text style={styles.vipButton}>{t('upgrade', 'Upgrade')}</Text> */}
                 </View>
                 <View style={styles.vipRight}>
-                    <Image 
-                        source={require('../../../assets/setting/diamond.png')} 
-                        style={{ width: 100, height: 100, resizeMode: 'contain' }} 
+                    <Image
+                        source={require('../../../assets/setting/diamond.png')}
+                        style={{ width: 100, height: 100, resizeMode: 'contain' }}
                     />
                 </View>
             </View>
@@ -367,7 +367,7 @@ const SettingsTab = () => {
                 const newValue = !settings.autoSplit;
                 try {
                     await CameraSettingsManager.saveAutoSplit(newValue);
-                    setSettings(prev => ({...prev, autoSplit: newValue}));
+                    setSettings(prev => ({ ...prev, autoSplit: newValue }));
                     console.log('✅ Auto Split setting saved:', newValue);
                 } catch (error) {
                     console.error('❌ Failed to save auto split:', error);
@@ -375,20 +375,20 @@ const SettingsTab = () => {
                 }
             } else {
                 // Handle other regular switches
-                setSettings(prev => ({...prev, [switchKey]: !prev[switchKey]}));
+                setSettings(prev => ({ ...prev, [switchKey]: !prev[switchKey] }));
             }
         };
 
         return (
-            <TouchableOpacity 
-                style={styles.settingItem} 
+            <TouchableOpacity
+                style={styles.settingItem}
                 onPress={onPress}
                 disabled={hasSwitch}
             >
                 <View style={styles.settingLeft}>
                     <View style={styles.settingIcon}>
-                        <Image 
-                            source={iconSource} 
+                        <Image
+                            source={iconSource}
                             style={styles.settingIconImage}
                             resizeMode="contain"
                         />
@@ -430,192 +430,192 @@ const SettingsTab = () => {
 
     return (
         <View style={styles.settingView}>
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            {/* VIP Banner */}
-            {!isVip && renderVIPBanner()}
+            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+                {/* VIP Banner */}
+                {!isVip && renderVIPBanner()}
 
-            {/* Video Settings Section */}
-            {renderSection('Video Settings', [
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/icon_swap.png'), 
-                    'Camera', 
-                    'Select camera mode', 
-                    false, 
-                    null, 
-                    handleCameraModeChange,
-                    settings.cameraMode
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_autosplit.png'), 
-                    t('auto_split', 'Auto Split'), 
-                    'Automatically split long recordings', 
-                    true, 
-                    'autoSplit'
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/icon_clock.png'), 
-                    t('duration', 'Duration'), 
-                    'Maximum recording length', 
-                    false, 
-                    null, 
-                    handleDurationChange,
-                    settings.duration === -1 ? 'Unlimited' : `${settings.duration} mins`
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/quality.png'), 
-                    t('resolution', 'Resolution'), 
-                    'Video quality setting', 
-                    false, 
-                    null, 
-                    handleResolutionChange,
-                    settings.resolution
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/icon_preview.png'), 
-                    t('preview_size', 'Preview Size'), 
-                    'Recording preview window size', 
-                    false, 
-                    null, 
-                    handlePreviewSizeChange,
-                    settings.previewSize
-                ),
-            ])}
-
-            {/* Security Section */}
-            {renderSection('Security & Privacy', [
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_password.png'), 
-                    securitySettings.hasPassword ? 'Change Password' : t('set_password', 'Set Password'), 
-                    securitySettings.hasPassword ? 'App locks automatically with password' : 'Set password to auto-lock app', 
-                    false, 
-                    null, 
-                    handlePasswordSetup,
-                    securitySettings.hasPassword ? 'Enabled' : 'Disabled'
-                ),
-                ...(securitySettings.hasPassword ? [
+                {/* Video Settings Section */}
+                {renderSection('Video Settings', [
                     renderSettingItemWithValue(
-                        require('../../../assets/home/ic/ic_remove.png'), 
-                        'Remove Password', 
-                        'Remove password protection', 
-                        false, 
-                        null, 
-                        handleRemovePassword
-                    )
-                ] : []),
-                ...(biometricsAvailable ? [
+                        require('../../../assets/home/ic/icon_swap.png'),
+                        'Camera',
+                        'Select camera mode',
+                        false,
+                        null,
+                        handleCameraModeChange,
+                        settings.cameraMode
+                    ),
                     renderSettingItemWithValue(
-                        require('../../../assets/home/ic/ic_fingerprint.png'), 
-                        'Biometric Lock', 
-                        'Use fingerprint/face to unlock app', 
-                        true, 
-                        'biometricsEnabled'
-                    )
-                ] : [])
-            ])}
+                        require('../../../assets/home/ic/ic_autosplit.png'),
+                        t('auto_split', 'Auto Split'),
+                        'Automatically split long recordings',
+                        true,
+                        'autoSplit'
+                    ),
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/icon_clock.png'),
+                        t('duration', 'Duration'),
+                        'Maximum recording length',
+                        false,
+                        null,
+                        handleDurationChange,
+                        settings.duration === -1 ? 'Unlimited' : `${settings.duration} mins`
+                    ),
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/quality.png'),
+                        t('resolution', 'Resolution'),
+                        'Video quality setting',
+                        false,
+                        null,
+                        handleResolutionChange,
+                        settings.resolution
+                    ),
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/icon_preview.png'),
+                        t('preview_size', 'Preview Size'),
+                        'Recording preview window size',
+                        false,
+                        null,
+                        handlePreviewSizeChange,
+                        settings.previewSize
+                    ),
+                ])}
 
-            {/* Other Section */}
-            {renderSection('Other', [
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_changeicon.png'), 
-                    t('change_icon', 'Change Icon'), 
-                    'Customize app icon', 
-                    false, 
-                    null, 
-                    () => handleOptionPress('changeIcon')
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_lang.png'), 
-                    t('language', 'Language'), 
-                    'Change app language', 
-                    false, 
-                    null, 
-                    () => handleOptionPress('language')
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_share.png'), 
-                    t('share', 'Share'), 
-                    'Share this app with friends', 
-                    false, 
-                    null, 
-                    () => handleOptionPress('share')
-                ),
-                renderSettingItemWithValue(
-                    require('../../../assets/home/ic/ic_privacy.png'), 
-                    t('privacy_policy', 'Privacy Policy'), 
-                    'View privacy policy', 
-                    false, 
-                    null, 
-                    () => handleOptionPress('privacy')
-                ),
-            ])}
-            
-            {/* Camera Mode Selection Modal */}
-            <CameraModeModal
-                visible={showCameraModeModal}
-                onClose={() => setShowCameraModeModal(false)}
-                currentMode={settings.cameraMode}
-                onSelect={handleCameraModeSelect}
-            />
+                {/* Security Section */}
+                {renderSection('Security & Privacy', [
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_password.png'),
+                        securitySettings.hasPassword ? 'Change Password' : t('set_password', 'Set Password'),
+                        securitySettings.hasPassword ? 'App locks automatically with password' : 'Set password to auto-lock app',
+                        false,
+                        null,
+                        handlePasswordSetup,
+                        securitySettings.hasPassword ? 'Enabled' : 'Disabled'
+                    ),
+                    ...(securitySettings.hasPassword ? [
+                        renderSettingItemWithValue(
+                            require('../../../assets/home/ic/ic_remove.png'),
+                            'Remove Password',
+                            'Remove password protection',
+                            false,
+                            null,
+                            handleRemovePassword
+                        )
+                    ] : []),
+                    ...(biometricsAvailable ? [
+                        renderSettingItemWithValue(
+                            require('../../../assets/home/ic/ic_fingerprint.png'),
+                            'Biometric Lock',
+                            'Use fingerprint/face to unlock app',
+                            true,
+                            'biometricsEnabled'
+                        )
+                    ] : [])
+                ])}
 
-            {/* Duration Selection Modal */}
-            <DurationModal
-                visible={showDurationModal}
-                onClose={() => setShowDurationModal(false)}
-                currentDuration={settings.duration}
-                onSelect={handleDurationSelect}
-                onShowIAP={() => showIAP('settings_duration')}
-            />
+                {/* Other Section */}
+                {renderSection('Other', [
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_changeicon.png'),
+                        t('change_icon', 'Change Icon'),
+                        'Customize app icon',
+                        false,
+                        null,
+                        () => handleOptionPress('changeIcon')
+                    ),
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_lang.png'),
+                        t('language', 'Language'),
+                        'Change app language',
+                        false,
+                        null,
+                        () => handleOptionPress('language')
+                    ),
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_share.png'),
+                        t('share', 'Share'),
+                        'Share this app with friends',
+                        false,
+                        null,
+                        () => handleOptionPress('share')
+                    ),
+                    renderSettingItemWithValue(
+                        require('../../../assets/home/ic/ic_privacy.png'),
+                        t('privacy_policy', 'Privacy Policy'),
+                        'View privacy policy',
+                        false,
+                        null,
+                        () => handleOptionPress('privacy')
+                    ),
+                ])}
 
-            {/* Resolution Selection Modal */}
-            <ResolutionModal
-                visible={showResolutionModal}
-                onClose={() => setShowResolutionModal(false)}
-                currentResolution={settings.resolution}
-                onSelect={handleResolutionSelect}
-                onShowIAP={() => showIAP('settings_resolution')}
-            />
+                {/* Camera Mode Selection Modal */}
+                <CameraModeModal
+                    visible={showCameraModeModal}
+                    onClose={() => setShowCameraModeModal(false)}
+                    currentMode={settings.cameraMode}
+                    onSelect={handleCameraModeSelect}
+                />
 
-            {/* Preview Size Selection Modal */}
-            <PreviewSizeModal
-                visible={showPreviewSizeModal}
-                onClose={() => setShowPreviewSizeModal(false)}
-                currentPreviewSize={settings.previewSize}
-                onSelect={handlePreviewSizeSelect}
-            />
+                {/* Duration Selection Modal */}
+                <DurationModal
+                    visible={showDurationModal}
+                    onClose={() => setShowDurationModal(false)}
+                    currentDuration={settings.duration}
+                    onSelect={handleDurationSelect}
+                    onShowIAP={() => showIAP('settings_duration')}
+                />
 
-            {/* Set Password Modal */}
-            <SetPasswordModal
-                visible={showSetPasswordModal}
-                onClose={() => setShowSetPasswordModal(false)}
-                onPasswordSet={handlePasswordSet}
-            />
+                {/* Resolution Selection Modal */}
+                <ResolutionModal
+                    visible={showResolutionModal}
+                    onClose={() => setShowResolutionModal(false)}
+                    currentResolution={settings.resolution}
+                    onSelect={handleResolutionSelect}
+                    onShowIAP={() => showIAP('settings_resolution')}
+                />
 
-            {/* Change Icon Modal */}
-            <ChangeIconModal
-                visible={showChangeIconModal}
-                onClose={() => setShowChangeIconModal(false)}
-            />
+                {/* Preview Size Selection Modal */}
+                <PreviewSizeModal
+                    visible={showPreviewSizeModal}
+                    onClose={() => setShowPreviewSizeModal(false)}
+                    currentPreviewSize={settings.previewSize}
+                    onSelect={handlePreviewSizeSelect}
+                />
 
-            {/* Change Language Modal */}
-            <ChangeLanguageModal
-                visible={showChangeLanguageModal}
-                onClose={() => setShowChangeLanguageModal(false)}
-            />
+                {/* Set Password Modal */}
+                <SetPasswordModal
+                    visible={showSetPasswordModal}
+                    onClose={() => setShowSetPasswordModal(false)}
+                    onPasswordSet={handlePasswordSet}
+                />
 
-            {/* IAP Modal */}
-            <IAPModal
-                visible={showIAPModal}
-                onClose={hideIAP}
-            />
-        </ScrollView>
+                {/* Change Icon Modal */}
+                <ChangeIconModal
+                    visible={showChangeIconModal}
+                    onClose={() => setShowChangeIconModal(false)}
+                />
 
-        
+                {/* Change Language Modal */}
+                <ChangeLanguageModal
+                    visible={showChangeLanguageModal}
+                    onClose={() => setShowChangeLanguageModal(false)}
+                />
+
+                {/* IAP Modal */}
+                <IAPModal
+                    visible={showIAPModal}
+                    onClose={hideIAP}
+                />
+            </ScrollView>
+
+
             {/* Native Ad */}
             <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_SETTING} hasMedia={true} />
             </View>
 
-            </View>
+        </View>
     );
 };
 
@@ -650,14 +650,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     vipTitle: {
-        fontSize: 20,
+        fontSize: 25,
         fontWeight: 800,
-        color: COLORS.TERTIARY,
+        color: "#473D2A",
         marginBottom: 4,
     },
     vipSubtitle: {
-        fontSize: 12,
-        color: COLORS.TERTIARY,
+        fontSize: 13,
+        color: "#473D2A",
         marginBottom: 4,
     },
     vipRight: {

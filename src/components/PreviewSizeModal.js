@@ -101,7 +101,7 @@ const PreviewSizeModal = ({ visible, onClose, currentPreviewSize, onSelect }) =>
                         {/* Native Ad */}
                         <View style={styles.adContainer}>
                             <NativeAdComponent 
-                                adUnitId={ADS_UNIT.NATIVE_ADVANCED}
+                                adUnitId={ADS_UNIT.NATIVE_PREVIEW_SIZE}
                             />
                         </View>
                     </ScrollView>

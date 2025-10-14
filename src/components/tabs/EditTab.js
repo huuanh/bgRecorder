@@ -8,7 +8,7 @@ import CompressModal from '../CompressModal';
 import Mp3ConvertModal from '../Mp3ConvertModal';
 import MergeVideoModal from '../MergeVideoModal';
 import { NativeAdComponent } from '../NativeAdComponent';
-import { ADS_UNIT } from '../../AdManager';
+import AdManager, { ADS_UNIT } from '../../AdManager';
 import useTranslation from '../../hooks/useTranslation';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -64,12 +64,14 @@ const EditTab = () => {
 
     // Tool action handlers
     const handleTrimVideo = () => {
+        AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
         setVideoSelectorTitle('Select Video to Trim');
         setVideoSelectorAction('trim');
         setShowVideoSelector(true);
     };
 
     const handleCompressVideo = () => {
+        AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
         setVideoSelectorTitle('Select Video to Compress');
         setVideoSelectorAction('compress');
         setShowVideoSelector(true);
@@ -85,6 +87,7 @@ const EditTab = () => {
     };
 
     const handleMp3ConvertVideo = () => {
+        AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
         setVideoSelectorTitle('Select Video to Convert');
         setVideoSelectorAction('mp3convert');
         setShowVideoSelector(true);
@@ -175,7 +178,7 @@ const EditTab = () => {
 
             {/* Ad Banner */}
             <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_EDIT_TAB} hasMedia={true} />
             </View>
 
             {/* Single Video Selector Modal */}

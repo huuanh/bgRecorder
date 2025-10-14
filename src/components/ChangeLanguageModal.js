@@ -14,10 +14,11 @@ import LanguageManager from '../utils/LanguageManager';
 import useTranslation from '../hooks/useTranslation';
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
+import { ADS_UNIT } from '../AdManager';
 
 const ChangeLanguageModal = ({ visible, onClose }) => {
-  const [currentLanguage, setCurrentLanguage] = useState('vi');
-  const [selectedLanguage, setSelectedLanguage] = useState('vi');
+  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [languages, setLanguages] = useState([]);
   const { t } = useTranslation();
   const languageManager = LanguageManager.getInstance();
@@ -45,10 +46,10 @@ const ChangeLanguageModal = ({ visible, onClose }) => {
   };
 
   const handleApply = async () => {
-    if (selectedLanguage === currentLanguage) {
-      onClose();
-      return;
-    }
+    // if (selectedLanguage === currentLanguage) {
+    //   onClose();
+    //   return;
+    // }
 
     try {
       // Show confirmation dialog
@@ -110,9 +111,9 @@ const ChangeLanguageModal = ({ visible, onClose }) => {
       animationType="slide"
       transparent={true}
       onRequestClose={onClose}
-      statusBarTranslucent={true}
+      // statusBarTranslucent={true}
     >
-      <StatusBar backgroundColor="rgba(0,0,0,0.5)" barStyle="light-content" />
+      {/* <StatusBar backgroundColor="rgba(0,0,0,0.5)" barStyle="light-content" /> */}
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
@@ -139,7 +140,7 @@ const ChangeLanguageModal = ({ visible, onClose }) => {
             {languages.map(renderLanguageItem)}
           </ScrollView>
           <View style={styles.adComponent}>
-            <NativeAdComponent/>
+            <NativeAdComponent hasMedia={true} adUnitId={ADS_UNIT.NATIVE_LANGUAGE} />
           </View>
         </View>
       </View>

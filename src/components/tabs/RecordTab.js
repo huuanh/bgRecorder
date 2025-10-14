@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../../constants';
 import { NativeAdComponent } from '../NativeAdComponent';
-import { ADS_UNIT } from '../../AdManager';
+import AdManager, { ADS_UNIT } from '../../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactContextManager from '../../utils/ReactContextManager';
 import CameraSettingsManager from '../../utils/CameraSettingsManager';
@@ -23,6 +23,7 @@ import DurationModal from '../DurationModal';
 import ResolutionModal from '../ResolutionModal';
 import IAPModal from '../IAPModal';
 import useTranslation from '../../hooks/useTranslation';
+import remoteConfigManager from '../../RemoteConfigManager';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
@@ -412,6 +413,8 @@ const RecordTab = () => {
                     setIsServiceRecording(false);
                     setRecordingTime(0);
                 }
+
+                remoteConfigManager.isShowIntStopRecord() && AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_STOP_RECORD);
             } catch (error) {
                 console.error('❌ Failed to stop recording:', error);
                 // Even if there's an error, reset the UI state
@@ -685,7 +688,7 @@ const RecordTab = () => {
             {/* Native Ad */}
             <View style={styles.adContainer}>
                 <NativeAdComponent
-                    adUnitId={ADS_UNIT.NATIVE}
+                    adUnitId={ADS_UNIT.NATIVE_RECORDING_TAB}
                     hasMedia={true}
                 />
             </View>

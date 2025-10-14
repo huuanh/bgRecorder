@@ -85,7 +85,7 @@ const RenameModal = ({ visible, onClose, video, onRename }) => {
                         </View>
 
                         <View style={{ paddingHorizontal: 10 }}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={false} />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_RENAME} hasMedia={false} />
                         </View>
 
                         <View style={styles.buttonContainer}>

@@ -14,9 +14,10 @@ import Video from 'react-native-video';
 import { FFmpegKit, FFmpegKitConfig, ReturnCode } from 'ffmpeg-kit-react-native';
 import { COLORS } from '../constants';
 import { NativeAdComponent } from './NativeAdComponent';
-import { ADS_UNIT } from '../AdManager';
+import AdManager, { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
+import BackConfirmModal from './BackConfirmModal';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -33,6 +34,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [videoInfo, setVideoInfo] = useState(null);
+    const [showBackConfirm, setShowBackConfirm] = useState(false);
     const videoRef = useRef(null);
     const progressRef = useRef(0);
     const isCompressingRef = useRef(false);
@@ -70,6 +72,28 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
 
     const handleProgress = (data) => {
         setCurrentTime(data.currentTime);
+    };
+
+    // Handle back confirmation
+    const handleBackPress = () => {
+        if (isCompressing) {
+            Alert.alert(
+                'Compression in Progress',
+                'Please wait for the compression to complete before closing.',
+                [{ text: t('ok', 'OK') }]
+            );
+        } else {
+            setShowBackConfirm(true);
+        }
+    };
+
+    const handleBackConfirm = () => {
+        setShowBackConfirm(false);
+        onClose();
+    };
+
+    const handleBackCancel = () => {
+        setShowBackConfirm(false);
     };
 
     // Function to calculate estimated file size after compression
@@ -223,6 +247,8 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                     
                     if (ReturnCode.isSuccess(returnCode)) {
                         setCompressedVideoPath(outputPath);
+
+                        AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_COMPRESS);
                         setShowSuccessModal(true);
                     } else {
                         session.getLogs().then(logs => {
@@ -278,22 +304,12 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
             visible={visible}
             animationType="slide"
             presentationStyle="pageSheet"
-            onRequestClose={() => {
-                if (!isCompressing) {
-                    onClose();
-                } else {
-                    Alert.alert(
-                        'Compression in Progress',
-                        'Please wait for the compression to complete before closing.',
-                        [{ text: t('ok', 'OK') }]
-                    );
-                }
-            }}
+            onRequestClose={handleBackPress}
         >
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                    <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
                         <Image source={require('../../assets/home/ic/ic_back.png')} style={styles.backIcon} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>{t('compressVideo', 'Compress Video')}</Text>
@@ -392,7 +408,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
 
                 {/* Ad Placeholder */}
                 <View style={styles.adContainer}>
-                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} />
+                    <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_COMPRESS_VIDEO} />
                 </View>
 
                 {/* Export Button */}
@@ -482,7 +498,7 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
 
                         {/* Ad Banner */}
                         <View style={styles.successAdBanner}>
-                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE} hasMedia={true} />
+                            <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_COMPRESS_VIDEO_SUCCESS} hasMedia={true} />
                         </View>
                         
                         {/* Share Button */}
@@ -495,6 +511,16 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Back Confirmation Modal */}
+            <BackConfirmModal
+                visible={showBackConfirm}
+                onConfirm={handleBackConfirm}
+                onCancel={handleBackCancel}
+                title={t('unsaved_changes_title', 'You did not saved your changes.')}
+                message={t('compress_exit_confirmation', 'Are you sure you want to exit compression?')}
+                adUnitId={ADS_UNIT.NATIVE_COMPRESS_VIDEO}
+            />
         </Modal>
     );
 };
@@ -522,6 +548,9 @@ const styles = StyleSheet.create({
     },
     backIcon: {
         fontSize: 20,
+        width: 25,
+        height: 25,
+        // tintColor: '#1F2937',
         // color: '#1F2937',
     },
     headerTitle: {

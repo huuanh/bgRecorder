@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '../constants';
 import AdManager, { ADS_UNIT } from '../AdManager.js';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
-import { SmallNativeAd } from './NativeAdComponent';
+import RemoteConfigManager from '../RemoteConfigManager';
 import IAPManager from '../utils/IAPManager';
 import VIPManager from '../utils/VIPManager';
 import NetworkManager from '../utils/NetworkManager';
@@ -64,6 +63,7 @@ const LoadingScreen = () => {
         setLoadingText('Loading....');
         setProgress(30);
         await AdManager.initialize();
+        await RemoteConfigManager.initialize();
         console.log('✅ AdManager initialized successfully');
         
         if (!isCompleted) {
@@ -207,10 +207,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   iconBox: {
-    backgroundColor: COLORS.TERTIARY,
+    // backgroundColor: COLORS.TERTIARY,
     borderRadius: 16,
-    padding: 24,
+    // padding: 24,
     marginBottom: 24,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

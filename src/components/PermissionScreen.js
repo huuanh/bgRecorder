@@ -372,7 +372,7 @@ const PermissionScreen = ({ onNext, onSkip }) => {
                 {/* Native Ad */}
                 <View style={styles.adContainer}>
                     <NativeAdComponent
-                        adUnitId={ADS_UNIT.NATIVE}
+                        adUnitId={ADS_UNIT.NATIVE_ONBOARDING}
                         hasMedia={true}
                     />
                 </View>
