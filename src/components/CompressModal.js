@@ -18,6 +18,7 @@ import AdManager, { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
 import BackConfirmModal from './BackConfirmModal';
+import remoteConfigManager from '../RemoteConfigManager';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -313,7 +314,24 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                         <Image source={require('../../assets/home/ic/ic_back.png')} style={styles.backIcon} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>{t('compressVideo', 'Compress Video')}</Text>
-                    <View style={styles.placeholder} />
+                    {remoteConfigManager.isBtnExpOnTop() ?
+                        <TouchableOpacity
+                            style={[styles.exportButtonTop, isCompressing && styles.exportButtonDisabled]}
+                            onPress={handleCompress}
+                            disabled={isCompressing}
+                        >
+                            {isCompressing ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator color={COLORS.TERTIARY} size="small" />
+                                    <Text style={styles.exportTextTop}>
+                                        {t('compressing', 'Compressing...')} {Math.round(compressionProgress)}%
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.exportTextTop}>{t('export', 'Export')}</Text>
+                            )}
+                        </TouchableOpacity> :
+                        <View style={styles.placeholder} />}
                 </View>
 
                 {/* Video Preview */}
@@ -412,22 +430,24 @@ const CompressModal = ({ visible, onClose, video, onCompress }) => {
                 </View>
 
                 {/* Export Button */}
-                <TouchableOpacity
-                    style={[styles.exportButton, isCompressing && styles.exportButtonDisabled]}
-                    onPress={handleCompress}
-                    disabled={isCompressing}
-                >
-                    {isCompressing ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                            <Text style={styles.exportButtonText}>
-                                {t('compressing', 'Compressing...')} {Math.round(compressionProgress)}%
-                            </Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.exportButtonText}>{t('export', 'Export')}</Text>
-                    )}
-                </TouchableOpacity>
+                {!remoteConfigManager.isBtnExpOnTop() && (
+                    <TouchableOpacity
+                        style={[styles.exportButton, isCompressing && styles.exportButtonDisabled]}
+                        onPress={handleCompress}
+                        disabled={isCompressing}
+                    >
+                        {isCompressing ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                                <Text style={styles.exportButtonText}>
+                                    {t('compressing', 'Compressing...')} {Math.round(compressionProgress)}%
+                                </Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.exportButtonText}>{t('export', 'Export')}</Text>
+                        )}
+                    </TouchableOpacity>
+                )}
 
                 {/* Loading Overlay */}
                 {isCompressing && (
@@ -696,6 +716,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         // bottom: 0
     },
+    exportButtonTop: {
+        backgroundColor: COLORS.BACKGROUND,
+        borderBottomWidth: 2,
+        borderBottomColor: COLORS.TERTIARY,
+        paddingVertical: 3,
+        paddingHorizontal: 5,
+    },
     exportButtonDisabled: {
         backgroundColor: COLORS.WHITE,
     },
@@ -703,6 +730,11 @@ const styles = StyleSheet.create({
         color: COLORS.WHITE,
         fontSize: 16,
         fontWeight: '600',
+    },
+    exportTextTop: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.TERTIARY,
     },
     loadingContainer: {
         flexDirection: 'row',

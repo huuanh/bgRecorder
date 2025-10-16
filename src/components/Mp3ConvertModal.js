@@ -18,6 +18,7 @@ import AdManager, { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
 import BackConfirmModal from './BackConfirmModal';
+import remoteConfigManager from '../RemoteConfigManager';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -327,7 +328,21 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                         <Image source={require('../../assets/home/ic/ic_back.png')} style={styles.backIcon} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Video to Audio</Text>
-                    <View style={styles.placeholder} />
+                    {remoteConfigManager.isBtnExpOnTop() ? (
+                        <TouchableOpacity
+                            style={[styles.convertButtonTop, isConverting && styles.convertButtonDisabled]}
+                            onPress={handleConvert}
+                            disabled={isConverting}
+                        >
+                            {isConverting ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.convertTextTop}>Convert</Text>
+                            )}
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.placeholder} />
+                    )}
                 </View>
 
                 {/* Video Preview */}
@@ -377,22 +392,24 @@ const Mp3ConvertModal = ({ visible, onClose, video, onConvert }) => {
                 </View>
 
                 {/* Convert Button */}
-                <TouchableOpacity
-                    style={[styles.convertButton, isConverting && styles.convertButtonDisabled]}
-                    onPress={handleConvert}
-                    disabled={isConverting}
-                >
-                    {isConverting ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                            <Text style={styles.convertButtonText}>
-                                Converting... {Math.round(conversionProgress)}%
-                            </Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.convertButtonText}>Convert to Audio</Text>
-                    )}
-                </TouchableOpacity>
+                {!remoteConfigManager.isBtnExpOnTop() && (
+                    <TouchableOpacity
+                        style={[styles.convertButton, isConverting && styles.convertButtonDisabled]}
+                        onPress={handleConvert}
+                        disabled={isConverting}
+                    >
+                        {isConverting ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                                <Text style={styles.convertButtonText}>
+                                    Converting... {Math.round(conversionProgress)}%
+                                </Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.convertButtonText}>Convert to Audio</Text>
+                        )}
+                    </TouchableOpacity>
+                )}
 
                 {/* Loading Overlay */}
                 {isConverting && (
@@ -741,6 +758,23 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    convertButtonTop: {
+        // backgroundColor: COLORS.TERTIARY,
+        borderRadius: 6,
+        paddingVertical: 8,
+        
+        minWidth: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    convertTextTop: {
+        color: COLORS.TERTIARY,
+        fontSize: 16,
+        fontWeight: '600',
+        borderBottomWidth: 2,
+        borderBottomColor: COLORS.TERTIARY,
+        paddingHorizontal: 6,
     },
 });
 

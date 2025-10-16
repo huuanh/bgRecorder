@@ -140,7 +140,7 @@ const ChangeLanguageModal = ({ visible, onClose }) => {
             {languages.map(renderLanguageItem)}
           </ScrollView>
           <View style={styles.adComponent}>
-            <NativeAdComponent hasMedia={true} adUnitId={ADS_UNIT.NATIVE_LANGUAGE} />
+            <NativeAdComponent hasMedia={true} adUnitId={ADS_UNIT.NATIVE_LANGUAGE} hasToggleMedia={true} />
           </View>
         </View>
       </View>
@@ -169,9 +169,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    paddingVertical: 8,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#333',
   },
   headerTitle: {
     fontSize: 18,

@@ -97,7 +97,7 @@ const ResolutionModal = ({ visible, onClose, currentResolution, onSelect, onShow
                 {option.isPro && (
                     <View style={[styles.proTag]}>
                         <Text style={[styles.proText, isLocked && styles.lockedProText]}>
-                            {isLocked ? '🔒 PRO' : 'PRO'}
+                            {isLocked ? 'PRO' : 'PRO'}
                         </Text>
                     </View>
                 )}

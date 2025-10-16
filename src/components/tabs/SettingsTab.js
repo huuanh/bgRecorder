@@ -553,15 +553,6 @@ const SettingsTab = () => {
                             handleRemovePassword
                         )
                     ] : []),
-                    ...(biometricsAvailable ? [
-                        renderSettingItemWithValue(
-                            require('../../../assets/home/ic/ic_diamond.png'),
-                            'Biometric Lock',
-                            'Use fingerprint/face to unlock app',
-                            true,
-                            'biometricsEnabled'
-                        )
-                    ] : [])
                 ])}
 
                 {/* Other Section */}
@@ -663,7 +654,7 @@ const SettingsTab = () => {
 
             {/* Native Ad */}
             <View style={styles.adContainer}>
-                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_SETTING} hasMedia={true} />
+                <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_SETTING} hasMedia={true} hasToggleMedia={true} />
             </View>
 
         </View>

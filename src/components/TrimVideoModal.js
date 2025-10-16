@@ -114,8 +114,12 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
             // - fps=20/${duration}: Extract exactly 20 frames evenly distributed
             // - -an: Remove audio (not needed for thumbnails)
             // - -preset ultrafast: Fastest encoding preset
-            const fps = 10 / duration;
-            const cmd = `-hwaccel auto -threads 4 -i "${videoPath}" -vf "scale=120:-1,fps=${fps}" -c:v mjpeg -q:v 12 "${outputDir}/frame_%04d.jpg"`;
+            const fps = (10 / duration).toFixed(2); 
+            // const cmd = `-hwaccel auto -threads 4 -i "${videoPath}" -vf "scale=120:-1,fps=${fps}" -c:v mjpeg -q:v 12 "${outputDir}/frame_%04d.jpg"`;
+            // const cmd = `-hwaccel auto -threads 8 -ss 0 -skip_frame nokey -i "${videoPath}" \-vf "scale=120:-1,fps=${fps}" -vsync vfr -q:v 20 "${outputDir}/frame_%04d.jpg"`;
+            const cmd = `-hwaccel auto -threads 8 -ss 0 -skip_frame nokey -i "${videoPath}" -vf "scale=80:-1,fps=${fps}" -vframes 10 -q:v 20 "${outputDir}/thumb_%02d.jpg"`;
+
+
             console.log('Optimized FFmpeg command:', cmd);
 
             const session = await FFmpegKit.execute(cmd);
@@ -580,19 +584,19 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                     <Text style={styles.headerTitle}>Trim Video</Text>
                     {remoteConfigManager.isBtnExpOnTop() ?
                         <TouchableOpacity
-                            style={[styles.exportButton, isExporting && styles.exportButtonDisabled]}
+                            style={[styles.exportButtonTop, isExporting && styles.exportButtonDisabled]}
                             onPress={handleExport}
                             disabled={isExporting}
                         >
                             {isExporting ? (
                                 <View style={styles.loadingContainer}>
                                     <ActivityIndicator color="#FFFFFF" size="small" />
-                                    <Text style={styles.exportText}>
+                                    <Text style={styles.exportTextTop}>
                                         Exporting... {Math.round(exportProgress)}%
                                     </Text>
                                 </View>
                             ) : (
-                                <Text style={styles.exportText}>Export</Text>
+                                <Text style={styles.exportTextTop}>Export</Text>
                             )}
                         </TouchableOpacity> :
                         <View style={styles.placeholder} />}
@@ -1255,6 +1259,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    exportButtonTop: {
+        // width: 80,
+        // height: 36,
+        borderBottomWidth: 2,
+        borderBottomColor: COLORS.TERTIARY,
+        paddingVertical: 3,
+        paddingHorizontal: 5,
+    },
     exportButtonDisabled: {
         backgroundColor: '#9CA3AF',
     },
@@ -1262,6 +1274,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+    exportTextTop: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.TERTIARY,
     },
     loadingContainer: {
         flexDirection: 'row',

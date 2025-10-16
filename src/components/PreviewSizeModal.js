@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 15,
-        backgroundColor: COLORS.SECONDARY,
+        // backgroundColor: COLORS.SECONDARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -213,6 +213,8 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
         borderRadius: 10,
         marginLeft: 8,
+        position: 'absolute',
+        right: 0,
     },
     proTagText: {
         fontSize: 10,
