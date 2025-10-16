@@ -21,6 +21,7 @@ import AdManager, { ADS_UNIT } from '../AdManager';
 import { NativeModules } from 'react-native';
 import useTranslation from '../hooks/useTranslation';
 import BackConfirmModal from './BackConfirmModal';
+import remoteConfigManager from '../RemoteConfigManager';
 
 const { width, height } = Dimensions.get('window');
 const { VideoRecordingModule } = NativeModules;
@@ -72,7 +73,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
             setTrimmedVideoPath('');
             setThumbnails([]);
             setIsGeneratingThumbnails(false);
-            
+
             // Seek to beginning if video ref is available
             if (videoRef.current) {
                 videoRef.current.seek(0);
@@ -214,8 +215,8 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const timelineData = useMemo(() => {
         // Safe fallback when duration is not available
         if (!duration || duration <= 0 || isNaN(duration)) {
-            return { 
-                timeLabels: [], 
+            return {
+                timeLabels: [],
                 trimPositions: {
                     currentPercent: 0,
                     startPercent: 0,
@@ -224,7 +225,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                 }
             };
         }
-        
+
         try {
             const timeLabels = [
                 formatTime(0),
@@ -233,7 +234,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                 formatTime(3 * duration / 4),
                 formatTime(duration)
             ];
-            
+
             // Safe calculation with validation
             const safeDivision = (numerator, denominator) => {
                 if (!denominator || denominator <= 0 || isNaN(denominator) || isNaN(numerator)) {
@@ -242,19 +243,19 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                 const result = (numerator / denominator) * 100;
                 return isNaN(result) ? 0 : Math.max(0, Math.min(100, result));
             };
-            
+
             const trimPositions = {
                 currentPercent: safeDivision(currentTime || 0, duration),
                 startPercent: safeDivision(trimStartTime || 0, duration),
                 endPercent: safeDivision(trimEndTime || 0, duration),
                 selectionWidth: safeDivision((trimEndTime || 0) - (trimStartTime || 0), duration)
             };
-            
+
             return { timeLabels, trimPositions };
         } catch (error) {
             console.error('Error calculating timeline data:', error);
-            return { 
-                timeLabels: [], 
+            return {
+                timeLabels: [],
                 trimPositions: {
                     currentPercent: 0,
                     startPercent: 0,
@@ -272,7 +273,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 
     const onProgress = (data) => {
         setCurrentTime(data.currentTime);
-        
+
         // Auto-pause when reaching trim end time during playback
         if (!paused && data.currentTime >= trimEndTime) {
             setPaused(true);
@@ -331,7 +332,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const endTrimPanResponder = useMemo(() => createTrimHandlePanResponder(false), [createTrimHandlePanResponder]);
 
     const handleExport = async () => {
-        console.log('Exporting video with trim range:', trimStartTime, trimEndTime);    
+        console.log('Exporting video with trim range:', trimStartTime, trimEndTime);
         if (trimEndTime - trimStartTime < 1) {
             Alert.alert('Invalid Selection', 'Please select at least 1 second of video to trim.');
             return;
@@ -344,7 +345,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
         try {
             // Perform the actual video trimming
             await trimVideoWithFFmpeg();
-            
+
             AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_TRIM);
             // Show success modal instead of alert
             setShowSuccessModal(true);
@@ -360,14 +361,14 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const trimVideo = async (videoPath, outputPath, start, duration) => {
         const cmd = `-i "${videoPath}" -ss ${start} -t ${duration} -c copy "${outputPath}"`;
         console.log('FFmpeg trim command:', cmd);
-        
+
         const session = await FFmpegKit.execute(cmd);
         const returnCode = await session.getReturnCode();
-        
+
         if (!returnCode.isValueSuccess()) {
             throw new Error(`FFmpeg failed with return code: ${returnCode}`);
         }
-        
+
         console.log('Video trimming completed successfully');
         return true;
     };
@@ -378,15 +379,15 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
             const originalName = originalVideo.title;
             const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'));
             const extension = originalName.substring(originalName.lastIndexOf('.'));
-            
+
             // Create trimmed filename with timestamp
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const trimmedName = `${nameWithoutExt}_trimmed_${timestamp}${extension}`;
-            
+
             // Use the same directory as the original video
             const originalDir = originalVideo.filePath.substring(0, originalVideo.filePath.lastIndexOf('/'));
             const outputPath = `${originalDir}/${trimmedName}`;
-            
+
             console.log('Generated trim output path:', outputPath);
             return outputPath;
         } catch (error) {
@@ -400,87 +401,87 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
     const trimVideoWithFFmpeg = async () => {
         try {
             console.log('Starting video trim export');
-            
+
             const startTime = trimStartTime;
             const endTime = trimEndTime;
             const trimDuration = endTime - startTime;
-            
+
             // Validate input
             if (!video || !video.filePath) {
                 throw new Error('Invalid video file');
             }
-            
+
             if (trimDuration < 1) {
                 throw new Error('Trim duration must be at least 1 second');
             }
-            
+
             // Check if input file exists
             const inputExists = await RNFS.exists(video.filePath);
             if (!inputExists) {
                 throw new Error('Original video file not found');
             }
-            
+
             // Generate output path
             const outputPath = generateTrimmedVideoPath(video, startTime, endTime);
-            
+
             // Ensure output directory exists
             const outputDir = outputPath.substring(0, outputPath.lastIndexOf('/'));
             const dirExists = await RNFS.exists(outputDir);
             if (!dirExists) {
                 await RNFS.mkdir(outputDir);
             }
-            
+
             console.log(`Trimming video: ${video.filePath} -> ${outputPath}`);
             console.log(`Start: ${startTime}s, Duration: ${trimDuration}s`);
-            
+
             // Start progress simulation
             setLoadingMessage('Analyzing video file...');
             setExportProgress(15);
-            
+
             await new Promise(resolve => setTimeout(resolve, 800));
-            
+
             setLoadingMessage('Preparing trim operation...');
             setExportProgress(30);
-            
+
             await new Promise(resolve => setTimeout(resolve, 600));
-            
+
             setLoadingMessage('Processing video frames...');
             setExportProgress(50);
-            
+
             // Perform the trim using FFmpeg
             await trimVideo(video.filePath, outputPath, startTime, trimDuration);
-            
+
             setLoadingMessage('Finalizing trimmed video...');
             setExportProgress(85);
-            
+
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             // Verify output file was created
             const outputExists = await RNFS.exists(outputPath);
             if (!outputExists) {
                 throw new Error('Trimmed video file was not created');
             }
-            
+
             // Get file stats for validation
             const stats = await RNFS.stat(outputPath);
             console.log(`Trimmed video created: ${outputPath}, Size: ${stats.size} bytes`);
-            
+
             setLoadingMessage('Updating video library...');
             setExportProgress(95);
-            
+
             // Scan the new video file to MediaStore
             try {
                 await VideoRecordingModule.scanVideoFileForMediaStore(outputPath);
             } catch (error) {
                 console.log('MediaStore scan failed, but video was created successfully:', error);
             }
-            
+
             setLoadingMessage('Trim completed successfully!');
             setExportProgress(100);
             setTrimmedVideoPath(outputPath);
-            
+
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             // Call the parent callback to refresh video list
             if (onExport) {
                 await onExport({
@@ -491,9 +492,9 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                     outputPath
                 });
             }
-            
+
             console.log('Video trim export completed successfully');
-            
+
         } catch (error) {
             console.error('Failed to trim video:', error);
             throw error;
@@ -548,7 +549,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
 
             // Use native module to share video file
             await VideoRecordingModule.shareVideo(trimmedVideoPath, 'share_general');
-            
+
         } catch (error) {
             console.error('Failed to share video:', error);
             if (error.message.includes('NO_APP_AVAILABLE')) {
@@ -577,7 +578,24 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                         />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Trim Video</Text>
-                    <View style={styles.placeholder} />
+                    {remoteConfigManager.isBtnExpOnTop() ?
+                        <TouchableOpacity
+                            style={[styles.exportButton, isExporting && styles.exportButtonDisabled]}
+                            onPress={handleExport}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator color="#FFFFFF" size="small" />
+                                    <Text style={styles.exportText}>
+                                        Exporting... {Math.round(exportProgress)}%
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.exportText}>Export</Text>
+                            )}
+                        </TouchableOpacity> :
+                        <View style={styles.placeholder} />}
                 </View>
 
                 {/* Video Player */}
@@ -622,7 +640,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                 <View style={styles.timelineContainer}>
                     {/* Timeline Header Row */}
                     <View style={styles.timelineHeader}>
-                        
+
                         {/* <Text style={styles.timelineTitle}>Timeline</Text> */}
                     </View>
 
@@ -641,7 +659,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                         <Text key={index} style={styles.timeLabel}>{label}</Text>
                                     ))}
                                 </View>
-                                
+
                                 {/* Thumbnail Track Container */}
                                 <View style={styles.thumbnailTrackContainer}>
                                     <ScrollView
@@ -684,12 +702,12 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                             ))}
                                         </View>
                                     </ScrollView>
-                                    
+
                                     {/* Controls Overlay */}
                                     <View style={styles.controlsOverlay} pointerEvents="box-none">
                                         {/* Background Track */}
                                         <View style={styles.trackBackground} />
-                                        
+
                                         {/* Trim Selection Area */}
                                         <View
                                             style={[
@@ -700,7 +718,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                                 }
                                             ]}
                                         />
-                                        
+
                                         {/* Current Time Progress */}
                                         <View
                                             style={[
@@ -718,7 +736,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                             style={[
                                                 styles.trimHandle,
                                                 styles.startHandle,
-                                                timelineData && timelineData.trimPositions && { 
+                                                timelineData && timelineData.trimPositions && {
                                                     left: `${timelineData.trimPositions.startPercent}%`
                                                 }
                                             ]}
@@ -740,7 +758,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                             style={[
                                                 styles.trimHandle,
                                                 styles.endHandle,
-                                                timelineData && timelineData.trimPositions && { 
+                                                timelineData && timelineData.trimPositions && {
                                                     left: `${timelineData.trimPositions.endPercent}%`
                                                 }
                                             ]}
@@ -769,24 +787,27 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                 </View>
 
                 {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                        style={[styles.exportButton, isExporting && styles.exportButtonDisabled]}
-                        onPress={handleExport}
-                        disabled={isExporting}
-                    >
-                        {isExporting ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator color="#FFFFFF" size="small" />
-                                <Text style={styles.exportText}>
-                                    Exporting... {Math.round(exportProgress)}%
-                                </Text>
-                            </View>
-                        ) : (
-                            <Text style={styles.exportText}>Export</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
+
+                {!remoteConfigManager.isBtnExpOnTop() && (
+                    <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                            style={[styles.exportButton, isExporting && styles.exportButtonDisabled]}
+                            onPress={handleExport}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator color="#FFFFFF" size="small" />
+                                    <Text style={styles.exportText}>
+                                        Exporting... {Math.round(exportProgress)}%
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.exportText}>Export</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {/* Loading Overlay */}
                 {isExporting && (
@@ -797,22 +818,22 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                             <Text style={styles.loadingSubtitle}>
                                 {loadingMessage || 'Please wait...'}
                             </Text>
-                            
+
                             {/* Progress Bar */}
                             <View style={styles.progressContainer}>
                                 <View style={styles.progressBarContainer}>
-                                    <View 
+                                    <View
                                         style={[
-                                            styles.progressBarFill, 
+                                            styles.progressBarFill,
                                             { width: `${exportProgress}%` }
-                                        ]} 
+                                        ]}
                                     />
                                 </View>
                                 <Text style={styles.progressText}>
                                     {Math.round(exportProgress)}%
                                 </Text>
                             </View>
-                            
+
                             <Text style={styles.loadingWarning}>
                                 Do not close the app or navigate away
                             </Text>
@@ -820,7 +841,7 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                     </View>
                 )}
             </View>
-            
+
             {/* Success Modal */}
             <Modal
                 visible={showSuccessModal}
@@ -836,13 +857,13 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                                 <Text style={styles.checkIcon}>✓</Text>
                             </View>
                         </View>
-                        
+
                         {/* Success Title */}
                         <Text style={styles.successTitle}>Your video has been trimmed</Text>
-                        
-                        
+
+
                         {/* Back to Home Button */}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.backHomeButton}
                             onPress={() => {
                                 setShowSuccessModal(false);
@@ -853,14 +874,14 @@ const TrimVideoModal = ({ visible, video, onClose, onExport }) => {
                         >
                             <Text style={styles.backHomeText}>Back to Home</Text>
                         </TouchableOpacity>
-                        
+
                         {/* Ad Banner */}
                         <View style={styles.successAdBanner}>
                             <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_TRIM_VIDEO_SUCCESS} hasMedia={true} />
                         </View>
 
                         {/* Share Button */}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.shareButton}
                             onPress={handleShare}
                         >
@@ -908,11 +929,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     backIcon: {
-        width: 20,
-        height: 20,
+        width: 25,
+        height: 25,
         // tintColor: '#1F2937',
     },
     headerTitle: {
+        flex: 2,
         fontSize: 18,
         fontWeight: '600',
         color: COLORS.TERTIARY,

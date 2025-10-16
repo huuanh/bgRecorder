@@ -504,7 +504,7 @@ const SettingsTab = () => {
                     ] : []),
                     ...(biometricsAvailable ? [
                         renderSettingItemWithValue(
-                            require('../../../assets/home/ic/ic_fingerprint.png'),
+                            require('../../../assets/home/ic/ic_diamond.png'),
                             'Biometric Lock',
                             'Use fingerprint/face to unlock app',
                             true,

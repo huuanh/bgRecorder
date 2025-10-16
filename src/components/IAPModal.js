@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
-        padding: 16,
+        paddingHorizontal: 16,
         paddingBottom: 0,
     },
     closeButton: {

@@ -1,4 +1,4 @@
-import { StatusBar, StyleSheet, useColorScheme, View, AppState } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme, View, AppState, Text } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import LoadingScreen from './src/components/LoadingScreen';
@@ -6,7 +6,7 @@ import OnBoardScreen from './src/components/OnBoardScreen';
 import PermissionScreen from './src/components/PermissionScreen';
 import HomeScreen from './src/components/HomeScreen';
 import AuthenticationModal from './src/components/AuthenticationModal';
-import { COLORS } from './src/constants';
+import { COLORS, FONTS } from './src/constants';
 import ReactContextManager from './src/utils/ReactContextManager';
 import SecurityManager from './src/utils/SecurityManager';
 import NetworkLoadingModal from './src/components/NetworkLoadingModal';
@@ -28,6 +28,10 @@ function App() {
   const { isConnected, isChecking } = useNetworkConnection();
 
   useEffect(() => {
+    // Set default font for all Text components
+    Text.defaultProps = Text.defaultProps || {};
+    Text.defaultProps.style = { fontFamily: FONTS.PRIMARY };
+    
     // Simplified initialization using ReactContextManager
     console.log('🚀 App initialization started...');
     

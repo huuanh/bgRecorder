@@ -47,6 +47,9 @@ class VideoRecordingService : Service() {
         const val EXTRA_CAMERA = "camera"
         const val EXTRA_PREVIEW = "preview"
         const val EXTRA_AUTO_SPLIT = "autoSplit"
+        
+        // Static reference to VideoRecordingModule for callbacks
+        var videoRecordingModule: VideoRecordingModule? = null
     }
     
     private var mediaRecorder: MediaRecorder? = null
@@ -91,7 +94,10 @@ class VideoRecordingService : Service() {
         
         when (intent?.action) {
             ACTION_START_RECORDING -> {
-                val duration = intent.getIntExtra(EXTRA_DURATION, 5) * 60 * 1000L // Convert to milliseconds
+                // Duration now comes in seconds, convert to milliseconds
+                val durationSeconds = intent.getIntExtra(EXTRA_DURATION, 300)
+                val duration = durationSeconds * 1000L // Convert seconds to milliseconds
+                Log.d(TAG, "📏 Duration received: ${durationSeconds}s -> ${duration}ms")
                 val quality = intent.getStringExtra(EXTRA_QUALITY) ?: "HD"
                 val camera = intent.getStringExtra(EXTRA_CAMERA) ?: "Back"
                 val preview = intent.getBooleanExtra(EXTRA_PREVIEW, false)
@@ -252,6 +258,20 @@ class VideoRecordingService : Service() {
                     putExtra("camera", recordingSettings["camera"] as? String ?: "Back")
                     putExtra("timestamp", System.currentTimeMillis())
                 })
+                
+                // Also send event to React Native via VideoRecordingModule
+                Log.d(TAG, "🔍 VideoRecordingModule reference: ${videoRecordingModule != null}")
+                videoRecordingModule?.sendRecordingStoppedEvent(duration)
+                Log.d(TAG, "📤 Sent recording stopped event to React Native: ${duration}ms")
+                
+                // Automatically save recording duration to native storage (independent of VideoRecordingModule)
+                Log.d(TAG, "🎯 About to call native auto-save with duration: ${duration}ms")
+                try {
+                    saveDurationToNativeStorage(duration)
+                    Log.d(TAG, "💾 Native auto-saved recording duration: ${duration / 1000.0}s")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error in native auto-save", e)
+                }
             }
             
             // Notify MediaStore so video appears in Gallery
@@ -992,6 +1012,29 @@ class VideoRecordingService : Service() {
             
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning video file", e)
+        }
+    }
+    
+    private fun saveDurationToNativeStorage(durationMs: Long) {
+        try {
+            val durationSeconds = durationMs / 1000.0
+            Log.d(TAG, "🔄 Saving duration: ${durationSeconds}s to native storage")
+            
+            // Get current total and add new duration
+            val prefs = getSharedPreferences("recording_stats", Context.MODE_PRIVATE)
+            val currentTotal = prefs.getFloat("total_recording_duration", 0f)
+            val newTotal = currentTotal + durationSeconds.toFloat()
+            
+            // Save updated total
+            prefs.edit().apply {
+                putFloat("total_recording_duration", newTotal)
+                apply()
+            }
+            
+            Log.d(TAG, "📊 Native storage updated: ${currentTotal}s -> ${newTotal}s (+${durationSeconds}s)")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error saving duration to native storage", e)
         }
     }
     

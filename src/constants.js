@@ -22,3 +22,33 @@ export const COLORS = {
   ACCENT: '#ff6b35',
   ITEM: '#F1E6D9'
 };
+
+export const FONTS = {
+  PRIMARY: 'notosans',
+};
+
+export const TEXT_STYLES = {
+  // Base text styles with font applied
+  title: {
+    fontFamily: 'notosans',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontFamily: 'notosans', 
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  body: {
+    fontFamily: 'notosans',
+    fontSize: 14,
+  },
+  caption: {
+    fontFamily: 'notosans',
+    fontSize: 12,
+  },
+  small: {
+    fontFamily: 'notosans', 
+    fontSize: 10,
+  }
+};

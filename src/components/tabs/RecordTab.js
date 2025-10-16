@@ -12,7 +12,7 @@ import {
     NativeModules,
     AppState
 } from 'react-native';
-import { COLORS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 import { NativeAdComponent } from '../NativeAdComponent';
 import AdManager, { ADS_UNIT } from '../../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,11 +22,14 @@ import CameraModeModal from '../CameraModeModal';
 import DurationModal from '../DurationModal';
 import ResolutionModal from '../ResolutionModal';
 import IAPModal from '../IAPModal';
+import RecordingLimitModal from '../RecordingLimitModal';
 import useTranslation from '../../hooks/useTranslation';
 import remoteConfigManager from '../../RemoteConfigManager';
+import { checkVipStatus } from '../../utils/VipUtils';
 
 const { VideoRecordingModule } = NativeModules;
 const { width } = Dimensions.get('window');
+const RECORDING_LIMIT_SECONDS = 180; // 3 minutes = 180 seconds
 
 const RecordTab = () => {
     const { t } = useTranslation();
@@ -45,6 +48,8 @@ const RecordTab = () => {
     const [showDurationModal, setShowDurationModal] = useState(false);
     const [showResolutionModal, setShowResolutionModal] = useState(false);
     const [showIAPModal, setShowIAPModal] = useState(false);
+    const [showRecordingLimitModal, setShowRecordingLimitModal] = useState(false);
+    const [totalRecordingDuration, setTotalRecordingDuration] = useState(0);
 
     useEffect(() => {
         // Debug log to check module availability
@@ -64,6 +69,9 @@ const RecordTab = () => {
                 
                 // Load camera settings
                 loadCameraSettings();
+                
+                // Load total recording duration
+                loadTotalRecordingDuration();
             }, 500);
         });
         
@@ -90,6 +98,12 @@ const RecordTab = () => {
                 
                 // Hide overlay if it was shown
                 hideRecordingOverlay();
+                
+                // Native đã tự động lưu duration rồi, chỉ cần reload để hiển thị
+                console.log('📊 Native already saved duration, reloading UI...');
+                setTimeout(() => {
+                    loadTotalRecordingDuration();
+                }, 500);
                 
                 // Save video to storage
                 if (data.filePath && data.duration) {
@@ -275,6 +289,75 @@ const RecordTab = () => {
         }
     };
 
+    // Load total recording duration from native storage
+    const loadTotalRecordingDuration = async () => {
+        try {
+            if (VideoRecordingModule && VideoRecordingModule.getTotalRecordingDuration) {
+                console.log('🔍 Loading total recording duration from native...');
+                const duration = await VideoRecordingModule.getTotalRecordingDuration();
+                setTotalRecordingDuration(duration || 0);
+                console.log('✅ Loaded total recording duration:', duration, 'seconds');
+            } else {
+                console.log('⚠️ Native getTotalRecordingDuration not available');
+            }
+        } catch (error) {
+            console.log('❌ Error loading total recording duration:', error);
+        }
+    };
+
+    // Test functions for debugging
+    const testAddDuration = async () => {
+        try {
+            if (VideoRecordingModule && VideoRecordingModule.addTestRecordingDuration) {
+                console.log('🧪 Adding test duration: 30 seconds');
+                const newTotal = await VideoRecordingModule.addTestRecordingDuration(30);
+                console.log('🧪 New total after test:', newTotal);
+                setTotalRecordingDuration(newTotal);
+            }
+        } catch (error) {
+            console.log('❌ Error adding test duration:', error);
+        }
+    };
+
+    const testResetDuration = async () => {
+        try {
+            if (VideoRecordingModule && VideoRecordingModule.resetRecordingDuration) {
+                console.log('🔄 Resetting duration to 0');
+                await VideoRecordingModule.resetRecordingDuration();
+                setTotalRecordingDuration(0);
+                console.log('🔄 Duration reset complete');
+            }
+        } catch (error) {
+            console.log('❌ Error resetting duration:', error);
+        }
+    };
+
+    // Check if free user can record based on 3-minute limit
+    const checkRecordingLimit = async () => {
+        try {
+            const isVip = await checkVipStatus();
+            if (isVip) {
+                console.log('✅ VIP user - no recording limit');
+                return { canRecord: true, remainingTime: null };
+            }
+
+            
+            const remainingTime = RECORDING_LIMIT_SECONDS - totalRecordingDuration;
+            
+            if (remainingTime <= 0) {
+                console.log('❌ Free user reached 3-minute recording limit');
+                return { canRecord: false, remainingTime: 0 };
+            }
+
+            console.log(`✅ Free user can record ${remainingTime}s more (${Math.floor(remainingTime/60)}:${Math.floor(remainingTime%60).toString().padStart(2, '0')} remaining)`);
+            return { canRecord: true, remainingTime: remainingTime };
+            
+        } catch (error) {
+            console.log('❌ Error checking recording limit:', error);
+            return { canRecord: true, remainingTime: null };
+        }
+    };
+
     const handleCameraModeSelect = async (mode) => {
         try {
             await CameraSettingsManager.saveCameraMode(mode);
@@ -428,6 +511,14 @@ const RecordTab = () => {
             try {
                 console.log('▶️ Starting recording with settings:', recordingSettings);
                 
+                // Check recording limit for free users first
+                const limitCheck = await checkRecordingLimit();
+                if (!limitCheck.canRecord) {
+                    console.log('🚫 Recording blocked - limit reached');
+                    setShowRecordingLimitModal(true);
+                    return;
+                }
+                
                 // Check recording permissions first
                 if (VideoRecordingModule) {
                     try {
@@ -499,6 +590,10 @@ const RecordTab = () => {
                         width: videoSize.width,
                         height: videoSize.height
                     };
+                    let timeleft = RECORDING_LIMIT_SECONDS - totalRecordingDuration;
+                    recordingConfig.duration = Math.min(recordingConfig.duration * 60, timeleft);
+
+                    console.log('🎬 Starting recording with config:', recordingConfig, 'and video size:', videoSize);
                     
                     const result = await VideoRecordingModule.startRecording(recordingConfig);
                     console.log('✅ Recording start result:', result, 'with video size:', videoSize);
@@ -739,6 +834,17 @@ const RecordTab = () => {
                 visible={showIAPModal}
                 onClose={() => setShowIAPModal(false)}
             />
+
+            {/* Recording Limit Modal */}
+            <RecordingLimitModal
+                visible={showRecordingLimitModal}
+                onClose={() => setShowRecordingLimitModal(false)}
+                onBuyPremium={() => {
+                    setShowRecordingLimitModal(false);
+                    setShowIAPModal(true);
+                }}
+                totalRecordingTime={`${Math.floor(totalRecordingDuration / 60).toString().padStart(2, '0')}:${Math.floor(totalRecordingDuration % 60).toString().padStart(2, '0')}`}
+            />
         </View>
     );
 };
@@ -787,12 +893,13 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         marginBottom: 2,
         textAlign: 'center',
-        fontFamily: 'notosans',
+        fontFamily: FONTS.PRIMARY,
     },
     settingValue: {
         fontSize: 10,
         fontWeight: '500',
         textAlign: 'center',
+        fontFamily: FONTS.PRIMARY,
     },
     timerContainer: {
         alignItems: 'center',
@@ -803,7 +910,7 @@ const styles = StyleSheet.create({
         fontSize: 60,
         fontWeight: 900,
         color: '#1E3A8A',
-        fontFamily: 'notosans',
+        fontFamily: FONTS.PRIMARY,
     },
     recordingIndicator: {
         position: 'absolute',
@@ -818,6 +925,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 2,
         paddingVertical: 2,
         borderRadius: 4,
+        fontFamily: FONTS.PRIMARY,
     },
     adContainer: {
         alignItems: 'center',
@@ -841,6 +949,7 @@ const styles = StyleSheet.create({
     recordButtonIcon: {
         fontSize: 40,
         color: COLORS.TERTIARY,
+        fontFamily: FONTS.PRIMARY,
     },
     recordButtonInnerStop: {
         width: 40,
@@ -867,6 +976,7 @@ const styles = StyleSheet.create({
         color: '#92400E',
         fontWeight: '500',
         textAlign: 'center',
+        fontFamily: FONTS.PRIMARY,
     },
 });
 

@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     },
     nativeAdMedia: {
         width: '100%',
-        height: (height / width <= 16 / 9) ? height * 0.16 : height * 0.20,
+        height: (height / width <= 16 / 9) ? height * 0.16 : height * 0.19,
         borderRadius: 8,
         justifyContent: 'center',
         alignItems: 'center',

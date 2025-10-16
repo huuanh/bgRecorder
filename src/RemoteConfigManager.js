@@ -16,7 +16,7 @@ class RemoteConfigManager {
             show_int_stop_record: true,
             show_int_close_iap: true,
             distance_time_to_show_interstitial: 60, // in seconds
-            
+            is_btn_exp_ontop: true,
         };
     }
 
@@ -148,6 +148,9 @@ class RemoteConfigManager {
     
     distanceTimeToShowInterstitial() {
         return this.getLocalValue('distance_time_to_show_interstitial');
+    }
+    isBtnExpOnTop() {
+        return this.getLocalValue('is_btn_exp_ontop');
     }
 
     // Get all current values (for debugging)

@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     Image,
 } from 'react-native';
-import { COLORS } from '../constants';
+import { COLORS, FONTS } from '../constants';
 import RecordTab from './tabs/RecordTab';
 import GalleryTab from './tabs/GalleryTab';
 import EditTab from './tabs/EditTab';
@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
+        fontFamily: FONTS.PRIMARY,
     },
     headerTitlePrimary: {
         color: COLORS.TERTIARY,
@@ -211,6 +212,7 @@ const styles = StyleSheet.create({
     },
     tabIconText: {
         fontSize: 20,
+        fontFamily: FONTS.PRIMARY,
     },
     tabIconImage: {
         width: 20,
@@ -221,6 +223,7 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#9CA3AF',
         fontWeight: '500',
+        fontFamily: FONTS.PRIMARY,
     },
     activeTabText: {
         color: '#1E3A8A',

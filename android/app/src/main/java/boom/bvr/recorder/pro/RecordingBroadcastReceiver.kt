@@ -9,7 +9,10 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
-class RecordingBroadcastReceiver(private val reactContext: ReactApplicationContext) : BroadcastReceiver() {
+class RecordingBroadcastReceiver(
+    private val reactContext: ReactApplicationContext,
+    private val videoRecordingModule: VideoRecordingModule? = null
+) : BroadcastReceiver() {
     
     companion object {
         const val TAG = "RecordingBroadcastReceiver"
@@ -30,6 +33,9 @@ class RecordingBroadcastReceiver(private val reactContext: ReactApplicationConte
                 val quality = intent.getStringExtra("quality")
                 val camera = intent.getStringExtra("camera")
                 val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
+                
+                // Update recording duration in native storage
+                videoRecordingModule?.notifyRecordingStopped(duration)
                 
                 val params = Arguments.createMap().apply {
                     putDouble("duration", duration.toDouble())

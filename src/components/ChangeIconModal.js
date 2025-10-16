@@ -11,7 +11,7 @@ import {
     Alert,
     Platform,
 } from 'react-native';
-import { COLORS } from '../constants';
+import { COLORS, FONTS } from '../constants';
 import IconManager from '../utils/IconManager';
 import useTranslation from '../hooks/useTranslation';
 
@@ -213,6 +213,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: COLORS.TEXT_PRIMARY,
+        fontFamily: FONTS.PRIMARY,
     },
     closeButton: {
         width: 30,
@@ -227,6 +228,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         // color: COLORS.TEXT_SECONDARY,
         fontWeight: 'bold',
+        width: 25,
+        height: 25,
+        resizeMode: 'contain',
     },
     content: {
         paddingHorizontal: 20,

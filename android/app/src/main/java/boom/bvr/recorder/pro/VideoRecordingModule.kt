@@ -33,7 +33,7 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     
     private var recordingService: VideoRecordingService? = null
     private var serviceBound = false
-    private val broadcastReceiver = RecordingBroadcastReceiver(reactContext)
+    private val broadcastReceiver = RecordingBroadcastReceiver(reactContext, this)
     
     // Cache for thumbnails and durations to improve performance
     private val thumbnailCache = mutableMapOf<String, String?>()
@@ -72,12 +72,18 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
             val binder = service as VideoRecordingService.LocalBinder
             recordingService = binder.getService()
             serviceBound = true
+            
+            // Set reference so service can call back to this module
+            VideoRecordingService.videoRecordingModule = this@VideoRecordingModule
         }
         
         override fun onServiceDisconnected(name: ComponentName?) {
             Log.d(TAG, "Service disconnected")
             recordingService = null
             serviceBound = false
+            
+            // Clear reference
+            VideoRecordingService.videoRecordingModule = null
         }
     }
     
@@ -103,9 +109,14 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
                 return
             }
             
+            // val durationMinutes = settings.getInt("duration")
+            val durationSeconds = settings.getInt("duration")
+            //Log.d("VideoRecordingModule", "📏 Duration conversion: ${durationMinutes}min -> ${durationSeconds}s")
+            
             val serviceIntent = Intent(context, VideoRecordingService::class.java).apply {
                 action = VideoRecordingService.ACTION_START_RECORDING
-                putExtra(VideoRecordingService.EXTRA_DURATION, settings.getInt("duration"))
+                // Convert duration from minutes to seconds for more precise free user limit handling
+                putExtra(VideoRecordingService.EXTRA_DURATION, durationSeconds)
                 putExtra(VideoRecordingService.EXTRA_QUALITY, settings.getString("quality"))
                 putExtra(VideoRecordingService.EXTRA_CAMERA, settings.getString("camera"))
                 putExtra(VideoRecordingService.EXTRA_PREVIEW, settings.getBoolean("preview"))
@@ -1122,7 +1133,7 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         sendEvent("onRecordingStarted", null)
     }
     
-    fun notifyRecordingStopped(duration: Long) {
+    fun sendRecordingStoppedEvent(duration: Long) {
         sendEvent("onRecordingStopped", WritableNativeMap().apply {
             putDouble("duration", duration.toDouble())
         })
@@ -1253,6 +1264,106 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         } catch (e: Exception) {
             Log.e(TAG, "Error checking manage external storage permission", e)
             promise.reject("PERMISSION_CHECK_ERROR", "Cannot check permission: ${e.message}")
+        }
+    }
+    
+    // Recording Duration Tracking Methods
+    @ReactMethod
+    fun getTotalRecordingDuration(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val prefs = context.getSharedPreferences("recording_stats", Context.MODE_PRIVATE)
+            val totalSeconds = prefs.getFloat("total_recording_duration", 0f)
+            
+            Log.d(TAG, "📊 Get total recording duration: ${totalSeconds}s")
+            promise.resolve(totalSeconds.toDouble())
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error getting total recording duration", e)
+            promise.reject("GET_DURATION_ERROR", e.message)
+        }
+    }
+    
+    @ReactMethod
+    fun saveTotalRecordingDuration(durationSeconds: Double, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val prefs = context.getSharedPreferences("recording_stats", Context.MODE_PRIVATE)
+            
+            prefs.edit().apply {
+                putFloat("total_recording_duration", durationSeconds.toFloat())
+                apply()
+            }
+            
+            Log.d(TAG, "💾 Saved total recording duration: ${durationSeconds}s")
+            promise.resolve(durationSeconds)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error saving total recording duration", e)
+            promise.reject("SAVE_DURATION_ERROR", e.message)
+        }
+    }
+    
+    @ReactMethod
+    fun addTestRecordingDuration(additionalSeconds: Double, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val prefs = context.getSharedPreferences("recording_stats", Context.MODE_PRIVATE)
+            val currentTotal = prefs.getFloat("total_recording_duration", 0f)
+            val newTotal = currentTotal + additionalSeconds.toFloat()
+            
+            prefs.edit().apply {
+                putFloat("total_recording_duration", newTotal)
+                apply()
+            }
+            
+            Log.d(TAG, "🧪 Added ${additionalSeconds}s, new total: ${newTotal}s")
+            promise.resolve(newTotal.toDouble())
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error adding test duration", e)
+            promise.reject("ADD_DURATION_ERROR", e.message)
+        }
+    }
+    
+    @ReactMethod
+    fun resetRecordingDuration(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val prefs = context.getSharedPreferences("recording_stats", Context.MODE_PRIVATE)
+            
+            prefs.edit().apply {
+                putFloat("total_recording_duration", 0f)
+                apply()
+            }
+            
+            Log.d(TAG, "🔄 Reset recording duration to 0")
+            promise.resolve(0.0)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error resetting duration", e)
+            promise.reject("RESET_DURATION_ERROR", e.message)
+        }
+    }
+    
+    // Method called by BroadcastReceiver when recording stops
+    fun notifyRecordingStopped(durationMs: Long) {
+        try {
+            val durationSeconds = durationMs / 1000.0
+            Log.d(TAG, "🔔 Notified recording stopped, duration: ${durationSeconds}s")
+            
+            // Get current total and add new duration
+            val context = reactApplicationContext
+            val prefs = context.getSharedPreferences("recording_stats", Context.MODE_PRIVATE)
+            val currentTotal = prefs.getFloat("total_recording_duration", 0f)
+            val newTotal = currentTotal + durationSeconds.toFloat()
+            
+            // Save updated total
+            prefs.edit().apply {
+                putFloat("total_recording_duration", newTotal)
+                apply()
+            }
+            
+            Log.d(TAG, "📊 Updated total recording duration: ${currentTotal}s -> ${newTotal}s (+${durationSeconds}s)")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error updating recording duration from broadcast", e)
         }
     }
     
