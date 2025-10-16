@@ -174,7 +174,7 @@ const LoadingScreen = () => {
   return (
     <View style={styles.loadingContainer}>
       <View style={styles.iconBox}>
-        <Image source={require('../../assets/loading/icon.png')} style={styles.icon} />
+        <Image source={require('../../assets/setting/icon/default.png')} style={styles.icon} />
       </View>
       <Text style={styles.title}>{t('appTitle', 'Background Video Recorder')}</Text>
       <View style={styles.progressBarContainer}>

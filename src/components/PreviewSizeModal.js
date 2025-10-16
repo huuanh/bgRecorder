@@ -19,20 +19,20 @@ const PreviewSizeModal = ({ visible, onClose, currentPreviewSize, onSelect }) =>
     const { t } = useTranslation();
     const previewSizeOptions = [
         { 
-            id: t('small', 'small'), 
-            label: t('small', 'small'), 
+            id: t('small', 'Small'), 
+            label: t('small', 'Small'), 
         },
         { 
-            id: t('medium', 'medium'), 
-            label: t('medium', 'medium'), 
+            id: t('medium', 'Medium'), 
+            label: t('medium', 'Medium'), 
         },
         { 
-            id: t('large', 'large'), 
-            label: t('large', 'large'), 
-            isPro: true
+            id: t('large', 'Large'), 
+            label: t('large', 'Large'), 
+            // isPro: true
         }
     ];
-
+console.log('📐 PreviewSizeModal: currentPreviewSize =', currentPreviewSize);
     const handleSelect = (previewSize) => {
         onSelect(previewSize.id);
         onClose();

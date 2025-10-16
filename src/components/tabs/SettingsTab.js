@@ -41,7 +41,7 @@ const SettingsTab = () => {
         autoSplit: false,
         duration: 3, // Default to 3 minutes
         resolution: 'HD', // Default to HD
-        previewSize: t('medium', 'medium'),
+        previewSize: t('large', 'Large'),
     });
 
     const [securitySettings, setSecuritySettings] = useState({
