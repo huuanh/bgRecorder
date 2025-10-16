@@ -40,7 +40,7 @@ export const ADS_UNIT_VALUES = {
     NATIVE_SETTING: TestIds.NATIVE,
     NATIVE_PREVIEW_SIZE: TestIds.NATIVE,
     NATIVE_RECORDING_LIMIT: TestIds.NATIVE,
-    
+
     // Interstitial Ads
     INTERSTITIAL_IAP: TestIds.INTERSTITIAL,
     INTERSTITIAL_STOP_RECORD: TestIds.INTERSTITIAL,
@@ -406,7 +406,7 @@ class AdManager {
         console.log('  Required cooldown:', cooldown, 'ms');
         console.log('  Can show:', timeSinceLastAd >= cooldown);
         
-        return timeSinceLastAd >= cooldown;
+        return timeSinceLastAd >= cooldown * 1000;
     }
 
     // Get banner component

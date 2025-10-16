@@ -50,6 +50,7 @@ const RecordTab = () => {
     const [showIAPModal, setShowIAPModal] = useState(false);
     const [showRecordingLimitModal, setShowRecordingLimitModal] = useState(false);
     const [totalRecordingDuration, setTotalRecordingDuration] = useState(0);
+    const [isProcessingRecordAction, setIsProcessingRecordAction] = useState(false);
 
     useEffect(() => {
         // Debug log to check module availability
@@ -474,14 +475,23 @@ const RecordTab = () => {
     };
 
     const handleRecordPress = async () => {
-        if (isRecording) {
-            // Stop recording
-            try {
+        // Prevent spam clicking by adding delay and processing state
+        if (isProcessingRecordAction) {
+            console.log('🚫 Record action already in progress, ignoring click');
+            return;
+        }
+
+        // Set processing state to prevent multiple clicks
+        setIsProcessingRecordAction(true);
+
+        try {
+            if (isRecording) {
+                // Stop recording
                 console.log('🛑 Stopping recording...');
                 
                 // Hide overlay first
                 await hideRecordingOverlay();
-                
+            
                 if (VideoRecordingModule) {
                     await VideoRecordingModule.stopRecording();
                     console.log('✅ Recording stop request sent');
@@ -498,17 +508,8 @@ const RecordTab = () => {
                 }
 
                 remoteConfigManager.isShowIntStopRecord() && AdManager.showInterstitialAd(ADS_UNIT.INTERSTITIAL_STOP_RECORD);
-            } catch (error) {
-                console.error('❌ Failed to stop recording:', error);
-                // Even if there's an error, reset the UI state
-                setIsRecording(false);
-                setIsServiceRecording(false);
-                setRecordingTime(0);
-                Alert.alert('Error', 'Failed to stop recording');
-            }
-        } else {
-            // Start recording
-            try {
+            } else {
+                // Start recording
                 console.log('▶️ Starting recording with settings:', recordingSettings);
                 
                 // Check recording limit for free users first
@@ -521,60 +522,52 @@ const RecordTab = () => {
                 
                 // Check recording permissions first
                 if (VideoRecordingModule) {
-                    try {
-                        const permissionCheck = await VideoRecordingModule.checkRecordingPermissions();
-                        console.log('🔍 Recording permissions check:', permissionCheck);
+                    const permissionCheck = await VideoRecordingModule.checkRecordingPermissions();
+                    console.log('🔍 Recording permissions check:', permissionCheck);
+                    
+                    if (!permissionCheck.allGranted) {
+                        let missingPermissions = [];
+                        if (!permissionCheck.cameraGranted) missingPermissions.push('Camera');
+                        if (!permissionCheck.audioGranted) missingPermissions.push('Microphone');
                         
-                        if (!permissionCheck.allGranted) {
-                            let missingPermissions = [];
-                            if (!permissionCheck.cameraGranted) missingPermissions.push('Camera');
-                            if (!permissionCheck.audioGranted) missingPermissions.push('Microphone');
-                            
-                            Alert.alert(
-                                t('permission_required', 'Permissions Required'),
-                                `To record video with audio, we need ${missingPermissions.join(' and ')} permission(s). Please grant these permissions in Settings.`,
-                                [
-                                    { text: t('cancel', 'Cancel'), style: 'cancel' },
-                                    { 
-                                        text: 'Open Settings', 
-                                        onPress: () => {
-                                            Alert.alert(t('permissions', 'Permissions'), t('camera_permission', 'Please go to Settings > Apps > BgRecorder > Permissions and enable Camera and Microphone permissions, then try recording again.'));
-                                        }
+                        Alert.alert(
+                            t('permission_required', 'Permissions Required'),
+                            `To record video with audio, we need ${missingPermissions.join(' and ')} permission(s). Please grant these permissions in Settings.`,
+                            [
+                                { text: t('cancel', 'Cancel'), style: 'cancel' },
+                                { 
+                                    text: 'Open Settings', 
+                                    onPress: () => {
+                                        Alert.alert(t('permissions', 'Permissions'), t('camera_permission', 'Please go to Settings > Apps > BgRecorder > Permissions and enable Camera and Microphone permissions, then try recording again.'));
                                     }
-                                ]
-                            );
-                            return;
-                        }
-                    } catch (permissionError) {
-                        console.error('❌ Failed to check recording permissions:', permissionError);
+                                }
+                            ]
+                        );
+                        return;
                     }
                 }
                 
                 // Check overlay permission if preview is enabled
-                if (recordingSettings.preview) {
-                    try {
-                        const permissionCheck = await VideoRecordingModule.checkOverlayPermission();
-                        console.log('🔍 Overlay permission check:', permissionCheck);
-                        
-                        if (!permissionCheck.hasPermission) {
-                            Alert.alert(
-                                'Overlay Permission Required',
-                                'To show video preview overlay, we need permission to draw over other apps. Please grant this permission.',
-                                [
-                                    { text: t('cancel', 'Cancel'), style: 'cancel' },
-                                    { 
-                                        text: 'Grant Permission', 
-                                        onPress: async () => {
-                                            await VideoRecordingModule.requestOverlayPermission();
-                                            Alert.alert('Permission', t('overlay_permission', 'Please go to Settings and enable "Display over other apps" permission, then try recording again.'));
-                                        }
+                if (recordingSettings.preview && VideoRecordingModule) {
+                    const permissionCheck = await VideoRecordingModule.checkOverlayPermission();
+                    console.log('🔍 Overlay permission check:', permissionCheck);
+                    
+                    if (!permissionCheck.hasPermission) {
+                        Alert.alert(
+                            'Overlay Permission Required',
+                            'To show video preview overlay, we need permission to draw over other apps. Please grant this permission.',
+                            [
+                                { text: t('cancel', 'Cancel'), style: 'cancel' },
+                                { 
+                                    text: 'Grant Permission', 
+                                    onPress: async () => {
+                                        await VideoRecordingModule.requestOverlayPermission();
+                                        Alert.alert('Permission', t('overlay_permission', 'Please go to Settings and enable "Display over other apps" permission, then try recording again.'));
                                     }
-                                ]
-                            );
-                            return;
-                        }
-                    } catch (permissionError) {
-                        console.error('❌ Failed to check overlay permission:', permissionError);
+                                }
+                            ]
+                        );
+                        return;
                     }
                 }
                 
@@ -637,23 +630,29 @@ const RecordTab = () => {
                     setIsRecording(true);
                     setIsServiceRecording(true);
                 }
-            } catch (error) {
-                console.error('❌ Failed to start recording:', error);
-                
-                // Reset recording state on error
-                setIsRecording(false);
-                setIsServiceRecording(false);
-                setRecordingTime(0);
-                
-                // Handle specific error types
-                if (error.message?.includes('ReactContext') || error.message?.includes('JS module')) {
-                    Alert.alert(t('initialization_error', 'Initialization Error'), t('app_starting_up', 'App is still starting up. Please wait a moment and try again.'));
-                } else if (error.message.includes('PERMISSION_ERROR')) {
-                    Alert.alert(t('permission_error', 'Permission Error'), t('grant_permissions', 'Please grant Camera and Microphone permissions to record video with audio.'));
-                } else {
-                    Alert.alert(t('error', 'Error'), `Failed to start recording: ${error.message}`);
-                }
             }
+        } catch (error) {
+            console.error('❌ Error in handleRecordPress:', error);
+            
+            // Reset recording state on any error
+            setIsRecording(false);
+            setIsServiceRecording(false);
+            setRecordingTime(0);
+            
+            // Handle specific error types
+            if (error.message?.includes('ReactContext') || error.message?.includes('JS module')) {
+                Alert.alert(t('initialization_error', 'Initialization Error'), t('app_starting_up', 'App is still starting up. Please wait a moment and try again.'));
+            } else if (error.message?.includes('PERMISSION_ERROR')) {
+                Alert.alert(t('permission_error', 'Permission Error'), t('grant_permissions', 'Please grant Camera and Microphone permissions to record video with audio.'));
+            } else {
+                Alert.alert(t('error', 'Error'), `Failed to process recording: ${error.message}`);
+            }
+        } finally {
+            // Add delay to prevent spam clicking and reset processing state
+            setTimeout(() => {
+                setIsProcessingRecordAction(false);
+                console.log('✅ Record action processing complete, button ready for next action');
+            }, 2000); // 2 second delay to prevent spam clicking
         }
     };
 
@@ -792,9 +791,13 @@ const RecordTab = () => {
             <TouchableOpacity
                 style={[
                     styles.recordButton,
-                    { backgroundColor: isRecording ? '#EF4444' : '#1E3A8A' }
+                    { 
+                        backgroundColor: isRecording ? '#EF4444' : '#1E3A8A',
+                        opacity: isProcessingRecordAction ? 0.6 : 1.0
+                    }
                 ]}
                 onPress={handleRecordPress}
+                disabled={isProcessingRecordAction}
             >
                 <View style={styles.recordButtonIcon}>
                     <Text style={isRecording ? styles.recordButtonInnerStop : styles.recordButtonInnerStart}>

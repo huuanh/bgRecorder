@@ -9,6 +9,8 @@ import {
     Alert,
     Image,
     Dimensions,
+    Share,
+    Linking,
 } from 'react-native';
 import { COLORS } from '../../constants';
 import { NativeAdComponent } from '../NativeAdComponent';
@@ -263,6 +265,55 @@ const SettingsTab = () => {
         );
     };
 
+    const handleShareApp = async () => {
+        try {
+            const shareOptions = {
+                title: t('share_app', 'Share BgRecorder App'),
+                message: t('share_message', 'Check out this amazing screen recorder app! ') + 'https://play.google.com/store/apps/details?id=boom.bvr.recorder.pro',
+                url: 'https://play.google.com/store/apps/details?id=boom.bvr.recorder.pro'
+            };
+
+            const result = await Share.share(shareOptions);
+            
+            if (result.action === Share.sharedAction) {
+                if (result.activityType) {
+                    console.log('✅ App shared via:', result.activityType);
+                } else {
+                    console.log('✅ App shared successfully');
+                }
+            } else if (result.action === Share.dismissedAction) {
+                console.log('📱 Share dialog dismissed');
+            }
+        } catch (error) {
+            console.error('❌ Error sharing app:', error);
+            Alert.alert(t('error', 'Error'), t('share_failed', 'Failed to share app. Please try again.'));
+        }
+    };
+
+    const handlePrivacyPolicy = async () => {
+        try {
+            const privacyUrl = 'https://sites.google.com/boomstudio.vn/privacypolicyforboomgamesjsc';
+            const canOpen = await Linking.canOpenURL(privacyUrl);
+            
+            if (canOpen) {
+                await Linking.openURL(privacyUrl);
+                console.log('✅ Privacy policy opened successfully');
+            } else {
+                console.log('❌ Cannot open privacy policy URL');
+                Alert.alert(
+                    t('error', 'Error'), 
+                    t('cannot_open_link', 'Cannot open link. Please check your browser settings.')
+                );
+            }
+        } catch (error) {
+            console.error('❌ Error opening privacy policy:', error);
+            Alert.alert(
+                t('error', 'Error'), 
+                t('privacy_link_failed', 'Failed to open privacy policy. Please try again.')
+            );
+        }
+    };
+
     const handleOptionPress = (option) => {
         switch (option) {
             case 'changeIcon':
@@ -278,10 +329,10 @@ const SettingsTab = () => {
                 setShowChangeLanguageModal(true);
                 break;
             case 'share':
-                Alert.alert(t('share_app', 'Share App'), t('coming_soon', 'Feature coming soon!'));
+                handleShareApp();
                 break;
             case 'privacy':
-                Alert.alert(t('privacy_policy', 'Privacy Policy'), t('coming_soon', 'Feature coming soon!'));
+                handlePrivacyPolicy();
                 break;
             case 'upgrade':
                 showIAP('settings_vip_banner');

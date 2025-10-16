@@ -94,7 +94,11 @@ export const TRANSLATIONS = {
     'change_icon': 'Đổi biểu tượng',
     'save_location': 'Vị trí lưu',
     'share_app': 'Chia sẻ ứng dụng',
+    'share_message': 'Hãy thử ứng dụng quay màn hình tuyệt vời này! ',
+    'share_failed': 'Không thể chia sẻ ứng dụng. Vui lòng thử lại.',
     'privacy_policy': 'Chính sách bảo mật',
+    'cannot_open_link': 'Không thể mở liên kết. Vui lòng kiểm tra cài đặt trình duyệt.',
+    'privacy_link_failed': 'Không thể mở chính sách bảo mật. Vui lòng thử lại.',
     'failed_to_save_camera_mode': 'Không thể lưu chế độ camera',
     'failed_to_save_duration': 'Không thể lưu thời lượng',
     'failed_to_save_resolution': 'Không thể lưu độ phân giải',
@@ -208,6 +212,27 @@ export const TRANSLATIONS = {
     'computer_icons': 'Máy tính',
     'weather_icons': 'Thời tiết',
 
+    // Recording Limit Modal
+    'free_limit_3min': 'Bạn đang sử dụng phiên bản miễn phí, chỉ cho phép ghi màn hình tối đa 3 phút. Vui lòng nâng cấp lên phiên bản Premium để ghi màn hình không giới hạn thời gian!',
+    'upgrade_for_unlimited': 'Nâng cấp lên Premium để ghi hình không giới hạn, chất lượng cao hơn và nhiều tính năng khác!',
+    'unlimited_recording': 'Ghi hình không giới hạn',
+    'no_ads': 'Không quảng cáo',
+    'upgrade_premium': 'Nâng cấp Premium',
+    'continue_limited': 'Tiếp tục với giới hạn',
+
+    // Authentication Modal
+    'appLocked': 'Ứng dụng bị khóa',
+    'enterPassword': 'Nhập mật khẩu của bạn',
+    'unlockWithPassword': 'Mở khóa bằng mật khẩu',
+    'useBiometrics': 'Sử dụng sinh trắc học',
+    'failedAttempts': '{count} lần thử thất bại{plural}',
+    'exitApp': 'Thoát ứng dụng',
+
+    // Duration Modal
+    'recordingDuration': 'Thời lượng ghi hình',
+    'premiumMember': '👑 Thành viên Premium',
+    'freeUser': '👤 Người dùng miễn phí',
+    'upgradeToPremiumNote': '💡 Nâng cấp lên Premium để mở khóa ghi hình không giới hạn và loại bỏ quảng cáo!',
     
     // IAP Modal
     'bestOption': 'Lựa chọn tốt nhất',
@@ -223,6 +248,43 @@ export const TRANSLATIONS = {
     'cancellationInfo': 'Bạn có thể hủy đăng ký bất cứ lúc nào trên Google Play Store.',
     'billingInfo': 'Sau thời gian dùng thử miễn phí, đăng ký sẽ được tính phí định kỳ theo mức giá hiển thị ở trên.',
     'termsAndConditions': 'Điều khoản & Điều kiện',
+
+    // Settings Tab
+    'becomeVipMember': 'TRỞ THÀNH THÀNH VIÊN VIP',
+    'enjoyPremiumPackage': 'Trải nghiệm gói Premium với tính năng độc quyền.',
+    'failed_to_save_auto_split': 'Không thể lưu cài đặt tự động tách',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'Bạn có chắc chắn muốn thoát khỏi việc cắt video?',
+    'invalid_selection': 'Lựa chọn không hợp lệ',
+    'select_at_least_1_second': 'Vui lòng chọn ít nhất 1 giây video để cắt.',
+    'export_failed': 'Xuất thất bại',
+    'failed_to_trim_video': 'Không thể cắt video. Vui lòng thử lại.',
+
+    // Compress Modal
+    'compressVideo': 'Nén video',
+    'compressing': 'Đang nén...',
+    'export': 'Xuất',
+    'compressingVideo': 'Đang nén video',
+    'pleaseWait': 'Vui lòng chờ...',
+    'videoExported': 'Video của bạn đã được xuất',
+    'backToHome': 'Về trang chủ',
+    'shareVideo': 'Chia sẻ video',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'Đang chuyển thành âm thanh',
+    'audioExported': 'Âm thanh của bạn đã được xuất',
+    'conversionComplete': 'Hoàn thành chuyển đổi',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'Cần chọn',
+
+    // Network Loading Modal
+    'noInternetConnection': 'Không có kết nối Internet',
+    'connectionTips': 'Mẹo kết nối:',
+    'checkWifiData': '• Kiểm tra WiFi hoặc dữ liệu di động',
+    'moveToBetterSignal': '• Di chuyển đến nơi có tín hiệu tốt hơn',
+    'restartWifiRouter': '• Khởi động lại router WiFi',
     
     // App
     'appTitle': 'Máy ghi video nền',
@@ -388,7 +450,11 @@ export const TRANSLATIONS = {
     'change_icon': 'Change Icon',
     'save_location': 'Save Location',
     'share_app': 'Share App',
+    'share_message': 'Check out this amazing screen recorder app! ',
+    'share_failed': 'Failed to share app. Please try again.',
     'privacy_policy': 'Privacy Policy',
+    'cannot_open_link': 'Cannot open link. Please check your browser settings.',
+    'privacy_link_failed': 'Failed to open privacy policy. Please try again.',
     'failed_to_save_camera_mode': 'Failed to save camera mode',
     'failed_to_save_duration': 'Failed to save duration',
     'failed_to_save_resolution': 'Failed to save resolution',
@@ -501,6 +567,80 @@ export const TRANSLATIONS = {
     'browser_icons': 'Browser',
     'computer_icons': 'Computer',
     'weather_icons': 'Weather',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'You are using the Free version, which allows screen recording for up to 3 minutes. Please upgrade to the Premium version to record the screen without any time limits!',
+    'upgrade_for_unlimited': 'Upgrade to Premium for unlimited recording, higher quality, and more features!',
+    'unlimited_recording': 'Unlimited Recording',
+    'no_ads': 'Ad-Free Experience',
+    'upgrade_premium': 'Upgrade to Premium',
+    'continue_limited': 'Continue with Limit',
+
+    // Authentication Modal
+    'appLocked': 'App Locked',
+    'enterPassword': 'Enter your password',
+    'unlockWithPassword': 'Unlock with Password',
+    'useBiometrics': 'Use Biometrics',
+    'failedAttempts': '{count} failed attempt{plural}',
+    'exitApp': 'Exit App',
+
+    // Duration Modal
+    'recordingDuration': 'Recording Duration',
+    'premiumMember': '👑 Premium Member',
+    'freeUser': '👤 Free User',
+    'upgradeToPremiumNote': '💡 Upgrade to Premium to unlock unlimited recording and remove ads!',
+
+    // IAP Modal
+    'bestOption': 'Best Option',
+    'regularPrice': 'Regular price',
+    'freeTrial': 'FREE TRIAL',
+    'becomePremiumMember': 'Become a Premium member!',
+    'enjoyAdFreeExperience': 'Enjoy an ad-free experience.',
+    'unlockPremiumFeatures': 'Unlock the Premium version with unlimited features.',
+    'loadingSubscriptionPlans': 'Loading subscription plans...',
+    'processing': 'PROCESSING...',
+    'startFreeTrial': 'START FREE TRIAL ››',
+    'buyNow': 'BUY NOW ››',
+    'cancellationInfo': 'You can cancel your subscription on Google Play Store anytime.',
+    'billingInfo': 'After the free trial period, the subscription will be billed periodically at the price shown above.',
+    'termsAndConditions': 'Terms & Conditions',
+
+    // Settings Tab
+    'becomeVipMember': 'BECOME A VIP MEMBER',
+    'enjoyPremiumPackage': 'Enjoy Premium Package with exclusive features.',
+    'failed_to_save_auto_split': 'Failed to save auto split setting',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'Are you sure you want to exit trimming?',
+    'invalid_selection': 'Invalid Selection',
+    'select_at_least_1_second': 'Please select at least 1 second of video to trim.',
+    'export_failed': 'Export Failed',
+    'failed_to_trim_video': 'Failed to trim video. Please try again.',
+
+    // Compress Modal
+    'compressVideo': 'Compress Video',
+    'compressing': 'Compressing...',
+    'export': 'Export',
+    'compressingVideo': 'Compressing video',
+    'pleaseWait': 'Please wait...',
+    'videoExported': 'Your video has been exported',
+    'backToHome': 'Back to Home',
+    'shareVideo': 'Share Video',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'Converting to Audio',
+    'audioExported': 'Your audio has been exported',
+    'conversionComplete': 'Conversion Complete',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'Selection Required',
+
+    // Network Loading Modal
+    'noInternetConnection': 'No Internet Connection',
+    'connectionTips': 'Connection Tips:',
+    'checkWifiData': '• Check your WiFi or mobile data',
+    'moveToBetterSignal': '• Move to a better signal area',
+    'restartWifiRouter': '• Restart your WiFi router',
     
   },
 
@@ -550,7 +690,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': '아직 비디오가 없습니다',
     'no_audio_files_yet': '아직 오디오 파일이 없습니다',
     'startRecordingPrompt': '비디오를 보려면 녹화를 시작하세요',
-    'convertVideosPrompt': '오디오를 보려면 비디오를 변환하세요'
+    'convertVideosPrompt': '오디오를 보려면 비디오를 변환하세요',
+
+    // Settings
+    'set_password': '비밀번호 설정',
+    'change_icon': '아이콘 변경',
+    'save_location': '저장 위치',
+    'share_app': '앱 공유',
+    'share_message': '이 놀라운 화면 녹화 앱을 확인해보세요! ',
+    'share_failed': '앱 공유에 실패했습니다. 다시 시도해주세요.',
+    'privacy_policy': '개인정보 보호정책',
+    'cannot_open_link': '링크를 열 수 없습니다. 브라우저 설정을 확인해주세요.',
+    'privacy_link_failed': '개인정보 보호정책을 열 수 없습니다. 다시 시도해주세요.',
+
+    // Recording Limit Modal
+    'free_limit_3min': '무료 버전을 사용하고 있어 최대 3분까지 화면 녹화가 가능합니다. 시간 제한 없이 녹화하려면 프리미엄 버전으로 업그레이드하세요!',
+    'upgrade_for_unlimited': '프리미엄으로 업그레이드하여 무제한 녹화, 고화질 및 더 많은 기능을 이용하세요!',
+    'unlimited_recording': '무제한 녹화',
+    'no_ads': '광고 없음',
+    'upgrade_premium': '프리미엄 업그레이드',
+    'continue_limited': '제한된 상태로 계속',
+
+    // Authentication Modal
+    'appLocked': '앱 잠김',
+    'enterPassword': '비밀번호를 입력하세요',
+    'unlockWithPassword': '비밀번호로 잠금 해제',
+    'useBiometrics': '생체 인식 사용',
+    'failedAttempts': '{count}번 실패{plural}',
+    'exitApp': '앱 종료',
+
+    // Duration Modal
+    'recordingDuration': '녹화 시간',
+    'premiumMember': '👑 프리미엄 회원',
+    'freeUser': '👤 무료 사용자',
+    'upgradeToPremiumNote': '💡 프리미엄으로 업그레이드하여 무제한 녹화 및 광고 제거!',
+
+    // IAP Modal
+    'bestOption': '최고 옵션',
+    'regularPrice': '정가',
+    'freeTrial': '무료 체험',
+    'becomePremiumMember': '프리미엄 멤버가 되세요!',
+    'enjoyAdFreeExperience': '광고 없는 경험을 즐기세요.',
+    'unlockPremiumFeatures': '무제한 기능이 있는 프리미엄 버전을 잠금 해제하세요.',
+    'loadingSubscriptionPlans': '구독 요금제 로딩 중...',
+    'processing': '처리 중...',
+    'startFreeTrial': '무료 체험 시작 ››',
+    'buyNow': '지금 구매 ››',
+    'cancellationInfo': '언제든지 Google Play 스토어에서 구독을 취소할 수 있습니다.',
+    'billingInfo': '무료 체험 기간 후, 구독은 위에 표시된 가격으로 정기적으로 청구됩니다.',
+    'termsAndConditions': '이용 약관',
+
+    // Settings Tab
+    'becomeVipMember': 'VIP 멤버 되기',
+    'enjoyPremiumPackage': '독점 기능이 있는 프리미엄 패키지를 즐기세요.',
+    'failed_to_save_auto_split': '자동 분할 설정 저장 실패',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': '편집을 종료하시겠습니까?',
+    'invalid_selection': '잘못된 선택',
+    'select_at_least_1_second': '편집할 비디오를 최소 1초 이상 선택하세요.',
+    'export_failed': '내보내기 실패',
+    'failed_to_trim_video': '비디오 편집에 실패했습니다. 다시 시도하세요.',
+
+    // Compress Modal
+    'compressVideo': '비디오 압축',
+    'compressing': '압축 중...',
+    'export': '내보내기',
+    'compressingVideo': '비디오 압축 중',
+    'pleaseWait': '잠시 기다려 주세요...',
+    'videoExported': '비디오가 내보내졌습니다',
+    'backToHome': '홈으로 돌아가기',
+    'shareVideo': '비디오 공유',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': '오디오로 변환 중',
+    'audioExported': '오디오가 내보내졌습니다',
+    'conversionComplete': '변환 완료',
+
+    // Multi Video Selector Modal
+    'selectionRequired': '선택 필요',
+
+    // Network Loading Modal
+    'noInternetConnection': '인터넷 연결 없음',
+    'connectionTips': '연결 팁:',
+    'checkWifiData': '• WiFi 또는 모바일 데이터를 확인하세요',
+    'moveToBetterSignal': '• 신호가 좋은 곳으로 이동하세요',
+    'restartWifiRouter': '• WiFi 라우터를 재시작하세요'
   },
 
   // Japanese
@@ -599,7 +824,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'まだビデオがありません',
     'no_audio_files_yet': 'まだオーディオファイルがありません',
     'startRecordingPrompt': 'ビデオを表示するには録画を開始してください',
-    'convertVideosPrompt': 'オーディオを表示するにはビデオを変換してください'
+    'convertVideosPrompt': 'オーディオを表示するにはビデオを変換してください',
+
+    // Settings
+    'set_password': 'パスワード設定',
+    'change_icon': 'アイコン変更',
+    'save_location': '保存場所',
+    'share_app': 'アプリを共有',
+    'share_message': 'この素晴らしい画面録画アプリをチェック！ ',
+    'share_failed': 'アプリの共有に失敗しました。再試行してください。',
+    'privacy_policy': 'プライバシーポリシー',
+    'cannot_open_link': 'リンクを開けません。ブラウザ設定を確認してください。',
+    'privacy_link_failed': 'プライバシーポリシーを開けませんでした。再試行してください。',
+
+    // Recording Limit Modal
+    'free_limit_3min': '無料版をご利用中で、最大3分間の画面録画が可能です。時間制限なしで録画するには、プレミアム版にアップグレードしてください！',
+    'upgrade_for_unlimited': 'プレミアムにアップグレードして無制限録画、高画質、その他の機能をお楽しみください！',
+    'unlimited_recording': '無制限録画',
+    'no_ads': '広告なし',
+    'upgrade_premium': 'プレミアムアップグレード',
+    'continue_limited': '制限付きで続行',
+
+    // Authentication Modal
+    'appLocked': 'アプリがロックされています',
+    'enterPassword': 'パスワードを入力してください',
+    'unlockWithPassword': 'パスワードでロック解除',
+    'useBiometrics': '生体認証を使用',
+    'failedAttempts': '{count}回の失敗{plural}',
+    'exitApp': 'アプリを終了',
+
+    // Duration Modal
+    'recordingDuration': '録画時間',
+    'premiumMember': '👑 プレミアム会員',
+    'freeUser': '👤 無料ユーザー',
+    'upgradeToPremiumNote': '💡 プレミアムにアップグレードして無制限録画と広告削除！',
+
+    // IAP Modal
+    'bestOption': 'ベストオプション',
+    'regularPrice': '通常価格',
+    'freeTrial': '無料トライアル',
+    'becomePremiumMember': 'プレミアムメンバーになろう！',
+    'enjoyAdFreeExperience': '広告なしの体験をお楽しみください。',
+    'unlockPremiumFeatures': '無制限機能のプレミアム版をアンロック。',
+    'loadingSubscriptionPlans': 'サブスクリプションプランを読み込み中...',
+    'processing': '処理中...',
+    'startFreeTrial': '無料トライアル開始 ››',
+    'buyNow': '今すぐ購入 ››',
+    'cancellationInfo': 'いつでもGoogle Playストアでサブスクリプションをキャンセルできます。',
+    'billingInfo': '無料トライアル期間後、上記の価格でサブスクリプションが定期的に請求されます。',
+    'termsAndConditions': '利用規約',
+
+    // Settings Tab
+    'becomeVipMember': 'VIPメンバーになる',
+    'enjoyPremiumPackage': '独占機能付きプレミアムパッケージをお楽しみください。',
+    'failed_to_save_auto_split': '自動分割設定の保存に失敗しました',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'トリミングを終了してもよろしいですか？',
+    'invalid_selection': '無効な選択',
+    'select_at_least_1_second': 'トリミングするビデオを最低1秒選択してください。',
+    'export_failed': 'エクスポート失敗',
+    'failed_to_trim_video': 'ビデオのトリミングに失敗しました。もう一度お試しください。',
+
+    // Compress Modal
+    'compressVideo': 'ビデオ圧縮',
+    'compressing': '圧縮中...',
+    'export': 'エクスポート',
+    'compressingVideo': 'ビデオ圧縮中',
+    'pleaseWait': 'お待ちください...',
+    'videoExported': 'ビデオがエクスポートされました',
+    'backToHome': 'ホームに戻る',
+    'shareVideo': 'ビデオを共有',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'オーディオに変換中',
+    'audioExported': 'オーディオがエクスポートされました',
+    'conversionComplete': '変換完了',
+
+    // Multi Video Selector Modal
+    'selectionRequired': '選択が必要',
+
+    // Network Loading Modal
+    'noInternetConnection': 'インターネット接続なし',
+    'connectionTips': '接続のヒント:',
+    'checkWifiData': '• WiFiまたはモバイルデータを確認',
+    'moveToBetterSignal': '• より良い信号エリアに移動',
+    'restartWifiRouter': '• WiFiルーターを再起動'
   },
 
   // Spanish
@@ -648,7 +958,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'No hay videos aún',
     'no_audio_files_yet': 'No hay archivos de audio aún',
     'startRecordingPrompt': 'Empieza a grabar para ver tus videos aquí',
-    'convertVideosPrompt': 'Convierte videos a audio para verlos aquí'
+    'convertVideosPrompt': 'Convierte videos a audio para verlos aquí',
+
+    // Settings
+    'set_password': 'Establecer contraseña',
+    'change_icon': 'Cambiar icono',
+    'save_location': 'Ubicación de guardado',
+    'share_app': 'Compartir app',
+    'share_message': '¡Prueba esta increíble app de grabación de pantalla! ',
+    'share_failed': 'Error al compartir la app. Inténtalo de nuevo.',
+    'privacy_policy': 'Política de privacidad',
+    'cannot_open_link': 'No se puede abrir el enlace. Verifica la configuración del navegador.',
+    'privacy_link_failed': 'No se pudo abrir la política de privacidad. Inténtalo de nuevo.',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'Estás usando la versión gratuita con hasta 3 minutos de grabación de pantalla. ¡Actualiza a premium para grabación sin límites!',
+    'upgrade_for_unlimited': '¡Actualiza a premium para disfrutar de grabación ilimitada, alta calidad y más funciones!',
+    'unlimited_recording': 'Grabación ilimitada',
+    'no_ads': 'Sin anuncios',
+    'upgrade_premium': 'Actualizar a Premium',
+    'continue_limited': 'Continuar limitado',
+
+    // Authentication Modal
+    'appLocked': 'App bloqueada',
+    'enterPassword': 'Ingresa tu contraseña',
+    'unlockWithPassword': 'Desbloquear con contraseña',
+    'useBiometrics': 'Usar biometría',
+    'failedAttempts': '{count} intento{plural} fallido{plural}',
+    'exitApp': 'Salir de la app',
+
+    // Duration Modal
+    'recordingDuration': 'Duración de grabación',
+    'premiumMember': '👑 Miembro Premium',
+    'freeUser': '👤 Usuario Gratuito',
+    'upgradeToPremiumNote': '💡 ¡Actualiza a premium para grabación ilimitada y sin anuncios!',
+
+    // IAP Modal
+    'bestOption': 'Mejor opción',
+    'regularPrice': 'Precio regular',
+    'freeTrial': 'Prueba gratuita',
+    'becomePremiumMember': '¡Conviértete en miembro premium!',
+    'enjoyAdFreeExperience': 'Disfruta de una experiencia sin anuncios.',
+    'unlockPremiumFeatures': 'Desbloquea funciones premium con capacidades ilimitadas.',
+    'loadingSubscriptionPlans': 'Cargando planes de suscripción...',
+    'processing': 'Procesando...',
+    'startFreeTrial': 'Iniciar prueba gratuita ››',
+    'buyNow': 'Comprar ahora ››',
+    'cancellationInfo': 'Puedes cancelar tu suscripción en Google Play Store en cualquier momento.',
+    'billingInfo': 'Después del período de prueba gratuita, tu suscripción se cobrará regularmente al precio mencionado.',
+    'termsAndConditions': 'Términos y condiciones',
+
+    // Settings Tab
+    'becomeVipMember': 'Convertirse en miembro VIP',
+    'enjoyPremiumPackage': 'Disfruta del paquete premium con funciones exclusivas.',
+    'failed_to_save_auto_split': 'Error al guardar configuración de división automática',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': '¿Estás seguro de que quieres salir del recorte?',
+    'invalid_selection': 'Selección inválida',
+    'select_at_least_1_second': 'Selecciona al menos 1 segundo de video para recortar.',
+    'export_failed': 'Exportación falló',
+    'failed_to_trim_video': 'Error al recortar el video. Por favor intenta de nuevo.',
+
+    // Compress Modal
+    'compressVideo': 'Comprimir video',
+    'compressing': 'Comprimiendo...',
+    'export': 'Exportar',
+    'compressingVideo': 'Comprimiendo video',
+    'pleaseWait': 'Por favor espera...',
+    'videoExported': 'Video exportado',
+    'backToHome': 'Volver al inicio',
+    'shareVideo': 'Compartir video',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'Convirtiendo a audio',
+    'audioExported': 'Audio exportado',
+    'conversionComplete': 'Conversión completa',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'Selección requerida',
+
+    // Network Loading Modal
+    'noInternetConnection': 'Sin conexión a internet',
+    'connectionTips': 'Consejos de conexión:',
+    'checkWifiData': '• Verifica WiFi o datos móviles',
+    'moveToBetterSignal': '• Muévete a un área con mejor señal',
+    'restartWifiRouter': '• Reinicia tu router WiFi'
   },
 
   // Portuguese
@@ -697,7 +1092,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'Nenhum vídeo ainda',
     'no_audio_files_yet': 'Nenhum arquivo de áudio ainda',
     'startRecordingPrompt': 'Comece a gravar para ver seus vídeos aqui',
-    'convertVideosPrompt': 'Converta vídeos em áudio para vê-los aqui'
+    'convertVideosPrompt': 'Converta vídeos em áudio para vê-los aqui',
+
+    // Settings
+    'set_password': 'Definir senha',
+    'change_icon': 'Alterar ícone',
+    'save_location': 'Local de salvamento',
+    'share_app': 'Compartilhar app',
+    'share_message': 'Confira este incrível app de gravação de tela! ',
+    'share_failed': 'Falha ao compartilhar o app. Tente novamente.',
+    'privacy_policy': 'Política de privacidade',
+    'cannot_open_link': 'Não é possível abrir o link. Verifique as configurações do navegador.',
+    'privacy_link_failed': 'Falha ao abrir a política de privacidade. Tente novamente.',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'Você está usando a versão gratuita com até 3 minutos de gravação de tela. Atualize para premium para gravação ilimitada!',
+    'upgrade_for_unlimited': 'Atualize para premium para desfrutar de gravação ilimitada, alta qualidade e mais recursos!',
+    'unlimited_recording': 'Gravação ilimitada',
+    'no_ads': 'Sem anúncios',
+    'upgrade_premium': 'Atualizar para Premium',
+    'continue_limited': 'Continuar limitado',
+
+    // Authentication Modal
+    'appLocked': 'App bloqueado',
+    'enterPassword': 'Digite sua senha',
+    'unlockWithPassword': 'Desbloquear com senha',
+    'useBiometrics': 'Usar biometria',
+    'failedAttempts': '{count} tentativa{plural} falhada{plural}',
+    'exitApp': 'Sair do app',
+
+    // Duration Modal
+    'recordingDuration': 'Duração da gravação',
+    'premiumMember': '👑 Membro Premium',
+    'freeUser': '👤 Usuário Gratuito',
+    'upgradeToPremiumNote': '💡 Atualize para premium para gravação ilimitada e sem anúncios!',
+
+    // IAP Modal
+    'bestOption': 'Melhor opção',
+    'regularPrice': 'Preço regular',
+    'freeTrial': 'Teste grátis',
+    'becomePremiumMember': 'Torne-se membro premium!',
+    'enjoyAdFreeExperience': 'Desfrute de uma experiência sem anúncios.',
+    'unlockPremiumFeatures': 'Desbloqueie recursos premium com capacidades ilimitadas.',
+    'loadingSubscriptionPlans': 'Carregando planos de assinatura...',
+    'processing': 'Processando...',
+    'startFreeTrial': 'Iniciar teste grátis ››',
+    'buyNow': 'Comprar agora ››',
+    'cancellationInfo': 'Você pode cancelar sua assinatura na Google Play Store a qualquer momento.',
+    'billingInfo': 'Após o período de teste gratuito, sua assinatura será cobrada regularmente pelo preço mencionado.',
+    'termsAndConditions': 'Termos e condições',
+
+    // Settings Tab
+    'becomeVipMember': 'Tornar-se membro VIP',
+    'enjoyPremiumPackage': 'Desfrute do pacote premium com recursos exclusivos.',
+    'failed_to_save_auto_split': 'Falha ao salvar configuração de divisão automática',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'Tem certeza de que deseja sair do corte?',
+    'invalid_selection': 'Seleção inválida',
+    'select_at_least_1_second': 'Selecione pelo menos 1 segundo de vídeo para cortar.',
+    'export_failed': 'Exportação falhou',
+    'failed_to_trim_video': 'Falha ao cortar o vídeo. Tente novamente.',
+
+    // Compress Modal
+    'compressVideo': 'Comprimir vídeo',
+    'compressing': 'Comprimindo...',
+    'export': 'Exportar',
+    'compressingVideo': 'Comprimindo vídeo',
+    'pleaseWait': 'Aguarde...',
+    'videoExported': 'Vídeo exportado',
+    'backToHome': 'Voltar ao início',
+    'shareVideo': 'Compartilhar vídeo',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'Convertendo para áudio',
+    'audioExported': 'Áudio exportado',
+    'conversionComplete': 'Conversão completa',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'Seleção obrigatória',
+
+    // Network Loading Modal
+    'noInternetConnection': 'Sem conexão à internet',
+    'connectionTips': 'Dicas de conexão:',
+    'checkWifiData': '• Verifique WiFi ou dados móveis',
+    'moveToBetterSignal': '• Vá para área com melhor sinal',
+    'restartWifiRouter': '• Reinicie seu roteador WiFi'
   },
 
   // French
@@ -746,7 +1226,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'Aucune vidéo encore',
     'no_audio_files_yet': 'Aucun fichier audio encore',
     'startRecordingPrompt': 'Commencez à enregistrer pour voir vos vidéos ici',
-    'convertVideosPrompt': 'Convertissez les vidéos en audio pour les voir ici'
+    'convertVideosPrompt': 'Convertissez les vidéos en audio pour les voir ici',
+
+    // Settings
+    'set_password': 'Définir mot de passe',
+    'change_icon': 'Changer d\'icône',
+    'save_location': 'Emplacement de sauvegarde',
+    'share_app': 'Partager l\'app',
+    'share_message': 'Découvrez cette incroyable app d\'enregistrement d\'écran! ',
+    'share_failed': 'Échec du partage de l\'app. Veuillez réessayer.',
+    'privacy_policy': 'Politique de confidentialité',
+    'cannot_open_link': 'Impossible d\'ouvrir le lien. Vérifiez les paramètres du navigateur.',
+    'privacy_link_failed': 'Échec de l\'ouverture de la politique de confidentialité. Veuillez réessayer.',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'Vous utilisez la version gratuite avec jusqu\'à 3 minutes d\'enregistrement d\'écran. Passez au premium pour un enregistrement illimité!',
+    'upgrade_for_unlimited': 'Passez au premium pour profiter d\'un enregistrement illimité, d\'une haute qualité et d\'autres fonctionnalités!',
+    'unlimited_recording': 'Enregistrement illimité',
+    'no_ads': 'Sans publicité',
+    'upgrade_premium': 'Passer à Premium',
+    'continue_limited': 'Continuer limité',
+
+    // Authentication Modal
+    'appLocked': 'App verrouillée',
+    'enterPassword': 'Entrez votre mot de passe',
+    'unlockWithPassword': 'Déverrouiller avec mot de passe',
+    'useBiometrics': 'Utiliser la biométrie',
+    'failedAttempts': '{count} tentative{plural} échouée{plural}',
+    'exitApp': 'Quitter l\'app',
+
+    // Duration Modal
+    'recordingDuration': 'Durée d\'enregistrement',
+    'premiumMember': '👑 Membre Premium',
+    'freeUser': '👤 Utilisateur Gratuit',
+    'upgradeToPremiumNote': '💡 Passez au premium pour un enregistrement illimité et sans publicité!',
+
+    // IAP Modal
+    'bestOption': 'Meilleure option',
+    'regularPrice': 'Prix régulier',
+    'freeTrial': 'Essai gratuit',
+    'becomePremiumMember': 'Devenez membre premium!',
+    'enjoyAdFreeExperience': 'Profitez d\'une expérience sans publicité.',
+    'unlockPremiumFeatures': 'Débloquez les fonctionnalités premium avec des capacités illimitées.',
+    'loadingSubscriptionPlans': 'Chargement des plans d\'abonnement...',
+    'processing': 'Traitement en cours...',
+    'startFreeTrial': 'Commencer l\'essai gratuit ››',
+    'buyNow': 'Acheter maintenant ››',
+    'cancellationInfo': 'Vous pouvez annuler votre abonnement dans Google Play Store à tout moment.',
+    'billingInfo': 'Après la période d\'essai gratuit, votre abonnement sera facturé régulièrement au prix mentionné.',
+    'termsAndConditions': 'Termes et conditions',
+
+    // Settings Tab
+    'becomeVipMember': 'Devenir membre VIP',
+    'enjoyPremiumPackage': 'Profitez du package premium avec des fonctionnalités exclusives.',
+    'failed_to_save_auto_split': 'Échec de la sauvegarde de la configuration de division automatique',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'Êtes-vous sûr de vouloir quitter le découpage?',
+    'invalid_selection': 'Sélection invalide',
+    'select_at_least_1_second': 'Sélectionnez au moins 1 seconde de vidéo à découper.',
+    'export_failed': 'Échec de l\'exportation',
+    'failed_to_trim_video': 'Échec du découpage de la vidéo. Veuillez réessayer.',
+
+    // Compress Modal
+    'compressVideo': 'Compresser la vidéo',
+    'compressing': 'Compression...',
+    'export': 'Exporter',
+    'compressingVideo': 'Compression de la vidéo',
+    'pleaseWait': 'Veuillez patienter...',
+    'videoExported': 'Vidéo exportée',
+    'backToHome': 'Retour à l\'accueil',
+    'shareVideo': 'Partager la vidéo',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'Conversion en audio',
+    'audioExported': 'Audio exporté',
+    'conversionComplete': 'Conversion terminée',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'Sélection requise',
+
+    // Network Loading Modal
+    'noInternetConnection': 'Pas de connexion internet',
+    'connectionTips': 'Conseils de connexion:',
+    'checkWifiData': '• Vérifiez WiFi ou données mobiles',
+    'moveToBetterSignal': '• Déplacez-vous vers une zone avec un meilleur signal',
+    'restartWifiRouter': '• Redémarrez votre routeur WiFi'
   },
 
   // German
@@ -795,7 +1360,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'Noch keine Videos',
     'no_audio_files_yet': 'Noch keine Audiodateien',
     'startRecordingPrompt': 'Beginnen Sie mit der Aufnahme, um Ihre Videos hier zu sehen',
-    'convertVideosPrompt': 'Konvertieren Sie Videos zu Audio, um sie hier zu sehen'
+    'convertVideosPrompt': 'Konvertieren Sie Videos zu Audio, um sie hier zu sehen',
+
+    // Settings
+    'set_password': 'Passwort festlegen',
+    'change_icon': 'Symbol ändern',
+    'save_location': 'Speicherort',
+    'share_app': 'App teilen',
+    'share_message': 'Schauen Sie sich diese großartige Bildschirmaufnahme-App an! ',
+    'share_failed': 'Fehler beim Teilen der App. Bitte versuchen Sie es erneut.',
+    'privacy_policy': 'Datenschutzrichtlinie',
+    'cannot_open_link': 'Link kann nicht geöffnet werden. Überprüfen Sie die Browser-Einstellungen.',
+    'privacy_link_failed': 'Fehler beim Öffnen der Datenschutzrichtlinie. Bitte versuchen Sie es erneut.',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'Sie verwenden die kostenlose Version mit bis zu 3 Minuten Bildschirmaufnahme. Upgraden Sie auf Premium für unbegrenzte Aufnahme!',
+    'upgrade_for_unlimited': 'Upgraden Sie auf Premium für unbegrenzte Aufnahme, hohe Qualität und weitere Funktionen!',
+    'unlimited_recording': 'Unbegrenzte Aufnahme',
+    'no_ads': 'Keine Werbung',
+    'upgrade_premium': 'Auf Premium upgraden',
+    'continue_limited': 'Begrenzt fortfahren',
+
+    // Authentication Modal
+    'appLocked': 'App gesperrt',
+    'enterPassword': 'Passwort eingeben',
+    'unlockWithPassword': 'Mit Passwort entsperren',
+    'useBiometrics': 'Biometrie verwenden',
+    'failedAttempts': '{count} fehlgeschlagen{plural} Versuch{plural}',
+    'exitApp': 'App verlassen',
+
+    // Duration Modal
+    'recordingDuration': 'Aufnahmedauer',
+    'premiumMember': '👑 Premium-Mitglied',
+    'freeUser': '👤 Kostenloser Benutzer',
+    'upgradeToPremiumNote': '💡 Upgraden Sie auf Premium für unbegrenzte Aufnahme und keine Werbung!',
+
+    // IAP Modal
+    'bestOption': 'Beste Option',
+    'regularPrice': 'Regulärer Preis',
+    'freeTrial': 'Kostenlose Testversion',
+    'becomePremiumMember': 'Werden Sie Premium-Mitglied!',
+    'enjoyAdFreeExperience': 'Genießen Sie werbefreie Erfahrung.',
+    'unlockPremiumFeatures': 'Entsperren Sie Premium-Funktionen mit unbegrenzten Möglichkeiten.',
+    'loadingSubscriptionPlans': 'Abonnement-Pläne werden geladen...',
+    'processing': 'Verarbeitung...',
+    'startFreeTrial': 'Kostenlose Testversion starten ››',
+    'buyNow': 'Jetzt kaufen ››',
+    'cancellationInfo': 'Sie können Ihr Abonnement jederzeit im Google Play Store kündigen.',
+    'billingInfo': 'Nach der kostenlosen Testperiode wird Ihr Abonnement regelmäßig zum genannten Preis berechnet.',
+    'termsAndConditions': 'Geschäftsbedingungen',
+
+    // Settings Tab
+    'becomeVipMember': 'VIP-Mitglied werden',
+    'enjoyPremiumPackage': 'Genießen Sie das Premium-Paket mit exklusiven Funktionen.',
+    'failed_to_save_auto_split': 'Fehler beim Speichern der automatischen Teilungseinstellung',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'Sind Sie sicher, dass Sie das Trimmen verlassen möchten?',
+    'invalid_selection': 'Ungültige Auswahl',
+    'select_at_least_1_second': 'Wählen Sie mindestens 1 Sekunde Video zum Trimmen.',
+    'export_failed': 'Export fehlgeschlagen',
+    'failed_to_trim_video': 'Video-Trimmen fehlgeschlagen. Bitte versuchen Sie es erneut.',
+
+    // Compress Modal
+    'compressVideo': 'Video komprimieren',
+    'compressing': 'Komprimierung...',
+    'export': 'Exportieren',
+    'compressingVideo': 'Video wird komprimiert',
+    'pleaseWait': 'Bitte warten...',
+    'videoExported': 'Video exportiert',
+    'backToHome': 'Zurück zur Startseite',
+    'shareVideo': 'Video teilen',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'Konvertierung zu Audio',
+    'audioExported': 'Audio exportiert',
+    'conversionComplete': 'Konvertierung abgeschlossen',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'Auswahl erforderlich',
+
+    // Network Loading Modal
+    'noInternetConnection': 'Keine Internetverbindung',
+    'connectionTips': 'Verbindungstipps:',
+    'checkWifiData': '• WiFi oder mobile Daten überprüfen',
+    'moveToBetterSignal': '• Zu einem Bereich mit besserem Signal bewegen',
+    'restartWifiRouter': '• WiFi-Router neu starten'
   },
 
   // Hindi
@@ -844,7 +1494,92 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'अभी तक कोई वीडियो नहीं',
     'no_audio_files_yet': 'अभी तक कोई ऑडियो फाइल नहीं',
     'startRecordingPrompt': 'अपने वीडियो यहाँ देखने के लिए रिकॉर्डिंग शुरू करें',
-    'convertVideosPrompt': 'ऑडियो देखने के लिए वीडियो को कनवर्ट करें'
+    'convertVideosPrompt': 'ऑडियो देखने के लिए वीडियो को कनवर्ट करें',
+
+    // Settings
+    'set_password': 'पासवर्ड सेट करें',
+    'change_icon': 'आइकन बदलें',
+    'save_location': 'सेव स्थान',
+    'share_app': 'ऐप साझा करें',
+    'share_message': 'इस शानदार स्क्रीन रिकॉर्डर ऐप को देखें! ',
+    'share_failed': 'ऐप साझा करने में विफल। कृपया पुनः प्रयास करें।',
+    'privacy_policy': 'गोपनीयता नीति',
+    'cannot_open_link': 'लिंक नहीं खोल सकते। ब्राउज़र सेटिंग्स जांचें।',
+    'privacy_link_failed': 'गोपनीयता नीति खोलने में विफल। कृपया पुनः प्रयास करें।',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'आप मुफ्त संस्करण का उपयोग कर रहे हैं जो 3 मिनट तक स्क्रीन रिकॉर्डिंग की अनुमति देता है। असीमित रिकॉर्डिंग के लिए प्रीमियम में अपग्रेड करें!',
+    'upgrade_for_unlimited': 'असीमित रिकॉर्डिंग, उच्च गुणवत्ता और अधिक सुविधाओं के लिए प्रीमियम में अपग्रेड करें!',
+    'unlimited_recording': 'असीमित रिकॉर्डिंग',
+    'no_ads': 'कोई विज्ञापन नहीं',
+    'upgrade_premium': 'प्रीमियम में अपग्रेड करें',
+    'continue_limited': 'सीमित रूप से जारी रखें',
+
+    // Authentication Modal
+    'appLocked': 'ऐप लॉक है',
+    'enterPassword': 'अपना पासवर्ड दर्ज करें',
+    'unlockWithPassword': 'पासवर्ड से अनलॉक करें',
+    'useBiometrics': 'बायोमेट्रिक्स का उपयोग करें',
+    'failedAttempts': '{count} असफल प्रयास',
+    'exitApp': 'ऐप से बाहर निकलें',
+
+    // Duration Modal
+    'recordingDuration': 'रिकॉर्डिंग की अवधि',
+    'premiumMember': '👑 प्रीमियम सदस्य',
+    'freeUser': '👤 मुफ्त उपयोगकर्ता',
+    'upgradeToPremiumNote': '💡 असीमित रिकॉर्डिंग और विज्ञापन-मुक्त अनुभव के लिए प्रीमियम में अपग्रेड करें!',
+
+    // IAP Modal
+    'bestOption': 'सबसे अच्छा विकल्प',
+    'regularPrice': 'नियमित मूल्य',
+    'freeTrial': 'मुफ्त परीक्षण',
+    'becomePremiumMember': 'प्रीमियम सदस्य बनें!',
+    'enjoyAdFreeExperience': 'विज्ञापन-मुक्त अनुभव का आनंद लें।',
+    'unlockPremiumFeatures': 'असीमित क्षमताओं के साथ प्रीमियम सुविधाओं को अनलॉक करें।',
+    'loadingSubscriptionPlans': 'सब्सक्रिप्शन प्लान लोड हो रहे हैं...',
+    'processing': 'प्रसंस्करण...',
+    'startFreeTrial': 'मुफ्त परीक्षण शुरू करें ››',
+    'buyNow': 'अभी खरीदें ››',
+    'cancellationInfo': 'आप Google Play Store में किसी भी समय अपनी सदस्यता रद्द कर सकते हैं।',
+    'billingInfo': 'मुफ्त परीक्षण अवधि के बाद, आपकी सदस्यता उल्लिखित मूल्य पर नियमित रूप से बिल की जाएगी।',
+    'termsAndConditions': 'नियम और शर्तें',
+
+    // Settings Tab
+    'becomeVipMember': 'VIP सदस्य बनें',
+    'enjoyPremiumPackage': 'विशेष सुविधाओं के साथ प्रीमियम पैकेज का आनंद लें।',
+    'failed_to_save_auto_split': 'ऑटो-स्प्लिट कॉन्फ़िगरेशन सहेजने में विफल',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'क्या आप वाकई ट्रिमिंग से बाहर निकलना चाहते हैं?',
+    'invalid_selection': 'अमान्य चयन',
+    'select_at_least_1_second': 'ट्रिम करने के लिए कम से कम 1 सेकंड वीडियो चुनें।',
+    'export_failed': 'निर्यात विफल',
+    'failed_to_trim_video': 'वीडियो ट्रिम करने में विफल। कृपया पुनः प्रयास करें।',
+
+    // Compress Modal
+    'compressVideo': 'वीडियो संपीड़ित करें',
+    'compressing': 'संपीड़ित हो रहा है...',
+    'export': 'निर्यात',
+    'compressingVideo': 'वीडियो संपीड़ित हो रहा है',
+    'pleaseWait': 'कृपया प्रतीक्षा करें...',
+    'videoExported': 'वीडियो निर्यात किया गया',
+    'backToHome': 'होम पर वापस जाएं',
+    'shareVideo': 'वीडियो साझा करें',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'ऑडियो में परिवर्तित हो रहा है',
+    'audioExported': 'ऑडियो निर्यात किया गया',
+    'conversionComplete': 'रूपांतरण पूर्ण',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'चयन आवश्यक',
+
+    // Network Loading Modal
+    'noInternetConnection': 'कोई इंटरनेट कनेक्शन नहीं',
+    'connectionTips': 'कनेक्शन सुझाव:',
+    'checkWifiData': '• WiFi या मोबाइल डेटा जांचें',
+    'moveToBetterSignal': '• बेहतर सिग्नल वाले क्षेत्र में जाएं',
+    'restartWifiRouter': '• अपना WiFi राउटर पुनः आरंभ करें'
   },
 
   // Arabic (RTL)
@@ -893,6 +1628,91 @@ export const TRANSLATIONS = {
     'no_videos_yet': 'لا توجد فيديوهات بعد',
     'no_audio_files_yet': 'لا توجد ملفات صوتية بعد',
     'startRecordingPrompt': 'ابدأ التسجيل لرؤية فيديوهاتك هنا',
-    'convertVideosPrompt': 'حول الفيديوهات إلى صوت لرؤيتها هنا'
+    'convertVideosPrompt': 'حول الفيديوهات إلى صوت لرؤيتها هنا',
+
+    // Settings
+    'set_password': 'تعيين كلمة مرور',
+    'change_icon': 'تغيير الأيقونة',
+    'save_location': 'موقع الحفظ',
+    'share_app': 'مشاركة التطبيق',
+    'share_message': 'جرب هذا التطبيق الرائع لتسجيل الشاشة! ',
+    'share_failed': 'فشل في مشاركة التطبيق. يرجى المحاولة مرة أخرى.',
+    'privacy_policy': 'سياسة الخصوصية',
+    'cannot_open_link': 'لا يمكن فتح الرابط. يرجى التحقق من إعدادات المتصفح.',
+    'privacy_link_failed': 'فشل في فتح سياسة الخصوصية. يرجى المحاولة مرة أخرى.',
+
+    // Recording Limit Modal
+    'free_limit_3min': 'أنت تستخدم النسخة المجانية مع إمكانية تسجيل الشاشة حتى 3 دقائق. قم بالترقية إلى البريميوم للتسجيل بلا حدود!',
+    'upgrade_for_unlimited': 'قم بالترقية إلى البريميوم للاستمتاع بالتسجيل اللامحدود والجودة العالية والمزيد من المميزات!',
+    'unlimited_recording': 'تسجيل بلا حدود',
+    'no_ads': 'بدون إعلانات',
+    'upgrade_premium': 'الترقية للبريميوم',
+    'continue_limited': 'المتابعة بحدود',
+
+    // Authentication Modal
+    'appLocked': 'التطبيق مقفل',
+    'enterPassword': 'أدخل كلمة المرور',
+    'unlockWithPassword': 'إلغاء القفل بكلمة المرور',
+    'useBiometrics': 'استخدام القياسات الحيوية',
+    'failedAttempts': '{count} محاولة فاشلة',
+    'exitApp': 'إغلاق التطبيق',
+
+    // Duration Modal
+    'recordingDuration': 'مدة التسجيل',
+    'premiumMember': '👑 عضو بريميوم',
+    'freeUser': '👤 مستخدم مجاني',
+    'upgradeToPremiumNote': '💡 قم بالترقية للبريميوم للتسجيل اللامحدود وبدون إعلانات!',
+
+    // IAP Modal
+    'bestOption': 'أفضل خيار',
+    'regularPrice': 'السعر العادي',
+    'freeTrial': 'تجربة مجانية',
+    'becomePremiumMember': 'كن عضو بريميوم!',
+    'enjoyAdFreeExperience': 'استمتع بتجربة خالية من الإعلانات.',
+    'unlockPremiumFeatures': 'افتح مميزات البريميوم مع قدرات لا محدودة.',
+    'loadingSubscriptionPlans': 'تحميل خطط الاشتراك...',
+    'processing': 'جاري المعالجة...',
+    'startFreeTrial': 'بدء التجربة المجانية ››',
+    'buyNow': 'اشتري الآن ››',
+    'cancellationInfo': 'يمكنك إلغاء اشتراكك في متجر Google Play في أي وقت.',
+    'billingInfo': 'بعد فترة التجربة المجانية، سيتم تحصيل رسوم اشتراكك بانتظام بالسعر المذكور.',
+    'termsAndConditions': 'الشروط والأحكام',
+
+    // Settings Tab
+    'becomeVipMember': 'كن عضو VIP',
+    'enjoyPremiumPackage': 'استمتع بالحزمة المميزة مع المميزات الحصرية.',
+    'failed_to_save_auto_split': 'فشل في حفظ إعداد التقسيم التلقائي',
+
+    // Trim Video Modal
+    'trim_exit_confirmation': 'هل أنت متأكد من الخروج من التقطيع؟',
+    'invalid_selection': 'اختيار غير صالح',
+    'select_at_least_1_second': 'اختر ثانية واحدة على الأقل من الفيديو للتقطيع.',
+    'export_failed': 'فشل التصدير',
+    'failed_to_trim_video': 'فشل في تقطيع الفيديو. يرجى المحاولة مرة أخرى.',
+
+    // Compress Modal
+    'compressVideo': 'ضغط الفيديو',
+    'compressing': 'جاري الضغط...',
+    'export': 'تصدير',
+    'compressingVideo': 'جاري ضغط الفيديو',
+    'pleaseWait': 'يرجى الانتظار...',
+    'videoExported': 'تم تصدير الفيديو',
+    'backToHome': 'العودة للرئيسية',
+    'shareVideo': 'مشاركة الفيديو',
+
+    // Mp3 Convert Modal
+    'convertingToAudio': 'التحويل إلى صوت',
+    'audioExported': 'تم تصدير الصوت',
+    'conversionComplete': 'التحويل مكتمل',
+
+    // Multi Video Selector Modal
+    'selectionRequired': 'الاختيار مطلوب',
+
+    // Network Loading Modal
+    'noInternetConnection': 'لا يوجد اتصال بالإنترنت',
+    'connectionTips': 'نصائح الاتصال:',
+    'checkWifiData': '• تحقق من WiFi أو البيانات المحمولة',
+    'moveToBetterSignal': '• انتقل لمنطقة بإشارة أفضل',
+    'restartWifiRouter': '• أعد تشغيل راوتر WiFi'
   }
 };
