@@ -533,7 +533,7 @@ const SettingsTab = () => {
                 ])}
 
                 {/* Security Section */}
-                {renderSection('Security & Privacy', [
+                {/* {renderSection('Security & Privacy', [
                     renderSettingItemWithValue(
                         require('../../../assets/home/ic/ic_password.png'),
                         securitySettings.hasPassword ? 'Change Password' : t('set_password', 'Set Password'),
@@ -553,7 +553,7 @@ const SettingsTab = () => {
                             handleRemovePassword
                         )
                     ] : []),
-                ])}
+                ])} */}
 
                 {/* Other Section */}
                 {renderSection('Other', [
