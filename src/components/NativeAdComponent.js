@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { COLORS } from '../constants';
 import { ADS_UNIT } from '../AdManager';
-import { NativeAdView, NativeMediaView, NativeAsset, NativeAssetType, NativeAd } from 'react-native-google-mobile-ads';
+import { NativeAdView, NativeMediaView, NativeAsset, NativeAssetType, NativeAd, NativeAdEventType } from 'react-native-google-mobile-ads';
 import { useVipStatus } from '../utils/VipUtils';
 import useTranslation from '../hooks/useTranslation';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -26,29 +26,45 @@ export const NativeAdComponent = (props) => {
             return;
         }
 
-        const loadNativeAd = async () => {
-            try {
-                console.log('🔍 Loading Native Ad...', props);
-                const unitId = props.adUnitId || ADS_UNIT.NATIVE;
-
-                const ad = await NativeAd.createForAdRequest(unitId);
-                console.log('✅ Native Ad loaded:', {
-                    headline: ad.headline,
-                    body: ad.body,
-                    icon: ad.icon ? 'Available' : 'None',
-                    callToAction: ad.callToAction
-                });
-
-                setNativeAd(ad);
-                setIsLoading(false);
-            } catch (error) {
-                console.error('❌ Native Ad failed:', error);
-                setIsLoading(false);
-            }
-        };
-
         loadNativeAd();
     }, [isVip]);
+
+    const loadNativeAd = async () => {
+        try {
+            console.log('🔍 Loading Native Ad...', props);
+            const unitId = props.adUnitId || ADS_UNIT.NATIVE;
+
+            const ad = await NativeAd.createForAdRequest(unitId);
+            console.log('✅ Native Ad loaded:', {
+                headline: ad.headline,
+                body: ad.body,
+                icon: ad.icon ? 'Available' : 'None',
+                callToAction: ad.callToAction
+            });
+
+            setNativeAd(ad);
+            setIsLoading(false);
+        } catch (error) {
+            console.error('❌ Native Ad failed:', error);
+            setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        if (!nativeAd) return;
+        const listener = nativeAd.addAdEventListener(
+            NativeAdEventType.CLICKED,
+            () => {
+                console.log('Native ad clicked!');
+                
+
+                setTimeout(loadNativeAd, 500);
+            }
+        );
+        return () => {
+            listener.remove();
+        };
+    }, [nativeAd]);
 
     // Don't render anything for VIP users
     if (isVip) {
@@ -97,10 +113,6 @@ export const NativeAdComponent = (props) => {
                 {isMediaVisible && props.hasMedia && (
                     <TouchableOpacity
                         style={styles.nativeAdMediaContainer}
-                        onPress={() => {
-                            console.log('Native ad media clicked');
-                            // Media click should also trigger ad action
-                        }}
                         activeOpacity={0.8}
                     >
                         <NativeMediaView style={styles.nativeAdMedia} />
@@ -110,10 +122,6 @@ export const NativeAdComponent = (props) => {
                 {/* Header Section */}
                 <TouchableOpacity
                     style={styles.nativeAdHeader}
-                    onPress={() => {
-                        console.log('Native ad header clicked');
-                        // Header click should also trigger ad action
-                    }}
                     activeOpacity={0.8}
                 >
                     {/* Icon */}
@@ -174,10 +182,6 @@ export const NativeAdComponent = (props) => {
                 {nativeAd.callToAction && (
                     <TouchableOpacity
                         style={styles.nativeAdCTA}
-                        onPress={() => {
-                            console.log('Native ad CTA clicked');
-                            // The native ad will handle the actual click automatically
-                        }}
                     >
                         <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
                             <Text style={styles.nativeAdCTAText}>
