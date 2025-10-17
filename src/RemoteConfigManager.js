@@ -16,7 +16,7 @@ class RemoteConfigManager {
             show_int_stop_record: false,
             show_int_close_iap: false,
             distance_time_to_show_interstitial: 60, // in seconds
-            is_btn_exp_ontop: false,
+            is_btn_exp_ontop: true,
         };
     }
 
