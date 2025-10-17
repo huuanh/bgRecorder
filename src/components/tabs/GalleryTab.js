@@ -8,7 +8,6 @@ import {
     Dimensions,
     Image,
     Alert,
-    PermissionsAndroid,
     Platform,
     Linking,
 } from 'react-native';
@@ -51,85 +50,6 @@ const GalleryTab = () => {
     const [showTrimModal, setShowTrimModal] = useState(false);
     const [trimModalVideo, setTrimModalVideo] = useState(null);
     const [videoFilter, setVideoFilter] = useState('all'); // 'all' or 'app'
-
-    // Helper function to request MANAGE_EXTERNAL_STORAGE permission
-    const requestManageExternalStoragePermission = async () => {
-        if (Platform.OS !== 'android') {
-            return true;
-        }
-
-        if (Platform.Version >= 30) { // Android 11+
-            try {
-                // Use native method to check MANAGE_EXTERNAL_STORAGE permission correctly
-                const hasPermission = await VideoRecordingModule.checkManageExternalStoragePermission();
-                console.log('🔐 MANAGE_EXTERNAL_STORAGE permission check result:', hasPermission);
-                if (hasPermission) return true;
-
-                // Show explanation dialog before redirecting to settings
-                Alert.alert(
-                    t('storage_permission_title'),
-                    t('manage_storage_permission_explanation'),
-                    [
-                        {
-                            text: t('ask_me_later'),
-                            style: 'cancel',
-                            onPress: async() => false
-                        },
-                        {
-                            text: t('open_settings'),
-                            onPress: async () => {
-                                try {
-                                    // Use native method to open settings
-                                    await VideoRecordingModule.openAllFilesAccessSettings();
-                                } catch (error) {
-                                    console.warn('Failed to open settings via native method:', error);
-                                    // Fallback to Linking
-                                    try {
-                                        await Linking.openSettings();
-                                    } catch (linkingError) {
-                                        Alert.alert(t('error'), t('cannot_open_settings'));
-                                    }
-                                }
-                            }
-                        }
-                    ]
-                );
-
-                // return false;
-            } catch (e) {
-                console.warn('Permission error:', e);
-                return false;
-            }
-        } else {
-            // For Android 10 and below, check WRITE_EXTERNAL_STORAGE
-            try {
-                // First check if we already have permission
-                const hasExistingPermission = await VideoRecordingModule.checkManageExternalStoragePermission();
-                console.log('🔐 WRITE_EXTERNAL_STORAGE permission check result:', hasExistingPermission);
-
-                if (hasExistingPermission) {
-                    return true;
-                }
-
-                // If not, request permission
-                const permission = await PermissionsAndroid.request(
-                    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-                    {
-                        title: t('storage_permission_title'),
-                        message: t('storage_permission_message'),
-                        buttonPositive: t('ok'),
-                        buttonNegative: t('cancel'),
-                    }
-                );
-                const granted = permission === PermissionsAndroid.RESULTS.GRANTED;
-                console.log('🔐 WRITE_EXTERNAL_STORAGE permission request result:', granted);
-                return granted;
-            } catch (e) {
-                console.warn('Storage permission error:', e);
-                return false;
-            }
-        }
-    };
 
     useEffect(() => {
         // Load videos and audio files quickly
@@ -354,18 +274,7 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'delete':
-                Alert.alert(
-                    'Delete Video',
-                    `Are you sure you want to delete ${video.title}?`,
-                    [
-                        { text: t('cancel', 'Cancel'), style: 'cancel' },
-                        {
-                            text: t('delete', 'Delete'),
-                            style: 'destructive',
-                            onPress: () => deleteVideo(videoId)
-                        }
-                    ]
-                );
+                deleteVideo(videoId);
                 break;
             case 'info':
                 showVideoInfo(video);
@@ -389,22 +298,6 @@ const GalleryTab = () => {
 
             const stat = await RNFS.stat(video.filePath);
             console.log('Path:', video.filePath, 'Inode:', stat);
-
-
-            // Request storage permission before deletion
-            console.log('🔐 Requesting storage permission before video deletion...');
-            const hasPermission = await requestManageExternalStoragePermission();
-
-            if (!hasPermission) {
-                // console.log('❌ Storage permission denied, cannot delete video');
-                // Alert.alert(
-                //     t('permission_denied', 'Permission Denied'),
-                //     t('storage_permission_required_for_deletion', 'Storage permission is required to delete videos. Please grant the permission and try again.')
-                // );
-                return;
-            }
-
-            console.log('✅ Storage permission granted, proceeding with deletion...');
 
             console.log('Attempting to delete video:', {
                 id: video.id,
@@ -441,9 +334,34 @@ const GalleryTab = () => {
 
             // Try native module first
             try {
-                await VideoRecordingModule.deleteVideo(pathToDelete);
-                console.log('✅ Video deleted successfully via native module');
-                loadRecordedVideosQuick(); // Refresh list
+                const result = await VideoRecordingModule.deleteVideo(pathToDelete);
+                console.log('✅ Video deleted successfully via native module:', result);
+                
+                // Only refresh if deletion was actually completed (not just request sent)
+                if (result && result.success && !result.message?.includes('user confirmation')) {
+                    loadRecordedVideosQuick(); // Refresh list immediately for direct deletions
+                    // Alert.alert(t('success', 'Success'), t('video_deleted_successfully', 'Video deleted successfully'));
+                } else {
+                    console.log('⏳ Delete request sent, waiting for user confirmation...');
+                    // Alert.alert(t('info', 'Info'), t('delete_confirmation_pending', 'Delete request sent. Please confirm in the system dialog.'));
+                    // Set up a listener or polling mechanism to check if file was actually deleted
+                    setTimeout(() => {
+                        // Check if file still exists after a delay
+                        RNFS.exists(pathToDelete).then(exists => {
+                            if (!exists) {
+                                console.log('✅ File confirmed deleted after user confirmation');
+                                loadRecordedVideosQuick();
+                                // Could show another success message here if needed
+                            } else {
+                                console.log('ℹ️ File still exists - user may have cancelled deletion');
+                            }
+                        }).catch(e => {
+                            console.log('Error checking file existence:', e);
+                            // Refresh anyway to be safe
+                            loadRecordedVideosQuick();
+                        });
+                    }, 2000); // Check after 2 seconds
+                }
             } catch (nativeError) {
                 console.log('❌ Native module deletion failed:', {
                     message: nativeError.message,
@@ -464,9 +382,28 @@ const GalleryTab = () => {
                     if (variant !== pathToDelete) { // Skip already tried path
                         try {
                             console.log('🔄 Trying native deletion with variant:', variant);
-                            await VideoRecordingModule.deleteVideo(variant);
-                            loadRecordedVideosQuick(); // Refresh list
-                            console.log('✅ Video deleted successfully via native module (variant)');
+                            const result = await VideoRecordingModule.deleteVideo(variant);
+                            console.log('✅ Video deleted successfully via native module (variant):', result);
+                            
+                            // Only refresh if deletion was actually completed
+                            if (result && result.success && !result.message?.includes('user confirmation')) {
+                                loadRecordedVideosQuick(); // Refresh list immediately for direct deletions
+                            } else {
+                                console.log('⏳ Delete request sent with variant, waiting for user confirmation...');
+                                // Set up delayed check for variant path too
+                                setTimeout(() => {
+                                    RNFS.exists(variant).then(exists => {
+                                        if (!exists) {
+                                            console.log('✅ File confirmed deleted after user confirmation (variant)');
+                                            loadRecordedVideosQuick();
+                                        }
+                                    }).catch(e => {
+                                        console.log('Error checking variant file existence:', e);
+                                        loadRecordedVideosQuick();
+                                    });
+                                }, 2000);
+                            }
+                            
                             nativeSuccess = true;
                             break;
                         } catch (variantError) {
@@ -555,18 +492,7 @@ const GalleryTab = () => {
                 }, 300);
                 break;
             case 'delete':
-                Alert.alert(
-                    'Delete Audio',
-                    `Are you sure you want to delete ${audio.title}?`,
-                    [
-                        { text: t('cancel', 'Cancel'), style: 'cancel' },
-                        {
-                            text: t('delete', 'Delete'),
-                            style: 'destructive',
-                            onPress: () => deleteAudio(audioId)
-                        }
-                    ]
-                );
+                deleteAudio(audioId)
                 break;
             case 'info':
                 showAudioInfo(audio);
@@ -587,21 +513,6 @@ const GalleryTab = () => {
                 Alert.alert(t('error', 'Error'), t('video_recording_module_not_available', 'Video recording module not available'));
                 return;
             }
-
-            // Request storage permission before deletion
-            console.log('🔐 Requesting storage permission before audio deletion...');
-            const hasPermission = await requestManageExternalStoragePermission();
-
-            if (!hasPermission) {
-                console.log('❌ Storage permission denied, cannot delete audio');
-                Alert.alert(
-                    t('permission_denied', 'Permission Denied'),
-                    t('storage_permission_required_for_deletion', 'Storage permission is required to delete audio files. Please grant the permission and try again.')
-                );
-                return;
-            }
-
-            console.log('✅ Storage permission granted, proceeding with audio deletion...');
 
             console.log('Attempting to delete audio:', {
                 id: audio.id,
@@ -638,8 +549,36 @@ const GalleryTab = () => {
 
             // Try native module first
             try {
-                await VideoRecordingModule.deleteAudio(pathToDelete);
-                console.log('✅ Audio deleted successfully via native module');
+                const result = await VideoRecordingModule.deleteAudio(pathToDelete);
+                console.log('✅ Audio deleted successfully via native module:', result);
+                
+                // Only refresh if deletion was actually completed (not just request sent)
+                if (result && result.success && !result.message?.includes('user confirmation')) {
+                    // Optimistic update for direct deletions
+                    setAudioFiles(prevAudios => prevAudios.filter(a => a.id !== audioId));
+                    loadAudioFiles(); // Background refresh
+                    // Alert.alert(t('success', 'Success'), t('audio_deleted_successfully', 'Audio deleted successfully'));
+                } else {
+                    console.log('⏳ Audio delete request sent, waiting for user confirmation...');
+                    // Alert.alert(t('info', 'Info'), t('delete_confirmation_pending', 'Delete request sent. Please confirm in the system dialog.'));
+                    // Set up a listener to check if file was actually deleted
+                    setTimeout(() => {
+                        RNFS.exists(pathToDelete).then(exists => {
+                            if (!exists) {
+                                console.log('✅ Audio file confirmed deleted after user confirmation');
+                                setAudioFiles(prevAudios => prevAudios.filter(a => a.id !== audioId));
+                                loadAudioFiles();
+                                // Could show success message here if needed
+                            } else {
+                                console.log('ℹ️ Audio file still exists - user may have cancelled deletion');
+                            }
+                        }).catch(e => {
+                            console.log('Error checking audio file existence:', e);
+                            // Refresh anyway to be safe
+                            loadAudioFiles();
+                        });
+                    }, 2000); // Check after 2 seconds
+                }
             } catch (nativeError) {
                 console.log('❌ Native module audio deletion failed:', {
                     message: nativeError.message,
@@ -660,8 +599,29 @@ const GalleryTab = () => {
                     if (variant !== pathToDelete) { // Skip already tried path
                         try {
                             console.log('🔄 Trying native audio deletion with variant:', variant);
-                            await VideoRecordingModule.deleteAudio(variant);
-                            console.log('✅ Audio deleted successfully via native module (variant)');
+                            const result = await VideoRecordingModule.deleteAudio(variant);
+                            console.log('✅ Audio deleted successfully via native module (variant):', result);
+                            
+                            // Only update UI if deletion was actually completed
+                            if (result && result.success && !result.message?.includes('user confirmation')) {
+                                setAudioFiles(prevAudios => prevAudios.filter(a => a.id !== audioId));
+                                loadAudioFiles(); // Background refresh
+                            } else {
+                                console.log('⏳ Audio delete request sent with variant, waiting for user confirmation...');
+                                setTimeout(() => {
+                                    RNFS.exists(variant).then(exists => {
+                                        if (!exists) {
+                                            console.log('✅ Audio file confirmed deleted after user confirmation (variant)');
+                                            setAudioFiles(prevAudios => prevAudios.filter(a => a.id !== audioId));
+                                            loadAudioFiles();
+                                        }
+                                    }).catch(e => {
+                                        console.log('Error checking variant audio file existence:', e);
+                                        loadAudioFiles();
+                                    });
+                                }, 2000);
+                            }
+                            
                             nativeSuccess = true;
                             break;
                         } catch (variantError) {
@@ -710,13 +670,6 @@ const GalleryTab = () => {
                 }
             }
 
-            // Optimistic update: remove audio from state immediately for instant UI feedback
-            setAudioFiles(prevAudios => prevAudios.filter(a => a.id !== audioId));
-
-            // Refresh the audio list after deletion in background
-            loadAudioFiles(); // No await - run in background
-
-            Alert.alert(t('success', 'Success'), t('audio_deleted_successfully', 'Audio deleted successfully'));
         } catch (error) {
             console.error('Failed to delete audio:', error);
             console.error('Audio deletion error details:', {
@@ -876,13 +829,6 @@ const GalleryTab = () => {
         try {
             // Refresh audio list to include the new converted audio
             await loadAudioFiles();
-
-            // Show success message
-            Alert.alert(
-                t('success', 'Success'),
-                'Video converted to audio successfully! You can find it in your audio gallery.',
-                [{ text: t('ok', 'OK') }]
-            );
         } catch (error) {
             console.error('Failed to refresh audio list after conversion:', error);
         }

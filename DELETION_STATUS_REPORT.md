@@ -65,12 +65,6 @@ public void deleteVideo(String filePath, Promise promise) {
 ### 2. **Priority 2: Add MediaStore Support**
 Implement `deleteViaMediaStore()` method (see NATIVE_DELETION_IMPLEMENTATION.md for full code).
 
-### 3. **Priority 3: Android Manifest Updates**
-Add to `android/app/src/main/AndroidManifest.xml`:
-```xml
-<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-<application android:requestLegacyExternalStorage="true" ...>
-```
 
 ## 📈 Current Workaround Performance
 

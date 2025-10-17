@@ -707,6 +707,7 @@ class VideoRecordingService : Service() {
         Log.d(TAG, "✅ Auto split setup: will split every 3 minutes")
     }
     
+    @RequiresPermission(Manifest.permission.CAMERA)
     private fun performAutoSplit() {
         try {
             Log.d(TAG, "🔄 Starting auto split process...")

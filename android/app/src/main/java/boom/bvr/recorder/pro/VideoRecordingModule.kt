@@ -563,15 +563,118 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     fun deleteVideo(filePath: String, promise: Promise) {
         try {
             val file = java.io.File(filePath)
-            if (file.exists() && file.delete()) {
-                Log.d(TAG, "Video deleted successfully: $filePath")
-                promise.resolve(WritableNativeMap().apply {
-                    putBoolean("success", true)
-                    putString("message", "Video deleted successfully")
-                })
-            } else {
-                promise.reject("DELETE_ERROR", "Failed to delete video file")
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Video file not found: $filePath")
+                return
             }
+
+            // For Android 11+ (API 30+), use MediaStore.createDeleteRequest for better compatibility
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    // Find the video in MediaStore
+                    val projection = arrayOf(MediaStore.Video.Media._ID)
+                    val selection = "${MediaStore.Video.Media.DATA} = ?"
+                    val selectionArgs = arrayOf(filePath)
+                    
+                    reactApplicationContext.contentResolver.query(
+                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val videoId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID))
+                            val videoUri = Uri.withAppendedPath(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, videoId.toString())
+                            
+                            // Use MediaStore.createDeleteRequest for proper deletion
+                            val deleteRequest = MediaStore.createDeleteRequest(
+                                reactApplicationContext.contentResolver,
+                                listOf(videoUri)
+                            )
+                            
+                            // This will show user permission dialog if needed
+                            if (reactApplicationContext.currentActivity != null) {
+                                reactApplicationContext.currentActivity?.startIntentSenderForResult(
+                                    deleteRequest.intentSender,
+                                    1001, // Request code
+                                    null, 0, 0, 0
+                                )
+                                
+                                Log.d(TAG, "MediaStore delete request sent for: $filePath")
+                                promise.resolve(WritableNativeMap().apply {
+                                    putBoolean("success", true)
+                                    putString("message", "Delete request sent - user confirmation may be required")
+                                })
+                            } else {
+                                // Fallback to direct file deletion if no activity available
+                                if (file.delete()) {
+                                    Log.d(TAG, "Video deleted directly: $filePath")
+                                    promise.resolve(WritableNativeMap().apply {
+                                        putBoolean("success", true)
+                                        putString("message", "Video deleted successfully")
+                                    })
+                                } else {
+                                    promise.reject("DELETE_ERROR", "Failed to delete video file")
+                                }
+                            }
+                        } else {
+                            // File not in MediaStore, delete directly
+                            if (file.delete()) {
+                                Log.d(TAG, "Video deleted directly (not in MediaStore): $filePath")
+                                promise.resolve(WritableNativeMap().apply {
+                                    putBoolean("success", true)
+                                    putString("message", "Video deleted successfully")
+                                })
+                            } else {
+                                promise.reject("DELETE_ERROR", "Failed to delete video file")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "MediaStore deletion failed, falling back to direct file deletion", e)
+                    // Fallback to direct file deletion
+                    if (file.delete()) {
+                        Log.d(TAG, "Video deleted with fallback method: $filePath")
+                        promise.resolve(WritableNativeMap().apply {
+                            putBoolean("success", true)
+                            putString("message", "Video deleted successfully")
+                        })
+                    } else {
+                        promise.reject("DELETE_ERROR", "Failed to delete video file")
+                    }
+                }
+            } else {
+                // For Android 10 and below, use direct file deletion
+                if (file.delete()) {
+                    // Also remove from MediaStore to keep it in sync
+                    try {
+                        val selection = "${MediaStore.Video.Media.DATA} = ?"
+                        val selectionArgs = arrayOf(filePath)
+                        reactApplicationContext.contentResolver.delete(
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            selection,
+                            selectionArgs
+                        )
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove from MediaStore, but file deleted", e)
+                    }
+                    
+                    Log.d(TAG, "Video deleted successfully: $filePath")
+                    promise.resolve(WritableNativeMap().apply {
+                        putBoolean("success", true)
+                        putString("message", "Video deleted successfully")
+                    })
+                } else {
+                    promise.reject("DELETE_ERROR", "Failed to delete video file")
+                }
+            }
+            
+            // Clear cache entries for the deleted file
+            val cacheKey = "${file.absolutePath}_${file.lastModified()}"
+            thumbnailCache.remove(cacheKey)
+            durationCache.remove(cacheKey)
+            
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete video", e)
             promise.reject("DELETE_ERROR", "Failed to delete video: ${e.message}")
@@ -582,15 +685,113 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
     fun deleteAudio(filePath: String, promise: Promise) {
         try {
             val file = java.io.File(filePath)
-            if (file.exists() && file.delete()) {
-                Log.d(TAG, "Audio deleted successfully: $filePath")
-                promise.resolve(WritableNativeMap().apply {
-                    putBoolean("success", true)
-                    putString("message", "Audio deleted successfully")
-                })
-            } else {
-                promise.reject("DELETE_ERROR", "Failed to delete audio file")
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "Audio file not found: $filePath")
+                return
             }
+
+            // For Android 11+ (API 30+), use MediaStore.createDeleteRequest for better compatibility
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    // Find the audio in MediaStore
+                    val projection = arrayOf(MediaStore.Audio.Media._ID)
+                    val selection = "${MediaStore.Audio.Media.DATA} = ?"
+                    val selectionArgs = arrayOf(filePath)
+                    
+                    reactApplicationContext.contentResolver.query(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val audioId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID))
+                            val audioUri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId.toString())
+                            
+                            // Use MediaStore.createDeleteRequest for proper deletion
+                            val deleteRequest = MediaStore.createDeleteRequest(
+                                reactApplicationContext.contentResolver,
+                                listOf(audioUri)
+                            )
+                            
+                            // This will show user permission dialog if needed
+                            if (reactApplicationContext.currentActivity != null) {
+                                reactApplicationContext.currentActivity?.startIntentSenderForResult(
+                                    deleteRequest.intentSender,
+                                    1002, // Request code for audio
+                                    null, 0, 0, 0
+                                )
+                                
+                                Log.d(TAG, "MediaStore audio delete request sent for: $filePath")
+                                promise.resolve(WritableNativeMap().apply {
+                                    putBoolean("success", true)
+                                    putString("message", "Delete request sent - user confirmation may be required")
+                                })
+                            } else {
+                                // Fallback to direct file deletion if no activity available
+                                if (file.delete()) {
+                                    Log.d(TAG, "Audio deleted directly: $filePath")
+                                    promise.resolve(WritableNativeMap().apply {
+                                        putBoolean("success", true)
+                                        putString("message", "Audio deleted successfully")
+                                    })
+                                } else {
+                                    promise.reject("DELETE_ERROR", "Failed to delete audio file")
+                                }
+                            }
+                        } else {
+                            // File not in MediaStore, delete directly
+                            if (file.delete()) {
+                                Log.d(TAG, "Audio deleted directly (not in MediaStore): $filePath")
+                                promise.resolve(WritableNativeMap().apply {
+                                    putBoolean("success", true)
+                                    putString("message", "Audio deleted successfully")
+                                })
+                            } else {
+                                promise.reject("DELETE_ERROR", "Failed to delete audio file")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "MediaStore audio deletion failed, falling back to direct file deletion", e)
+                    // Fallback to direct file deletion
+                    if (file.delete()) {
+                        Log.d(TAG, "Audio deleted with fallback method: $filePath")
+                        promise.resolve(WritableNativeMap().apply {
+                            putBoolean("success", true)
+                            putString("message", "Audio deleted successfully")
+                        })
+                    } else {
+                        promise.reject("DELETE_ERROR", "Failed to delete audio file")
+                    }
+                }
+            } else {
+                // For Android 10 and below, use direct file deletion
+                if (file.delete()) {
+                    // Also remove from MediaStore to keep it in sync
+                    try {
+                        val selection = "${MediaStore.Audio.Media.DATA} = ?"
+                        val selectionArgs = arrayOf(filePath)
+                        reactApplicationContext.contentResolver.delete(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            selection,
+                            selectionArgs
+                        )
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove audio from MediaStore, but file deleted", e)
+                    }
+                    
+                    Log.d(TAG, "Audio deleted successfully: $filePath")
+                    promise.resolve(WritableNativeMap().apply {
+                        putBoolean("success", true)
+                        putString("message", "Audio deleted successfully")
+                    })
+                } else {
+                    promise.reject("DELETE_ERROR", "Failed to delete audio file")
+                }
+            }
+            
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete audio", e)
             promise.reject("DELETE_ERROR", "Failed to delete audio: ${e.message}")
@@ -1207,65 +1408,6 @@ class VideoRecordingModule(reactContext: ReactApplicationContext) : ReactContext
         }
     }
     
-    @ReactMethod
-    fun openAllFilesAccessSettings(promise: Promise) {
-        try {
-            val activity = reactApplicationContext.currentActivity
-            if (activity == null) {
-                promise.reject("NO_ACTIVITY", "No current activity available")
-                return
-            }
-            
-            val packageName = reactApplicationContext.packageName
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Android 11+ - Open specific app permission page
-                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.data = Uri.parse("package:$packageName")
-                activity.startActivity(intent)
-                promise.resolve("Opened all files access settings")
-            } else {
-                // Android 10 and below - Open general manage all files access
-                try {
-                    val intent = Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                    activity.startActivity(intent)
-                    promise.resolve("Opened manage all files access settings")
-                } catch (e: Exception) {
-                    // Fallback to general app settings
-                    val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                    intent.data = Uri.parse("package:$packageName")
-                    activity.startActivity(intent)
-                    promise.resolve("Opened app settings (fallback)")
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error opening all files access settings", e)
-            promise.reject("SETTINGS_ERROR", "Cannot open settings: ${e.message}")
-        }
-    }
-    
-    @ReactMethod
-    fun checkManageExternalStoragePermission(promise: Promise) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Android 11+ - Check MANAGE_EXTERNAL_STORAGE permission
-                val hasPermission = Environment.isExternalStorageManager()
-                Log.d(TAG, "MANAGE_EXTERNAL_STORAGE permission check (Android 11+): $hasPermission")
-                promise.resolve(hasPermission)
-            } else {
-                // Android 10 and below - Check WRITE_EXTERNAL_STORAGE permission
-                val hasPermission = ContextCompat.checkSelfPermission(
-                    reactApplicationContext,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-                Log.d(TAG, "WRITE_EXTERNAL_STORAGE permission check (Android 10-): $hasPermission")
-                promise.resolve(hasPermission)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking manage external storage permission", e)
-            promise.reject("PERMISSION_CHECK_ERROR", "Cannot check permission: ${e.message}")
-        }
-    }
     
     // Recording Duration Tracking Methods
     @ReactMethod

@@ -147,10 +147,6 @@ Add these permissions to `android/app/src/main/AndroidManifest.xml`:
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
-<!-- For Android 10+ scoped storage -->
-<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
-    tools:ignore="ScopedStorage" />
-
 <!-- For MediaStore operations -->
 <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 ```

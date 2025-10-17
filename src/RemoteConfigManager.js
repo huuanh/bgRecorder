@@ -13,10 +13,10 @@ class RemoteConfigManager {
         this.defaultValues = {
             // Ads configuration
             ads_enabled: true,
-            show_int_stop_record: true,
-            show_int_close_iap: true,
+            show_int_stop_record: false,
+            show_int_close_iap: false,
             distance_time_to_show_interstitial: 60, // in seconds
-            is_btn_exp_ontop: true,
+            is_btn_exp_ontop: false,
         };
     }
 

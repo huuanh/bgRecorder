@@ -1,4 +1,4 @@
-export const IS_PRODUCTION = true;
+export const IS_PRODUCTION = false;
 export const COLORS = {
   BACKGROUND: '#FFF8F2',
   PRIMARY: '#e8dbc9',
