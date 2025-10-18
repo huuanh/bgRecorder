@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   languageList: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    // paddingVertical: 20,
   },
   languageItem: {
     flexDirection: 'row',

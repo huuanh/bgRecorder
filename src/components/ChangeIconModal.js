@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: COLORS.TEXT_PRIMARY,
-        marginBottom: 12,
+        marginBottom: 6,
     },
     iconsRow: {
         flexDirection: 'row',
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.GRAY_50,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 8,
+        // marginBottom: 8,
         borderWidth: 2,
         borderColor: 'transparent',
         position: 'relative',
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: COLORS.GRAY_100,
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingBottom: 36,
     },
     doneButton: {
         backgroundColor: COLORS.ACTIVE,

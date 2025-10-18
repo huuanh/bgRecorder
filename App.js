@@ -1,5 +1,7 @@
 import { StatusBar, StyleSheet, useColorScheme, View, AppState, Text } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+// import { NavigationContainer } from '@react-navigation/native';
+
 import React, { useEffect, useState } from 'react';
 import LoadingScreen from './src/components/LoadingScreen';
 import OnBoardScreen from './src/components/OnBoardScreen';
@@ -188,7 +190,7 @@ function App() {
 
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: 'white' }} edges={['top', 'bottom']}>
       <StatusBar 
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={COLORS.BACKGROUND}
