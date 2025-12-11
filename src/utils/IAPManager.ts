@@ -4,6 +4,7 @@ import {
   fetchProducts,
   requestPurchase,
   finishTransaction,
+  acknowledgePurchaseAndroid,
   purchaseUpdatedListener,
   purchaseErrorListener,
   getAvailablePurchases,
@@ -171,16 +172,51 @@ class IAPManager {
     try {
       await this.processPurchaseReward(purchase);
 
-      // Check if it's a one-time purchase (consumable) or subscription
       const isOneTimePurchase = ONE_TIME_PURCHASE_IDS.includes(purchase.productId);
-      if (isOneTimePurchase) {
-        // Nêu isConsumable là true thì cho mua lại nhiều lần - false thì chỉ cho mua 1 lần
-        await finishTransaction({ purchase, isConsumable: false });
-      } else {
-        await finishTransaction({ purchase, isConsumable: true });
+      const isSubscription = SUBSCRIPTION_IDS.includes(purchase.productId);
+      const requiresAcknowledgement = isOneTimePurchase || isSubscription;
+
+      // Acknowledge purchases that require it on Android (non-consumables & subscriptions)
+      if (Platform.OS === 'android' && requiresAcknowledgement) {
+        await this.acknowledgePurchaseIfNeeded(purchase);
       }
+
+      // Check if it's a one-time purchase (consumable) or subscription
+      const isConsumablePurchase = !(requiresAcknowledgement);
+
+      await finishTransaction({
+        purchase,
+        isConsumable: isConsumablePurchase,
+      });
     } catch (error) {
       console.log('❌ Error processing transaction:', error);
+    }
+  }
+
+  private async acknowledgePurchaseIfNeeded(purchase: Purchase): Promise<void> {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const token = purchase.purchaseToken;
+    if (!token) {
+      console.warn('⚠️ Cannot acknowledge purchase without token:', purchase.productId);
+      return;
+    }
+
+    // Check if purchase has Android-specific properties
+    const androidPurchase = purchase as any;
+    if (androidPurchase.isAcknowledgedAndroid) {
+      console.log('ℹ️ Purchase already acknowledged:', purchase.productId);
+      return;
+    }
+
+    try {
+      await acknowledgePurchaseAndroid(token);
+      console.log('✅ Purchase acknowledged on Android:', purchase.productId);
+    } catch (error: any) {
+      const errorMessage = error?.message ?? String(error);
+      console.warn('⚠️ Failed to acknowledge purchase, will rely on finishTransaction fallback:', errorMessage);
     }
   }
 

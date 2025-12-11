@@ -58,19 +58,6 @@ const LoadingScreen = () => {
         setLoadingText('Initializing services...');
         setProgress(10);
         
-        // Initialize AdManager
-        console.log('🔧 Loading AdManager...');
-        setLoadingText('Loading....');
-        setProgress(30);
-        await AdManager.initialize();
-        await RemoteConfigManager.initialize();
-        console.log('✅ AdManager initialized successfully');
-        
-        if (!isCompleted) {
-          setAdManagerLoaded(true);
-          setProgress(50);
-        }
-        
         // Initialize IAP Manager
         console.log('🔧 Loading IAP Manager...');
         setLoadingText('Loading IAP Manager...');
@@ -95,10 +82,23 @@ const LoadingScreen = () => {
           setProgress(90);
         }
         
+        // Initialize AdManager
+        console.log('🔧 Loading AdManager...');
+        setLoadingText('Loading....');
+        setProgress(92);
+        await AdManager.initialize();
+        await RemoteConfigManager.initialize();
+        console.log('✅ AdManager initialized successfully');
+        
+        if (!isCompleted) {
+          setAdManagerLoaded(true);
+          setProgress(96);
+        }
+
         // Initialize Icon Manager
         console.log('🔧 Loading Icon Manager...');
         setLoadingText('Loading app preferences...');
-        setProgress(95);
+        setProgress(98);
         await IconManager.initialize();
         console.log('✅ Icon Manager initialized successfully');
         

@@ -1,5 +1,5 @@
 import { StatusBar, StyleSheet, useColorScheme, View, AppState, Text } from 'react-native';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 // import { NavigationContainer } from '@react-navigation/native';
 
 import React, { useEffect, useState } from 'react';
@@ -191,6 +191,7 @@ function App() {
 
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: 'white' }} edges={['top', 'bottom']}>
+      <SafeAreaView style={{ flex: 1 }}>
       <StatusBar 
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={COLORS.BACKGROUND}
@@ -228,6 +229,7 @@ function App() {
         visible={showGlobalNetworkModal }
         onConnectionRestored={handleGlobalNetworkRestored}
       />
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

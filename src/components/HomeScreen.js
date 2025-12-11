@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     Image,
+    Platform,
+    PermissionsAndroid,
 } from 'react-native';
 import { COLORS, FONTS } from '../constants';
 import RecordTab from './tabs/RecordTab';
@@ -13,7 +15,8 @@ import EditTab from './tabs/EditTab';
 import SettingsTab from './tabs/SettingsTab';
 import useTranslation from '../hooks/useTranslation';
 import IAPModal from './IAPModal';
-import AdManager, {ADS_UNIT} from '../AdManager';
+import AdManager, { ADS_UNIT } from '../AdManager';
+import messaging from '@react-native-firebase/messaging';
 
 const HomeScreen = () => {
     const { t } = useTranslation();
@@ -45,6 +48,48 @@ const HomeScreen = () => {
         setActiveTab(tab);
     }
 
+    async function requestPermission() {
+        try {
+            // Android 13+ cần POST_NOTIFICATIONS
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    console.log('Notification permission denied (Android 13+)');
+                    return false;
+                }
+            }
+
+            // Firebase (iOS + Android)
+            const authStatus = await messaging().requestPermission();
+            const enabled =
+                authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+                authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+            if (enabled) {
+                const token = await messaging().getToken();
+                console.log("FCM token:", token);
+                console.log('Notification permission granted');
+                return true;
+            } else {
+                console.log('Notification permission denied');
+                return false;
+            }
+        } catch (error) {
+            console.error('Permission error:', error);
+            return false;
+        }
+    }
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            requestPermission();
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -63,17 +108,17 @@ const HomeScreen = () => {
 
             {/* Bottom Tabs */}
             <View style={styles.bottomTabs}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tab, activeTab === 'record' && styles.activeTab]}
                     onPress={() => handleTabPress('record')}
                 >
                     <View style={styles.tabIcon}>
-                        <Image 
-                            source={require('../../assets/home/ic/ic_record.png')} 
+                        <Image
+                            source={require('../../assets/home/ic/ic_record.png')}
                             style={[
                                 styles.tabIconImage,
                                 { tintColor: activeTab === 'record' ? '#1E3A8A' : '#9CA3AF' }
-                            ]} 
+                            ]}
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'record' && styles.activeTabText]}>
@@ -81,17 +126,17 @@ const HomeScreen = () => {
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tab, activeTab === 'gallery' && styles.activeTab]}
                     onPress={() => handleTabPress('gallery')}
                 >
                     <View style={styles.tabIcon}>
-                        <Image 
-                            source={require('../../assets/home/ic/ic-gallery.png')} 
+                        <Image
+                            source={require('../../assets/home/ic/ic-gallery.png')}
                             style={[
                                 styles.tabIconImage,
                                 { tintColor: activeTab === 'gallery' ? '#1E3A8A' : '#9CA3AF' }
-                            ]} 
+                            ]}
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'gallery' && styles.activeTabText]}>
@@ -99,17 +144,17 @@ const HomeScreen = () => {
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tab, activeTab === 'edit' && styles.activeTab]}
                     onPress={() => handleTabPress('edit')}
                 >
                     <View style={styles.tabIcon}>
-                        <Image 
-                            source={require('../../assets/home/ic/ic-music.png')} 
+                        <Image
+                            source={require('../../assets/home/ic/ic-music.png')}
                             style={[
                                 styles.tabIconImage,
                                 { tintColor: activeTab === 'edit' ? '#1E3A8A' : '#9CA3AF' }
-                            ]} 
+                            ]}
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'edit' && styles.activeTabText]}>
@@ -117,17 +162,17 @@ const HomeScreen = () => {
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tab, activeTab === 'settings' && styles.activeTab]}
                     onPress={() => handleTabPress('settings')}
                 >
                     <View style={styles.tabIcon}>
-                        <Image 
-                            source={require('../../assets/home/ic/ic_setting.png')} 
+                        <Image
+                            source={require('../../assets/home/ic/ic_setting.png')}
                             style={[
                                 styles.tabIconImage,
                                 { tintColor: activeTab === 'settings' ? '#1E3A8A' : '#9CA3AF' }
-                            ]} 
+                            ]}
                         />
                     </View>
                     <Text style={[styles.tabText, activeTab === 'settings' && styles.activeTabText]}>
@@ -135,7 +180,7 @@ const HomeScreen = () => {
                     </Text>
                 </TouchableOpacity>
             </View>
-            
+
             {/* IAP Modal */}
             <IAPModal
                 visible={showIAPModal}
