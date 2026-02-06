@@ -149,11 +149,11 @@ const VideoPlayer = ({ video, fullscreen = true, visible = true, onClose }) => {
                 {/* Bottom Controls */}
                 <View style={styles.bottomControls}>
                     {/* Native Ad - Show when paused */}
-                    {paused && (
+                    {/* {paused && (
                         <View style={styles.nativeAdContainer}>
                             <NativeAdComponent adUnitId={ADS_UNIT.NATIVE_PLAY_SCENE} />
                         </View>
-                    )}
+                    )} */}
                     
                     {/* Progress Bar */}
                     <View style={styles.speedMenu}>
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     nativeAdContainer: {
-        marginBottom: 10,
+        marginBottom: 50,
         borderRadius: 8,
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.3)',
