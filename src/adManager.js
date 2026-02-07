@@ -15,76 +15,76 @@ try {
 }
 
 export const ADS_UNIT_VALUES = {
-  DEV: {
-    // App Open Ads
-    APP_OPEN: TestIds.APP_OPEN,
-    
-    // Native Ads
-    NATIVE_LANGUAGE: TestIds.NATIVE,
-    NATIVE_ONBOARDING: TestIds.NATIVE,
-    NATIVE_RECORDING_TAB: TestIds.NATIVE,
-    NATIVE_DURATION: TestIds.NATIVE,
-    NATIVE_QUALITY: TestIds.NATIVE,
-    NATIVE_CAMERA: TestIds.NATIVE,
-    NATIVE_GALLERY_TAB: TestIds.NATIVE,
-    NATIVE_RENAME: TestIds.NATIVE,
-    NATIVE_PLAY_SCENE: TestIds.NATIVE,
-    NATIVE_EDIT_TAB: TestIds.NATIVE,
-    NATIVE_SELECT_VIDEO: TestIds.NATIVE,
-    NATIVE_TRIM_VIDEO: TestIds.NATIVE,
-    NATIVE_TRIM_VIDEO_SUCCESS: TestIds.NATIVE,
-    NATIVE_COMPRESS_VIDEO: TestIds.NATIVE,
-    NATIVE_COMPRESS_VIDEO_SUCCESS: TestIds.NATIVE,
-    NATIVE_TOMP3_VIDEO: TestIds.NATIVE,
-    NATIVE_TOMP3_VIDEO_SUCCESS: TestIds.NATIVE,
-    NATIVE_SETTING: TestIds.NATIVE,
-    NATIVE_PREVIEW_SIZE: TestIds.NATIVE,
-    NATIVE_RECORDING_LIMIT: TestIds.NATIVE,
+    DEV: {
+        // App Open Ads
+        APP_OPEN: TestIds.APP_OPEN,
 
-    // Interstitial Ads
-    INTERSTITIAL_IAP: TestIds.INTERSTITIAL,
-    INTERSTITIAL_STOP_RECORD: TestIds.INTERSTITIAL,
-    INTERSTITIAL_SWITCH_TAB: TestIds.INTERSTITIAL,
-    INTERSTITIAL_SELECT_TOOL: TestIds.INTERSTITIAL,
-    INTERSTITIAL_SELECT_TOOL_EDIT: TestIds.INTERSTITIAL,
-    INTERSTITIAL_EXPORT_TRIM: TestIds.INTERSTITIAL,
-    INTERSTITIAL_EXPORT_COMPRESS: TestIds.INTERSTITIAL,
-    INTERSTITIAL_EXPORT_TOMP3: TestIds.INTERSTITIAL,
-  },
-  PROD: {
-    // App Open Ads
-    APP_OPEN: 'ca-app-pub-1301869270837954/2946336962',
-    // Native Ads
-    NATIVE_LANGUAGE: 'ca-app-pub-1301869270837954/6541580009',
-    NATIVE_ONBOARDING: 'ca-app-pub-1301869270837954/5751242510',
-    NATIVE_RECORDING_TAB: 'ca-app-pub-1301869270837954/6541580009',
-    NATIVE_DURATION: 'ca-app-pub-1301869270837954/7292883889',
-    NATIVE_QUALITY: 'ca-app-pub-1301869270837954/7292883889',
-    NATIVE_CAMERA: 'ca-app-pub-1301869270837954/7292883889',
-    NATIVE_GALLERY_TAB: 'ca-app-pub-1301869270837954/4589671256',
-    NATIVE_RENAME: 'ca-app-pub-1301869270837954/7292883889',
-    NATIVE_PLAY_SCENE: 'ca-app-pub-1301869270837954/3588801967',
-    NATIVE_EDIT_TAB: 'ca-app-pub-1301869270837954/9882747578',
-    NATIVE_SELECT_VIDEO: 'ca-app-pub-1301869270837954/3716600951',
-    NATIVE_TRIM_VIDEO: 'ca-app-pub-1301869270837954/2402491617',
-    NATIVE_TRIM_VIDEO_SUCCESS: 'ca-app-pub-1301869270837954/2402491617',
-    NATIVE_COMPRESS_VIDEO: 'ca-app-pub-1301869270837954/8417235627',
-    NATIVE_COMPRESS_VIDEO_SUCCESS: 'ca-app-pub-1301869270837954/8417235627',
-    NATIVE_TOMP3_VIDEO: 'ca-app-pub-1301869270837954/3465319516',
-    NATIVE_TOMP3_VIDEO_SUCCESS: 'ca-app-pub-1301869270837954/3465319516',
-    NATIVE_SETTING: 'ca-app-pub-1301869270837954/2403519287',
-    NATIVE_PREVIEW_SIZE: 'ca-app-pub-1301869270837954/8776328277',
-    NATIVE_RECORDING_LIMIT: 'ca-app-pub-1301869270837954/8776328277',
-    // Interstitial Ads
-    INTERSTITIAL_IAP: 'ca-app-pub-1301869270837954/4629732531',
-    INTERSTITIAL_STOP_RECORD: 'ca-app-pub-1301869270837954/7324673474',
-    INTERSTITIAL_SWITCH_TAB: 'ca-app-pub-1301869270837954/9538745601',
-    INTERSTITIAL_SELECT_TOOL: 'ca-app-pub-1301869270837954/2210919926',
-    INTERSTITIAL_SELECT_TOOL_EDIT: 'ca-app-pub-1301869270837954/2210919926',
-    INTERSTITIAL_EXPORT_TRIM: 'ca-app-pub-1301869270837954/6011591804',
-    INTERSTITIAL_EXPORT_COMPRESS: 'ca-app-pub-1301869270837954/6011591804',
-    INTERSTITIAL_EXPORT_TOMP3: 'ca-app-pub-1301869270837954/6011591804',
-  },
+        // Native Ads
+        NATIVE_LANGUAGE: TestIds.NATIVE,
+        NATIVE_ONBOARDING: TestIds.NATIVE,
+        NATIVE_RECORDING_TAB: TestIds.NATIVE,
+        NATIVE_DURATION: TestIds.NATIVE,
+        NATIVE_QUALITY: TestIds.NATIVE,
+        NATIVE_CAMERA: TestIds.NATIVE,
+        NATIVE_GALLERY_TAB: TestIds.NATIVE,
+        NATIVE_RENAME: TestIds.NATIVE,
+        NATIVE_PLAY_SCENE: TestIds.NATIVE,
+        NATIVE_EDIT_TAB: TestIds.NATIVE,
+        NATIVE_SELECT_VIDEO: TestIds.NATIVE,
+        NATIVE_TRIM_VIDEO: TestIds.NATIVE,
+        NATIVE_TRIM_VIDEO_SUCCESS: TestIds.NATIVE,
+        NATIVE_COMPRESS_VIDEO: TestIds.NATIVE,
+        NATIVE_COMPRESS_VIDEO_SUCCESS: TestIds.NATIVE,
+        NATIVE_TOMP3_VIDEO: TestIds.NATIVE,
+        NATIVE_TOMP3_VIDEO_SUCCESS: TestIds.NATIVE,
+        NATIVE_SETTING: TestIds.NATIVE,
+        NATIVE_PREVIEW_SIZE: TestIds.NATIVE,
+        NATIVE_RECORDING_LIMIT: TestIds.NATIVE,
+
+        // Interstitial Ads
+        INTERSTITIAL_IAP: TestIds.INTERSTITIAL,
+        INTERSTITIAL_STOP_RECORD: TestIds.INTERSTITIAL,
+        INTERSTITIAL_SWITCH_TAB: TestIds.INTERSTITIAL,
+        INTERSTITIAL_SELECT_TOOL: TestIds.INTERSTITIAL,
+        INTERSTITIAL_SELECT_TOOL_EDIT: TestIds.INTERSTITIAL,
+        INTERSTITIAL_EXPORT_TRIM: TestIds.INTERSTITIAL,
+        INTERSTITIAL_EXPORT_COMPRESS: TestIds.INTERSTITIAL,
+        INTERSTITIAL_EXPORT_TOMP3: TestIds.INTERSTITIAL,
+    },
+    PROD: {
+        // App Open Ads
+        APP_OPEN: 'ca-app-pub-1301869270837954/2946336962',
+        // Native Ads
+        NATIVE_LANGUAGE: 'ca-app-pub-1301869270837954/6541580009',
+        NATIVE_ONBOARDING: 'ca-app-pub-1301869270837954/5751242510',
+        NATIVE_RECORDING_TAB: 'ca-app-pub-1301869270837954/2544572437',
+        NATIVE_DURATION: 'ca-app-pub-1301869270837954/7292883889',
+        NATIVE_QUALITY: 'ca-app-pub-1301869270837954/6264325599',
+        NATIVE_CAMERA: 'ca-app-pub-1301869270837954/2304055399',
+        NATIVE_GALLERY_TAB: 'ca-app-pub-1301869270837954/4589671256',
+        NATIVE_RENAME: 'ca-app-pub-1301869270837954/7688980103',
+        NATIVE_PLAY_SCENE: 'ca-app-pub-1301869270837954/3588801967',
+        NATIVE_EDIT_TAB: 'ca-app-pub-1301869270837954/9882747578',
+        NATIVE_SELECT_VIDEO: 'ca-app-pub-1301869270837954/3716600951',
+        NATIVE_TRIM_VIDEO: 'ca-app-pub-1301869270837954/2402491617',
+        NATIVE_TRIM_VIDEO_SUCCESS: 'ca-app-pub-1301869270837954/9990973725',
+        NATIVE_COMPRESS_VIDEO: 'ca-app-pub-1301869270837954/8417235627',
+        NATIVE_COMPRESS_VIDEO_SUCCESS: 'ca-app-pub-1301869270837954/3749735092',
+        NATIVE_TOMP3_VIDEO: 'ca-app-pub-1301869270837954/3465319516',
+        NATIVE_TOMP3_VIDEO_SUCCESS: 'ca-app-pub-1301869270837954/3310751392',
+        NATIVE_SETTING: 'ca-app-pub-1301869270837954/2403519287',
+        NATIVE_PREVIEW_SIZE: 'ca-app-pub-1301869270837954/8776328277',
+        NATIVE_RECORDING_LIMIT: 'ca-app-pub-1301869270837954/6755172385',
+        // Interstitial Ads
+        INTERSTITIAL_IAP: 'ca-app-pub-1301869270837954/4629732531',
+        INTERSTITIAL_STOP_RECORD: 'ca-app-pub-1301869270837954/7324673474',
+        INTERSTITIAL_SWITCH_TAB: 'ca-app-pub-1301869270837954/9538745601',
+        INTERSTITIAL_SELECT_TOOL: 'ca-app-pub-1301869270837954/2210919926',
+        INTERSTITIAL_SELECT_TOOL_EDIT: 'ca-app-pub-1301869270837954/8677892057',
+        INTERSTITIAL_EXPORT_TRIM: 'ca-app-pub-1301869270837954/6011591804',
+        INTERSTITIAL_EXPORT_COMPRESS: 'ca-app-pub-1301869270837954/6051728717',
+        INTERSTITIAL_EXPORT_TOMP3: 'ca-app-pub-1301869270837954/5442090715',
+    },
 };
 
 export const ADS_UNIT = IS_PRODUCTION ? ADS_UNIT_VALUES.PROD : ADS_UNIT_VALUES.DEV;
@@ -101,10 +101,10 @@ class AdManager {
         this.isAppOpenAdLoading = false; // Add flag to prevent multiple app open ads
         this.lastAppOpenAdTime = 0; // Track last app open ad time
         this.APP_OPEN_AD_COOLDOWN = 30000; // 30 seconds cooldown between app open ads
-        
+
         // Interstitial ads timing control
         this.lastInterstitialAdTime = 0; // Track last interstitial ad show time
-        this.INTERSTITIAL_AD_COOLDOWN = 60000; // Default 60 seconds, will be overridden by Remote Config
+        this.INTERSTITIAL_AD_COOLDOWN = 60; // Default 60 seconds, will be overridden by Remote Config
 
         // Preloaded ads cache
         this.preloadedAds = {
@@ -115,10 +115,12 @@ class AdManager {
 
         // Loading states for ads
         this.adLoadingStates = {
-            interstitial: false,
+            interstitial: {},
             rewarded: false,
             appOpen: false,
         };
+
+        this.isShowingTime = false;
 
         // Try to load Google Mobile Ads if available
         this.loadGoogleMobileAds();
@@ -126,7 +128,7 @@ class AdManager {
 
     // Load Google Mobile Ads if available
     loadGoogleMobileAds() {
-        console.log('🔄 Loading Google Mobile Ads module...', mobileAds); 
+        console.log('🔄 Loading Google Mobile Ads module...', mobileAds);
         try {
             const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
             console.log('📦 Module loaded, extracting components...');
@@ -142,9 +144,9 @@ class AdManager {
             this.RewardedAdEventType = GoogleMobileAdsModule.RewardedAdEventType;
 
             // Try to get MobileAds from different possible exports
-            this.GoogleMobileAds = GoogleMobileAdsModule.MobileAds || 
-                                   GoogleMobileAdsModule.default || 
-                                   GoogleMobileAdsModule;
+            this.GoogleMobileAds = GoogleMobileAdsModule.MobileAds ||
+                GoogleMobileAdsModule.default ||
+                GoogleMobileAdsModule;
 
             // Since RewardedAd is available, we can use that as the indicator
             const isModuleAvailable = !!(this.RewardedAd && this.AdEventType && this.RewardedAdEventType);
@@ -158,14 +160,14 @@ class AdManager {
             console.log('🔍 RewardedAdEventType available:', !!this.RewardedAdEventType);
             console.log('🔍 AdEventType available:', !!this.AdEventType);
             console.log('🔍 Module actually available:', isModuleAvailable);
-            
+
             // Check if initialize method exists in different places
             const hasInitialize = (this.GoogleMobileAds && typeof this.GoogleMobileAds.initialize === 'function') ||
-                                  (GoogleMobileAdsModule.MobileAds && typeof GoogleMobileAdsModule.MobileAds.initialize === 'function') ||
-                                  (GoogleMobileAdsModule.default && typeof GoogleMobileAdsModule.default.initialize === 'function') ||
-                                  (typeof GoogleMobileAdsModule.initialize === 'function');
+                (GoogleMobileAdsModule.MobileAds && typeof GoogleMobileAdsModule.MobileAds.initialize === 'function') ||
+                (GoogleMobileAdsModule.default && typeof GoogleMobileAdsModule.default.initialize === 'function') ||
+                (typeof GoogleMobileAdsModule.initialize === 'function');
             console.log('🔍 Initialize method available:', hasInitialize);
-            
+
         } catch (error) {
             console.log('⚠️ Google Mobile Ads not available, using mock ads:', error.message);
             this.GoogleMobileAds = null;
@@ -193,30 +195,30 @@ class AdManager {
         try {
             // Import the module again to get the latest reference
             const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
-            
+
             // For react-native-google-mobile-ads v15.x, components work without explicit initialization
             // The SDK will auto-initialize when first component is used
             console.log('✅ Google Mobile Ads module is ready');
-            
+
             this.isInitialized = true;
-            
+
             // Start preloading ads after initialization
             this.preloadAllAds();
-            
+
             return true;
         } catch (error) {
             console.log('❌ Failed to initialize Google Mobile Ads:', error);
             // Don't fail completely - we can still use the ad components
             this.isInitialized = true;
-            
+
             // Still try to preload ads
             this.preloadAllAds();
-            
+
             return true;
         }
     }
 
-    
+
     // Preload all ads
     preloadAllAds() {
         // Don't preload ads for VIP users
@@ -224,14 +226,21 @@ class AdManager {
             console.log('👑 VIP user detected - skipping ad preloading');
             return;
         }
-        
+
         console.log('🔄 Starting to preload all ads...');
-        this.preloadInterstitialAd();
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_IAP);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_STOP_RECORD);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_SWITCH_TAB);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_SELECT_TOOL_EDIT);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_TRIM);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_COMPRESS);
+        this.preloadInterstitialAd(ADS_UNIT.INTERSTITIAL_EXPORT_TOMP3);
         // this.preloadRewardedAd();
         this.preloadAppOpenAd();
     }
 
-    
+
     // Preload interstitial ad
     preloadInterstitialAd(adId = ADS_UNIT.INTERSTITIAL_IAP) {
         // Don't preload ads for VIP users
@@ -240,40 +249,40 @@ class AdManager {
             return;
         }
 
-        if (!this.isModuleLoaded || this.adLoadingStates.interstitial || this.preloadedAds.interstitial[adId]) {
+        if (!this.isModuleLoaded || this.adLoadingStates.interstitial[adId] || this.preloadedAds.interstitial[adId]) {
             return;
         }
 
         const adUnitId = adId; // Use the provided ad ID
 
         try {
-            console.log('🔄 Preloading interstitial ad...');
-            this.adLoadingStates.interstitial = true;
+            console.log('🔄 Preloading interstitial ad...', adId);
+            this.adLoadingStates.interstitial[adId] = true;
 
             const interstitial = this.InterstitialAd.createForAdRequest(adUnitId);
 
             const unsubscribeLoaded = interstitial.addAdEventListener(this.AdEventType.LOADED, () => {
-                console.log('✅ Interstitial ad preloaded successfully');
+                console.log('✅ Interstitial ad preloaded successfully', adId);
                 this.preloadedAds.interstitial[adId] = interstitial;
-                this.adLoadingStates.interstitial = false;
+                this.adLoadingStates.interstitial[adId] = false;
                 unsubscribeLoaded();
                 unsubscribeError();
             });
 
             const unsubscribeError = interstitial.addAdEventListener(this.AdEventType.ERROR, (error) => {
                 console.log('❌ Failed to preload interstitial ad:', error);
-                this.adLoadingStates.interstitial = false;
+                this.adLoadingStates.interstitial[adId] = false;
                 unsubscribeLoaded();
                 unsubscribeError();
-                
+
                 // Retry after 30 seconds
-                setTimeout(() => this.preloadInterstitialAd(), 30000);
+                setTimeout(() => this.preloadInterstitialAd(adId), 30000);
             });
 
             interstitial.load();
         } catch (error) {
             console.log('❌ Error preloading interstitial ad:', error);
-            this.adLoadingStates.interstitial = false;
+            this.adLoadingStates.interstitial[adId] = false;
         }
     }
 
@@ -284,12 +293,12 @@ class AdManager {
             console.log('👑 VIP user - skipping rewarded ad preload');
             return;
         }
-        
+
         if (!this.isModuleLoaded || this.adLoadingStates.rewarded || this.preloadedAds.rewarded) {
             return;
         }
 
-        const adUnitId = '';
+        const adUnitId = ADS_UNIT.REWARDDED;
 
         try {
             console.log('🔄 Preloading rewarded ad...');
@@ -298,7 +307,7 @@ class AdManager {
             const rewarded = this.RewardedAd.createForAdRequest(adUnitId);
 
             const unsubscribeLoaded = rewarded.addAdEventListener(this.RewardedAdEventType.LOADED, () => {
-                console.log('✅ Rewarded ad preloaded successfully');
+                console.log('✅ Rewarded ad preloaded successfully', adUnitId);
                 this.preloadedAds.rewarded = rewarded;
                 this.adLoadingStates.rewarded = false;
                 unsubscribeLoaded();
@@ -310,7 +319,7 @@ class AdManager {
                 this.adLoadingStates.rewarded = false;
                 unsubscribeLoaded();
                 unsubscribeError();
-                
+
                 // Retry after 30 seconds
                 setTimeout(() => this.preloadRewardedAd(), 30000);
             });
@@ -329,7 +338,7 @@ class AdManager {
             console.log('👑 VIP user - skipping app open ad preload');
             return;
         }
-        
+
         if (!this.isModuleLoaded || this.adLoadingStates.appOpen || this.preloadedAds.appOpen) {
             return;
         }
@@ -355,7 +364,7 @@ class AdManager {
                 this.adLoadingStates.appOpen = false;
                 unsubscribeLoaded();
                 unsubscribeError();
-                
+
                 // Retry after 60 seconds (longer for app open ads)
                 setTimeout(() => this.preloadAppOpenAd(), 60000);
             });
@@ -396,14 +405,14 @@ class AdManager {
         const currentTime = Date.now();
         const cooldown = this.getInterstitialCooldown();
         const timeSinceLastAd = currentTime - this.lastInterstitialAdTime;
-        
+
         console.log('🕒 Interstitial ad timing check:');
         console.log('  Current time:', currentTime);
         console.log('  Last ad time:', this.lastInterstitialAdTime);
         console.log('  Time since last ad:', timeSinceLastAd, 'ms');
         console.log('  Required cooldown:', cooldown, 'ms');
         console.log('  Can show:', timeSinceLastAd >= cooldown);
-        
+
         return timeSinceLastAd >= cooldown * 1000;
     }
 
@@ -419,15 +428,16 @@ class AdManager {
 
     // Load and show interstitial ad
     async showInterstitialAd(adId, onAdClosed, onAdError, usePreloaded = true) {
+        console.log('isShowingTime, canShowInterstitialAd, lastInterstitialAdTime', this.isShowingTime, this.canShowInterstitialAd(), this.lastInterstitialAdTime);
         // Don't show ads for VIP users
         if (checkVipStatus()) {
             console.log('👑 VIP user - skipping interstitial ad');
             if (onAdClosed) onAdClosed();
             return true;
         }
-        
+
         // Check cooldown period for interstitial ads
-        if (!this.canShowInterstitialAd()) {
+        if (!this.canShowInterstitialAd() || this.isShowingTime) {
             const cooldown = this.getInterstitialCooldown();
             const timeSinceLastAd = Date.now() - this.lastInterstitialAdTime;
             const remainingTime = cooldown - timeSinceLastAd;
@@ -435,17 +445,20 @@ class AdManager {
             if (onAdClosed) onAdClosed(); // Still call callback to not break flow
             return false;
         }
-        
+
         if (!this.isAdsInitialized()) {
             console.log('❌ Cannot show interstitial ad - not initialized');
             if (onAdError) onAdError('Ads not initialized');
             return false;
         }
 
+        this.isShowingTime = true;
+
         if (!this.isModuleLoaded) {
             // Mock interstitial ad - also record timestamp
             console.log('🎯 Mock Interstitial Ad: Gun Simulator Pro - Unlock more weapons!');
             this.lastInterstitialAdTime = Date.now(); // Record timestamp for mock ad too
+            this.isShowingTime = false;
             return new Promise((resolve) => {
                 setTimeout(() => {
                     console.log('📱 Mock interstitial ad closed');
@@ -465,6 +478,7 @@ class AdManager {
                 const unsubscribeOpened = preloadedAd.addAdEventListener(this.AdEventType.OPENED, () => {
                     console.log('📺 Preloaded interstitial ad opened - recording timestamp');
                     this.lastInterstitialAdTime = Date.now(); // Record the time when ad is shown
+                    this.isShowingTime = false;
                 });
 
                 const unsubscribeClosed = preloadedAd.addAdEventListener(this.AdEventType.CLOSED, () => {
@@ -473,7 +487,7 @@ class AdManager {
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdClosed) onAdClosed();
-                    
+                    this.isShowingTime = false;
                     // Preload next ad
                     setTimeout(() => this.preloadInterstitialAd(adId), 1000);
                     resolve(true);
@@ -485,9 +499,10 @@ class AdManager {
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdError) onAdError(error);
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadInterstitialAd(adId), 1000);
+                    this.isShowingTime = false;
                     reject(error);
                 });
 
@@ -499,9 +514,10 @@ class AdManager {
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdError) onAdError(error);
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadInterstitialAd(adId), 1000);
+                    this.isShowingTime = false;
                     reject(error);
                 }
             });
@@ -510,7 +526,7 @@ class AdManager {
         // Fallback to load and show if no preloaded ad available
         try {
             console.log('📺 Loading and showing interstitial ad (no preloaded available)');
-            const interstitial = this.InterstitialAd.createForAdRequest(this.getInterstitialAdUnitId());
+            const interstitial = this.InterstitialAd.createForAdRequest(adId);
 
             return new Promise((resolve, reject) => {
                 const unsubscribeLoaded = interstitial.addAdEventListener(this.AdEventType.LOADED, () => {
@@ -521,6 +537,7 @@ class AdManager {
                 const unsubscribeOpened = interstitial.addAdEventListener(this.AdEventType.OPENED, () => {
                     console.log('📺 Fallback interstitial ad opened - recording timestamp');
                     this.lastInterstitialAdTime = Date.now(); // Record the time when ad is shown
+                    this.isShowingTime = false;
                 });
 
                 const unsubscribeClosed = interstitial.addAdEventListener(this.AdEventType.CLOSED, () => {
@@ -530,9 +547,9 @@ class AdManager {
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdClosed) onAdClosed();
-                    
+
                     // Preload next ad
-                    setTimeout(() => this.preloadInterstitialAd(), 1000);
+                    setTimeout(() => this.preloadInterstitialAd(adId), 1000);
                     resolve(true);
                 });
 
@@ -543,9 +560,10 @@ class AdManager {
                     unsubscribeClosed();
                     unsubscribeError();
                     if (onAdError) onAdError(error);
-                    
+
                     // Preload next ad
-                    setTimeout(() => this.preloadInterstitialAd(), 1000);
+                    setTimeout(() => this.preloadInterstitialAd(adId), 1000);
+                    this.isShowingTime = false;
                     reject(error);
                 });
 
@@ -555,9 +573,10 @@ class AdManager {
         } catch (error) {
             console.log('❌ Error showing interstitial ad:', error);
             if (onAdError) onAdError(error);
-            
+
             // Preload next ad
-            setTimeout(() => this.preloadInterstitialAd(), 1000);
+            setTimeout(() => this.preloadInterstitialAd(adId), 1000);
+            this.isShowingTime = false;
             return false;
         }
     }
@@ -595,7 +614,7 @@ class AdManager {
                     () => {
                         console.log('✅ Preloaded rewarded ad closed');
                         unsubscribe();
-                        
+
                         // Preload next ad
                         setTimeout(() => this.preloadRewardedAd(), 1000);
                     }
@@ -606,7 +625,7 @@ class AdManager {
                     (error) => {
                         console.log('❌ Preloaded rewarded ad error:', error);
                         unsubscribe();
-                        
+
                         // Preload next ad
                         setTimeout(() => this.preloadRewardedAd(), 1000);
                         reject(error);
@@ -624,7 +643,7 @@ class AdManager {
                 } catch (error) {
                     console.log('❌ Error showing preloaded rewarded ad:', error);
                     unsubscribe();
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadRewardedAd(), 1000);
                     reject(error);
@@ -666,7 +685,7 @@ class AdManager {
                         () => {
                             console.log('✅ Rewarded ad closed');
                             unsubscribe();
-                            
+
                             // Preload next ad
                             setTimeout(() => this.preloadRewardedAd(), 1000);
                         }
@@ -677,7 +696,7 @@ class AdManager {
                         (error) => {
                             console.log('❌ Rewarded ad error:', error);
                             unsubscribe();
-                            
+
                             // Preload next ad
                             setTimeout(() => this.preloadRewardedAd(), 1000);
                             reject(error);
@@ -718,7 +737,7 @@ class AdManager {
             console.log('👑 VIP user - skipping app open ad');
             return true;
         }
-        
+
         // Check cooldown period
         const currentTime = Date.now();
         if (currentTime - this.lastAppOpenAdTime < this.APP_OPEN_AD_COOLDOWN) {
@@ -752,7 +771,7 @@ class AdManager {
                     if (AnalyticsManager) {
                         AnalyticsManager.logAppOpenAdsLoad(true);
                     }
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadAppOpenAd(), 5000);
                     resolve(true);
@@ -765,7 +784,7 @@ class AdManager {
                     if (AnalyticsManager) {
                         AnalyticsManager.logAppOpenAdsLoad(false);
                     }
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadAppOpenAd(), 5000);
                     reject(error);
@@ -780,7 +799,7 @@ class AdManager {
                     if (AnalyticsManager) {
                         AnalyticsManager.logAppOpenAdsLoad(false);
                     }
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadAppOpenAd(), 5000);
                     reject(error);
@@ -813,7 +832,7 @@ class AdManager {
                     unsubscribeLoaded();
                     unsubscribeClosed();
                     unsubscribeError();
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadAppOpenAd(), 5000);
                     resolve(true);
@@ -828,7 +847,7 @@ class AdManager {
                     unsubscribeLoaded();
                     unsubscribeClosed();
                     unsubscribeError();
-                    
+
                     // Preload next ad
                     setTimeout(() => this.preloadAppOpenAd(), 5000);
                     reject(error);
