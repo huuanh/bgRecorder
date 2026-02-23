@@ -196,6 +196,37 @@ class AdManager {
             // Import the module again to get the latest reference
             const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
 
+            // Try to initialize Mobile Ads SDK and get initialization status
+            try {
+                const MobileAds = GoogleMobileAdsModule.default || GoogleMobileAdsModule.MobileAds || mobileAds;
+                
+                if (MobileAds && typeof MobileAds.initialize === 'function') {
+                    console.log('🔄 Initializing Mobile Ads SDK...');
+                    await MobileAds.initialize();
+                    console.log('✅ Mobile Ads SDK initialized');
+
+                    // Get adapter initialization status
+                    if (typeof MobileAds.getInitializationStatus === 'function') {
+                        const initializationStatus = await MobileAds.getInitializationStatus();
+                        console.log('📊 Mediation Adapter Status:');
+                        console.log(JSON.stringify(initializationStatus, null, 2));
+                        
+                        // Log each adapter status
+                        if (initializationStatus && initializationStatus.adapterStatuses) {
+                            Object.keys(initializationStatus.adapterStatuses).forEach(adapterName => {
+                                const status = initializationStatus.adapterStatuses[adapterName];
+                                const statusIcon = status.state === 'READY' ? '✅' : '❌';
+                                console.log(`${statusIcon} ${adapterName}: ${status.state} - ${status.description || 'No description'}`);
+                            });
+                        }
+                    }
+                } else {
+                    console.log('⚠️ MobileAds.initialize not available, using auto-initialization');
+                }
+            } catch (initError) {
+                console.log('⚠️ Initialize method failed, continuing with auto-init:', initError.message);
+            }
+
             // For react-native-google-mobile-ads v15.x, components work without explicit initialization
             // The SDK will auto-initialize when first component is used
             console.log('✅ Google Mobile Ads module is ready');
@@ -860,6 +891,59 @@ class AdManager {
             console.log('❌ Error showing app open ad:', error);
             this.isAppOpenAdLoading = false; // Reset loading flag on error
             return false;
+        }
+    }
+
+    // Open Mediation Test Suite (for debugging mediation adapters)
+    async openMediationTestSuite() {
+        if (!this.isModuleLoaded) {
+            console.log('❌ Cannot open Mediation Test Suite - Google Mobile Ads not available');
+            return false;
+        }
+
+        try {
+            const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
+            const MobileAds = GoogleMobileAdsModule.default || GoogleMobileAdsModule.MobileAds || mobileAds;
+
+            if (MobileAds && typeof MobileAds.openAdInspector === 'function') {
+                console.log('🔍 Opening Mediation Test Suite...');
+                await MobileAds.openAdInspector();
+                console.log('✅ Mediation Test Suite opened');
+                return true;
+            } else {
+                console.log('❌ openAdInspector not available in this SDK version');
+                console.log('💡 Try installing Google Mobile Ads SDK v13+ for this feature');
+                return false;
+            }
+        } catch (error) {
+            console.log('❌ Error opening Mediation Test Suite:', error);
+            return false;
+        }
+    }
+
+    // Get current adapter initialization status
+    async getMediationAdapterStatus() {
+        if (!this.isModuleLoaded) {
+            console.log('❌ Cannot get adapter status - Google Mobile Ads not available');
+            return null;
+        }
+
+        try {
+            const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
+            const MobileAds = GoogleMobileAdsModule.default || GoogleMobileAdsModule.MobileAds || mobileAds;
+
+            if (MobileAds && typeof MobileAds.getInitializationStatus === 'function') {
+                const status = await MobileAds.getInitializationStatus();
+                console.log('📊 Current Mediation Adapter Status:');
+                console.log(JSON.stringify(status, null, 2));
+                return status;
+            } else {
+                console.log('⚠️ getInitializationStatus not available');
+                return null;
+            }
+        } catch (error) {
+            console.log('❌ Error getting adapter status:', error);
+            return null;
         }
     }
 }
