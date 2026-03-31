@@ -193,42 +193,21 @@ class AdManager {
         }
 
         try {
-            // Import the module again to get the latest reference
-            const GoogleMobileAdsModule = require('react-native-google-mobile-ads');
-
-            // Try to initialize Mobile Ads SDK and get initialization status
+            // Step 1: UMP Consent flow (must run before initializing ads)
             try {
-                const MobileAds = GoogleMobileAdsModule.default || GoogleMobileAdsModule.MobileAds || mobileAds;
-                
-                if (MobileAds && typeof MobileAds.initialize === 'function') {
-                    console.log('🔄 Initializing Mobile Ads SDK...');
-                    await MobileAds.initialize();
-                    console.log('✅ Mobile Ads SDK initialized');
+                const consentInfo = await AdsConsent.requestInfoUpdate();
+                console.log('📋 Consent status:', consentInfo.status);
 
-                    // Get adapter initialization status
-                    if (typeof MobileAds.getInitializationStatus === 'function') {
-                        const initializationStatus = await MobileAds.getInitializationStatus();
-                        console.log('📊 Mediation Adapter Status:');
-                        console.log(JSON.stringify(initializationStatus, null, 2));
-                        
-                        // Log each adapter status
-                        if (initializationStatus && initializationStatus.adapterStatuses) {
-                            Object.keys(initializationStatus.adapterStatuses).forEach(adapterName => {
-                                const status = initializationStatus.adapterStatuses[adapterName];
-                                const statusIcon = status.state === 'READY' ? '✅' : '❌';
-                                console.log(`${statusIcon} ${adapterName}: ${status.state} - ${status.description || 'No description'}`);
-                            });
-                        }
-                    }
-                } else {
-                    console.log('⚠️ MobileAds.initialize not available, using auto-initialization');
+                if (consentInfo.isConsentFormAvailable) {
+                    const { status } = await AdsConsent.loadAndShowConsentFormIfRequired();
+                    console.log('📋 Consent form result:', status);
                 }
-            } catch (initError) {
-                console.log('⚠️ Initialize method failed, continuing with auto-init:', initError.message);
+            } catch (consentError) {
+                console.log('⚠️ Consent flow error (continuing):', consentError);
             }
 
-            // For react-native-google-mobile-ads v15.x, components work without explicit initialization
-            // The SDK will auto-initialize when first component is used
+            // Step 2: Configure and initialize GMA SDK
+            await mobileAds().initialize();
             console.log('✅ Google Mobile Ads module is ready');
 
             this.isInitialized = true;
